@@ -1002,3 +1002,65 @@ function MyClipsView({ clips, devices }) {
     </div>
   );
 }
+="absolute inset-0 flex items-center justify-center bg-black/30"><Play className="w-8 h-8 text-white" /></div>
+                <div className="absolute bottom-1 right-1 px-1.5 py-0.5 bg-black/70 rounded text-[10px] text-white">{clip.duration}</div>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2"><Camera className="w-4 h-4 text-gray-500" /><span className="text-sm font-medium text-white">{clip.device}</span></div>
+                <p className="text-xs text-gray-400 mt-1">{clip.time}</p>
+                <div className="flex items-center gap-3 mt-2">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold" style={{ backgroundColor: `${classificationOptions.find(o => o.id === clip.type)?.color}20`, color: classificationOptions.find(o => o.id === clip.type)?.color }}>{clip.type}</span>
+                  <span className="text-xs text-gray-500">{clip.confidence}% confidence</span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button className="p-2 hover:bg-white/10 rounded-lg" onClick={e => e.stopPropagation()}><Download className="w-4 h-4 text-gray-400" /></button>
+                <button className="p-2 hover:bg-white/10 rounded-lg" onClick={e => e.stopPropagation()}><Share2 className="w-4 h-4 text-gray-400" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredClips.map(clip => (
+            <div key={clip.id} onClick={() => setSelectedClip(clip)} className="bg-white/5 rounded-2xl overflow-hidden border border-transparent hover:border-green-500/30 cursor-pointer">
+              <div className="aspect-video bg-black relative">
+                <img src={`https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`} alt="Clip" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30"><div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center hover:bg-green-500/30"><Play className="w-5 h-5 text-white ml-0.5" /></div></div>
+                <div className="absolute top-2 left-2 px-2 py-1 rounded text-[10px] font-bold" style={{ backgroundColor: `${classificationOptions.find(o => o.id === clip.type)?.color}33`, color: classificationOptions.find(o => o.id === clip.type)?.color }}>{clip.type}</div>
+                <div className="absolute bottom-2 right-2 px-2 py-1 bg-black/60 rounded text-[10px] text-white">{clip.duration}</div>
+              </div>
+              <div className="p-4">
+                <div className="flex items-center gap-2"><Camera className="w-4 h-4 text-gray-500" /><span className="text-sm text-white">{clip.device}</span></div>
+                <p className="text-xs text-gray-400 mt-1">{clip.time}</p>
+                <div className="flex items-center justify-between mt-2"><span className="text-xs text-gray-500">Confidence</span><span className={`text-xs font-semibold ${clip.confidence >= 80 ? 'text-green-400' : 'text-yellow-400'}`}>{clip.confidence}%</span></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {selectedClip && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSelectedClip(null)}>
+          <div className="bg-[#141414] rounded-2xl border border-green-500/20 w-full max-w-3xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-800">
+              <div><h3 className="font-semibold text-white">{selectedClip.device}</h3><p className="text-xs text-gray-400">{selectedClip.time}</p></div>
+              <button onClick={() => setSelectedClip(null)} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <div className="aspect-video bg-black"><iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&rel=0`} className="w-full h-full" allow="autoplay" allowFullScreen title="Clip" /></div>
+            <div className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className="px-3 py-1 rounded-lg text-sm font-semibold" style={{ backgroundColor: `${classificationOptions.find(o => o.id === selectedClip.type)?.color}20`, color: classificationOptions.find(o => o.id === selectedClip.type)?.color }}>{selectedClip.type}</span>
+                <span className="text-sm text-gray-400">{selectedClip.confidence}% confidence</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button className="px-4 py-2 bg-white/5 rounded-lg text-sm text-gray-300 hover:bg-white/10 flex items-center gap-2"><Download className="w-4 h-4" />Download</button>
+                <button className="px-4 py-2 bg-white/5 rounded-lg text-sm text-gray-300 hover:bg-white/10 flex items-center gap-2"><Share2 className="w-4 h-4" />Share</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
