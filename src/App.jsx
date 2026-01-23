@@ -1,19 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { Camera, TrendingUp, Users, Bell, Search, Play, Eye, Zap, Globe, Shield, Radio, Wifi, AlertTriangle, MapPin, Grid, List, ThumbsUp, MessageCircle, Share2, Download, Plus, Minus } from 'lucide-react';
 import logo from './logo.png';
+import cameraImg from './camera.png';
 
 const mockDevices = [
-  { id: 1, name: 'Rooftop Alpha', location: 'San Francisco, CA', status: 'online', detections: 127, signal: 98, lat: 37.7749, lng: -122.4194 },
-  { id: 2, name: 'Observatory Beta', location: 'Denver, CO', status: 'online', detections: 89, signal: 92, lat: 39.7392, lng: -104.9903 },
-  { id: 3, name: 'Station Gamma', location: 'Austin, TX', status: 'offline', detections: 203, signal: 0, lat: 30.2672, lng: -97.7431 },
-  { id: 4, name: 'Outpost Delta', location: 'Seattle, WA', status: 'online', detections: 56, signal: 87, lat: 47.6062, lng: -122.3321 },
+  { id: 1, name: 'Rooftop Alpha', location: 'San Francisco, CA', status: 'online', detections: 127, signal: 98, lat: 37.7749, lng: -122.4194, serial: 'SKY-2024-0847-A1' },
+  { id: 2, name: 'Observatory Beta', location: 'Denver, CO', status: 'online', detections: 89, signal: 92, lat: 39.7392, lng: -104.9903, serial: 'SKY-2024-1293-B2' },
+  { id: 3, name: 'Station Gamma', location: 'Austin, TX', status: 'offline', detections: 203, signal: 0, lat: 30.2672, lng: -97.7431, serial: 'SKY-2024-0156-C3' },
+  { id: 4, name: 'Outpost Delta', location: 'Seattle, WA', status: 'online', detections: 56, signal: 87, lat: 47.6062, lng: -122.3321, serial: 'SKY-2024-2048-D4' },
 ];
 
 const mockClips = [
-  { id: 1, title: 'Unidentified Object - High Speed', location: 'Phoenix, AZ', timestamp: '2 min ago', views: 12400, classification: 'UAP', confidence: 87, verified: true, likes: 892, comments: 234 },
-  { id: 2, title: 'Formation - 3 Objects', location: 'Miami, FL', timestamp: '15 min ago', views: 8900, classification: 'Under Review', confidence: 0, verified: false, likes: 456, comments: 123 },
-  { id: 3, title: 'Drone Swarm Detected', location: 'Las Vegas, NV', timestamp: '1 hour ago', views: 5600, classification: 'Drone', confidence: 96, verified: true, likes: 234, comments: 67 },
-  { id: 4, title: 'Night Sky Anomaly', location: 'Chicago, IL', timestamp: '3 hours ago', views: 21000, classification: 'UAP', confidence: 72, verified: true, likes: 1567, comments: 445 },
+  { id: 1, title: 'Unidentified Object - High Speed', location: 'Phoenix, AZ', timestamp: '2 min ago', views: 12400, classification: 'UAP', confidence: 87, verified: true, likes: 892, comments: 234, videoId: 'cKzCPJdMdvY' },
+  { id: 2, title: 'Formation - 3 Objects', location: 'Miami, FL', timestamp: '15 min ago', views: 8900, classification: 'Under Review', confidence: 0, verified: false, likes: 456, comments: 123, videoId: 'SKsLK_Na7iw' },
+  { id: 3, title: 'Drone Swarm Detected', location: 'Las Vegas, NV', timestamp: '1 hour ago', views: 5600, classification: 'Drone', confidence: 96, verified: true, likes: 234, comments: 67, videoId: 'c1Y_d0Lp3Iw' },
+  { id: 4, title: 'Night Sky Anomaly', location: 'Chicago, IL', timestamp: '3 hours ago', views: 21000, classification: 'UAP', confidence: 72, verified: true, likes: 1567, comments: 445, videoId: 'bDp5xHokJFE' },
 ];
 
 const mockSightings = [
@@ -132,7 +133,6 @@ function GlobalMapView({ sightings, devices }) {
   const [mapLayer, setMapLayer] = useState('sightings');
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const mapRef = useRef(null);
 
   const handleMouseDown = (e) => {
     setIsDragging(true);
@@ -152,10 +152,7 @@ function GlobalMapView({ sightings, devices }) {
   };
 
   const handleMouseUp = () => setIsDragging(false);
-
-  const handleZoom = (delta) => {
-    setZoom(prev => Math.max(1, Math.min(12, prev + delta)));
-  };
+  const handleZoom = (delta) => setZoom(prev => Math.max(1, Math.min(12, prev + delta)));
 
   const latLngToXY = (lat, lng) => {
     const x = ((lng - mapCenter.lng) * zoom * 8 + 50);
@@ -166,54 +163,27 @@ function GlobalMapView({ sightings, devices }) {
   return (
     <div className="h-full flex">
       <div className="flex-1 relative overflow-hidden">
-        {/* Dark themed map background */}
-        <div 
-          ref={mapRef}
-          className="absolute inset-0 bg-gray-900 cursor-grab active:cursor-grabbing select-none"
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-        >
-          {/* Map tiles using dark CartoDB tiles */}
+        <div className="absolute inset-0 bg-gray-900 cursor-grab active:cursor-grabbing select-none"
+          onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
           <div className="absolute inset-0" style={{ 
             backgroundImage: `url(https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/${Math.floor(zoom)}/${Math.floor((mapCenter.lng + 180) / 360 * Math.pow(2, Math.floor(zoom)))}/${Math.floor((1 - Math.log(Math.tan(mapCenter.lat * Math.PI / 180) + 1 / Math.cos(mapCenter.lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, Math.floor(zoom)))}.png)`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            filter: 'brightness(0.8) saturate(0.8)'
+            backgroundSize: 'cover', backgroundPosition: 'center', filter: 'brightness(0.8) saturate(0.8)'
           }} />
-          
-          {/* Grid overlay */}
           <svg className="absolute inset-0 w-full h-full opacity-20 pointer-events-none">
-            <defs>
-              <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-                <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(34,197,94,0.3)" strokeWidth="0.5"/>
-              </pattern>
-            </defs>
+            <defs><pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(34,197,94,0.3)" strokeWidth="0.5"/></pattern></defs>
             <rect width="100%" height="100%" fill="url(#grid)" />
           </svg>
 
-          {/* Sightings markers */}
           {mapLayer === 'sightings' && sightings.map((sighting) => {
             const pos = latLngToXY(sighting.lat, sighting.lng);
             return (
-              <div
-                key={sighting.id}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group z-10"
-                style={{ left: pos.x, top: pos.y }}
-                onClick={(e) => { e.stopPropagation(); setSelectedSighting(sighting); }}
-              >
+              <div key={sighting.id} className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group z-10"
+                style={{ left: pos.x, top: pos.y }} onClick={(e) => { e.stopPropagation(); setSelectedSighting(sighting); }}>
                 <div className="absolute w-12 h-12 -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2 rounded-full animate-ping opacity-30"
-                  style={{ 
-                    backgroundColor: sighting.type === 'UAP' ? 'rgba(168,85,247,0.5)' : sighting.type === 'Drone' ? 'rgba(59,130,246,0.5)' : 'rgba(34,197,94,0.5)',
-                    animationDuration: '2s' 
-                  }} 
-                />
+                  style={{ backgroundColor: sighting.type === 'UAP' ? 'rgba(168,85,247,0.5)' : sighting.type === 'Drone' ? 'rgba(59,130,246,0.5)' : 'rgba(34,197,94,0.5)', animationDuration: '2s' }} />
                 <div className={`relative w-4 h-4 rounded-full border-2 transition-transform group-hover:scale-150 ${
-                  sighting.type === 'UAP' ? 'border-purple-400 bg-purple-500 shadow-purple-500/50' : 
-                  sighting.type === 'Drone' ? 'border-blue-400 bg-blue-500 shadow-blue-500/50' : 
-                  'border-green-400 bg-green-500 shadow-green-500/50'
-                }`} style={{ boxShadow: `0 0 20px currentColor` }} />
+                  sighting.type === 'UAP' ? 'border-purple-400 bg-purple-500' : sighting.type === 'Drone' ? 'border-blue-400 bg-blue-500' : 'border-green-400 bg-green-500'
+                }`} style={{ boxShadow: '0 0 20px currentColor' }} />
                 <div className="absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                   <div className="bg-gray-900/95 px-3 py-2 rounded-lg text-xs border border-green-500/30 shadow-xl">
                     <div className="font-semibold text-white">{sighting.city}</div>
@@ -224,15 +194,10 @@ function GlobalMapView({ sightings, devices }) {
             );
           })}
 
-          {/* Device markers */}
           {mapLayer === 'devices' && devices.map((device) => {
             const pos = latLngToXY(device.lat, device.lng);
             return (
-              <div
-                key={device.id}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group z-10"
-                style={{ left: pos.x, top: pos.y }}
-              >
+              <div key={device.id} className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group z-10" style={{ left: pos.x, top: pos.y }}>
                 <div className={`relative w-6 h-6 rounded-lg flex items-center justify-center ${device.status === 'online' ? 'bg-green-500' : 'bg-red-500'}`}>
                   <Camera className="w-3 h-3 text-white" />
                 </div>
@@ -248,7 +213,6 @@ function GlobalMapView({ sightings, devices }) {
           })}
         </div>
 
-        {/* Map controls */}
         <div className="absolute top-4 left-4 flex flex-col gap-2 z-20">
           <div className="bg-gray-900/90 backdrop-blur rounded-lg border border-green-500/20 p-1 flex gap-1">
             {['sightings', 'devices', 'heat'].map((layer) => (
@@ -259,86 +223,46 @@ function GlobalMapView({ sightings, devices }) {
           </div>
         </div>
 
-        {/* Zoom controls */}
         <div className="absolute top-4 right-4 flex flex-col gap-1 z-20">
-          <button onClick={() => handleZoom(1)} className="w-10 h-10 bg-gray-900/90 backdrop-blur border border-green-500/20 rounded-lg flex items-center justify-center text-white hover:bg-gray-800 transition-colors">
-            <Plus className="w-5 h-5" />
-          </button>
-          <button onClick={() => handleZoom(-1)} className="w-10 h-10 bg-gray-900/90 backdrop-blur border border-green-500/20 rounded-lg flex items-center justify-center text-white hover:bg-gray-800 transition-colors">
-            <Minus className="w-5 h-5" />
-          </button>
+          <button onClick={() => handleZoom(1)} className="w-10 h-10 bg-gray-900/90 backdrop-blur border border-green-500/20 rounded-lg flex items-center justify-center text-white hover:bg-gray-800"><Plus className="w-5 h-5" /></button>
+          <button onClick={() => handleZoom(-1)} className="w-10 h-10 bg-gray-900/90 backdrop-blur border border-green-500/20 rounded-lg flex items-center justify-center text-white hover:bg-gray-800"><Minus className="w-5 h-5" /></button>
         </div>
 
-        {/* Legend */}
         <div className="absolute bottom-4 left-4 bg-gray-900/90 backdrop-blur rounded-lg border border-green-500/20 p-3 z-20">
           <h4 className="text-xs font-semibold text-gray-400 mb-2">LEGEND</h4>
           <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-purple-500" />
-              <span className="text-xs text-gray-300">UAP Sighting</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500" />
-              <span className="text-xs text-gray-300">Drone Activity</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-green-500" />
-              <span className="text-xs text-gray-300">Aircraft/Other</span>
-            </div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-purple-500" /><span className="text-xs text-gray-300">UAP Sighting</span></div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500" /><span className="text-xs text-gray-300">Drone Activity</span></div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-green-500" /><span className="text-xs text-gray-300">Aircraft/Other</span></div>
           </div>
         </div>
 
-        {/* Coordinates display */}
         <div className="absolute bottom-4 right-4 bg-gray-900/90 backdrop-blur rounded-lg border border-green-500/20 px-3 py-2 z-20">
-          <div className="text-xs font-mono text-green-400">
-            {mapCenter.lat.toFixed(4)}°N, {Math.abs(mapCenter.lng).toFixed(4)}°W
-          </div>
+          <div className="text-xs font-mono text-green-400">{mapCenter.lat.toFixed(4)}°N, {Math.abs(mapCenter.lng).toFixed(4)}°W</div>
           <div className="text-xs text-gray-500">Zoom: {zoom}x</div>
         </div>
 
-        {/* Selected sighting panel */}
         {selectedSighting && (
           <div className="absolute top-20 left-4 w-72 bg-gray-900/95 backdrop-blur rounded-xl border border-green-500/20 p-4 z-30 shadow-2xl">
             <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="font-semibold text-white">{selectedSighting.city}</h3>
-                <p className="text-xs text-gray-400">{selectedSighting.time}</p>
-              </div>
+              <div><h3 className="font-semibold text-white">{selectedSighting.city}</h3><p className="text-xs text-gray-400">{selectedSighting.time}</p></div>
               <button onClick={() => setSelectedSighting(null)} className="text-gray-400 hover:text-white">×</button>
             </div>
-            <div className={`inline-block px-2 py-1 rounded text-xs font-bold ${
-              selectedSighting.type === 'UAP' ? 'bg-purple-500/20 text-purple-400' : 
-              selectedSighting.type === 'Drone' ? 'bg-blue-500/20 text-blue-400' : 
-              'bg-green-500/20 text-green-400'
-            }`}>{selectedSighting.type}</div>
+            <div className={`inline-block px-2 py-1 rounded text-xs font-bold ${selectedSighting.type === 'UAP' ? 'bg-purple-500/20 text-purple-400' : selectedSighting.type === 'Drone' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'}`}>{selectedSighting.type}</div>
             <div className="mt-3 pt-3 border-t border-gray-800">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-400">Confidence</span>
-                <span className="text-green-400">{Math.round(selectedSighting.intensity * 100)}%</span>
-              </div>
-              <div className="mt-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full" style={{ width: `${selectedSighting.intensity * 100}%` }} />
-              </div>
+              <div className="flex items-center justify-between text-xs"><span className="text-gray-400">Confidence</span><span className="text-green-400">{Math.round(selectedSighting.intensity * 100)}%</span></div>
+              <div className="mt-1 h-1.5 bg-gray-800 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full" style={{ width: `${selectedSighting.intensity * 100}%` }} /></div>
             </div>
-            <button className="w-full mt-3 py-2 bg-green-500/20 text-green-400 rounded-lg text-xs font-medium hover:bg-green-500/30 transition-colors">
-              View Full Report
-            </button>
+            <button className="w-full mt-3 py-2 bg-green-500/20 text-green-400 rounded-lg text-xs font-medium hover:bg-green-500/30">View Full Report</button>
           </div>
         )}
       </div>
 
-      {/* Activity Feed Sidebar */}
       <div className="w-72 border-l border-green-500/10 bg-gray-950/80 overflow-y-auto flex-shrink-0">
-        <div className="p-3 border-b border-green-500/10">
-          <h3 className="text-sm font-semibold text-white flex items-center gap-2"><Radio className="w-4 h-4 text-green-400" />Live Activity Feed</h3>
-        </div>
+        <div className="p-3 border-b border-green-500/10"><h3 className="text-sm font-semibold text-white flex items-center gap-2"><Radio className="w-4 h-4 text-green-400" />Live Activity Feed</h3></div>
         <div className="p-3 space-y-2">
           {sightings.slice(0, 6).map((sighting) => (
-            <div 
-              key={sighting.id} 
-              className="p-3 bg-white/5 rounded-lg border border-transparent hover:border-green-500/30 cursor-pointer transition-all"
-              onClick={() => setSelectedSighting(sighting)}
-            >
+            <div key={sighting.id} className="p-3 bg-white/5 rounded-lg border border-transparent hover:border-green-500/30 cursor-pointer transition-all" onClick={() => setSelectedSighting(sighting)}>
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
                   <Eye className={`w-4 h-4 ${sighting.type === 'UAP' ? 'text-purple-400' : sighting.type === 'Drone' ? 'text-blue-400' : 'text-green-400'}`} />
@@ -348,9 +272,7 @@ function GlobalMapView({ sightings, devices }) {
               </div>
               <div className="mt-2 flex items-center justify-between">
                 <span className="text-sm text-white">{sighting.type} detected</span>
-                <span className={`text-xs px-2 py-0.5 rounded ${sighting.intensity >= 0.8 ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                  {Math.round(sighting.intensity * 100)}%
-                </span>
+                <span className={`text-xs px-2 py-0.5 rounded ${sighting.intensity >= 0.8 ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>{Math.round(sighting.intensity * 100)}%</span>
               </div>
             </div>
           ))}
@@ -364,10 +286,7 @@ function DevicesView({ devices }) {
   return (
     <div className="h-full p-5 overflow-y-auto">
       <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-2xl font-bold text-white">My Devices</h2>
-          <p className="text-sm text-gray-400 mt-1">Manage your Skeye camera network</p>
-        </div>
+        <div><h2 className="text-2xl font-bold text-white">My Devices</h2><p className="text-sm text-gray-400 mt-1">Manage your Skeye camera network</p></div>
         <button className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 rounded-lg text-sm font-semibold hover:shadow-lg hover:shadow-green-500/30 transition-all">+ Add Device</button>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -378,13 +297,14 @@ function DevicesView({ devices }) {
               {device.status === 'online' ? 'Live' : 'Offline'}
             </div>
             <div className="flex items-start gap-4">
-              <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center relative overflow-hidden">
-                <Camera className="w-8 h-8 text-gray-600" />
+              <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center relative overflow-hidden p-2">
+                <img src={cameraImg} alt="SKEYE Camera" className="w-full h-full object-contain" />
                 {device.status === 'online' && <div className="absolute inset-0 bg-gradient-to-t from-green-500/20 to-transparent" />}
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold text-white group-hover:text-green-400 transition-colors">{device.name}</h3>
                 <p className="text-sm text-gray-400 flex items-center gap-1 mt-1"><MapPin className="w-3 h-3" />{device.location}</p>
+                <p className="text-xs text-gray-500 font-mono mt-1">S/N: {device.serial}</p>
                 <div className="flex items-center gap-4 mt-3">
                   <div className="flex items-center gap-1">
                     <Wifi className={`w-4 h-4 ${device.signal > 80 ? 'text-green-400' : 'text-yellow-400'}`} />
@@ -392,7 +312,7 @@ function DevicesView({ devices }) {
                   </div>
                   <div className="flex items-center gap-1">
                     <Eye className="w-4 h-4 text-green-400" />
-                    <span className="text-xs text-gray-400">{device.detections}</span>
+                    <span className="text-xs text-gray-400">{device.detections} detections</span>
                   </div>
                 </div>
               </div>
@@ -416,10 +336,7 @@ function TrendingView({ clips, selectedClip, setSelectedClip, viewMode, setViewM
     <div className="h-full flex">
       <div className="flex-1 p-5 overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
-          <div>
-            <h2 className="text-2xl font-bold text-white">Trending Clips</h2>
-            <p className="text-sm text-gray-400 mt-1">Latest verified footage from the network</p>
-          </div>
+          <div><h2 className="text-2xl font-bold text-white">Trending Clips</h2><p className="text-sm text-gray-400 mt-1">Latest verified footage from the network</p></div>
           <div className="flex items-center gap-2">
             <div className="flex items-center bg-white/5 rounded-lg p-1">
               {[{ id: 'all', label: 'All' }, { id: 'uap', label: 'UAP' }, { id: 'verified', label: 'Verified' }].map((f) => (
@@ -435,8 +352,9 @@ function TrendingView({ clips, selectedClip, setSelectedClip, viewMode, setViewM
         <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'}>
           {filteredClips.map((clip) => (
             <div key={clip.id} onClick={() => setSelectedClip(clip)} className={`group cursor-pointer rounded-2xl border border-transparent hover:border-green-500/30 bg-white/5 overflow-hidden transition-all ${viewMode === 'list' ? 'flex items-center gap-4 p-4' : ''}`}>
-              <div className={`relative bg-gradient-to-br from-gray-800 to-gray-900 ${viewMode === 'grid' ? 'aspect-video' : 'w-44 h-24'} flex-shrink-0`}>
-                <div className="absolute inset-0 flex items-center justify-center">
+              <div className={`relative bg-black ${viewMode === 'grid' ? 'aspect-video' : 'w-44 h-24'} flex-shrink-0 overflow-hidden`}>
+                <img src={`https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`} alt={clip.title} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                   <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center group-hover:bg-green-500/30 transition-colors"><Play className="w-5 h-5 text-white ml-0.5" /></div>
                 </div>
                 <div className={`absolute top-2 left-2 px-2 py-1 rounded text-[10px] font-bold uppercase ${clip.classification === 'UAP' ? 'bg-purple-500 text-white' : clip.classification === 'Drone' ? 'bg-blue-500 text-white' : 'bg-yellow-500 text-black'}`}>{clip.classification}</div>
@@ -457,16 +375,20 @@ function TrendingView({ clips, selectedClip, setSelectedClip, viewMode, setViewM
         </div>
       </div>
       {selectedClip && (
-        <div className="w-80 border-l border-green-500/10 bg-gray-950/80 overflow-y-auto">
+        <div className="w-96 border-l border-green-500/10 bg-gray-950/80 overflow-y-auto">
           <div className="p-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-white">Clip Details</h3>
               <button onClick={() => setSelectedClip(null)} className="text-gray-400 hover:text-white text-xl">×</button>
             </div>
-            <div className="aspect-video bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl relative mb-4">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <button className="w-14 h-14 rounded-full bg-green-500/20 flex items-center justify-center hover:bg-green-500/30 transition-colors"><Play className="w-6 h-6 text-green-400 ml-0.5" /></button>
-              </div>
+            <div className="aspect-video bg-black rounded-xl relative mb-4 overflow-hidden">
+              <iframe 
+                src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=0&rel=0`}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title={selectedClip.title}
+              />
             </div>
             <h4 className="font-semibold text-white">{selectedClip.title}</h4>
             <p className="text-sm text-gray-400 mt-1">{selectedClip.location} • {selectedClip.timestamp}</p>
@@ -511,17 +433,14 @@ function ClassifyView({ selectedClassification, setSelectedClassification }) {
           </div>
         </div>
         <div className="bg-gradient-to-br from-white/5 to-transparent rounded-2xl border border-green-500/20 overflow-hidden">
-          <div className="aspect-video bg-gradient-to-br from-gray-800 to-gray-900 relative">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <button className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center hover:bg-green-500/30 transition-colors group"><Play className="w-9 h-9 text-green-400 ml-1 group-hover:scale-110 transition-transform" /></button>
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-              <div className="flex items-center gap-4 text-white">
-                <Play className="w-5 h-5" />
-                <div className="flex-1 h-1 bg-gray-600 rounded-full"><div className="w-1/4 h-full bg-green-400 rounded-full" /></div>
-                <span className="text-xs">0:08 / 0:32</span>
-              </div>
-            </div>
+          <div className="aspect-video bg-black relative overflow-hidden">
+            <iframe 
+              src="https://www.youtube.com/embed/bDp5xHokJFE?autoplay=0&rel=0"
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title="Classify this footage"
+            />
             <div className="absolute top-4 right-4 bg-yellow-500 text-black px-3 py-1 rounded-lg text-xs font-bold">NEEDS REVIEW</div>
           </div>
           <div className="p-6">
