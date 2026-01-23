@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Camera, TrendingUp, Users, Bell, Search, Play, Eye, Zap, Globe, Shield, Radio, Wifi, AlertTriangle, MapPin, Grid, List, ThumbsUp, MessageCircle, Share2, Download, Plus, Minus, X, Settings, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, Pause, Volume2, VolumeX, Save, Trash2, RefreshCw } from 'lucide-react';
+import { Camera, TrendingUp, Users, Bell, Search, Play, Eye, Zap, Globe, Shield, Radio, Wifi, AlertTriangle, MapPin, Grid, List, ThumbsUp, MessageCircle, Share2, Download, Plus, Minus, X, Settings, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, Pause, Volume2, VolumeX, Save, Trash2, RefreshCw, Circle, Target, Crosshair } from 'lucide-react';
 import logo from './logo.png';
 import cameraImg from './camera.png';
 
@@ -10,11 +10,20 @@ const mockDevices = [
   { id: 4, name: 'Beach House (Roof)', location: 'San Diego, CA', status: 'online', detections: 56, signal: 87, lat: 32.7157, lng: -117.1611, serial: 'SKY-2024-2048-D4' },
 ];
 
+// Using official Pentagon UAP videos and other verified UFO footage
 const mockClips = [
-  { id: 1, title: 'Unidentified Object - High Speed', location: 'Phoenix, AZ', timestamp: '2 min ago', views: 12400, classification: 'UAP', confidence: 87, verified: true, likes: 892, comments: 234, videoId: 'cKzCPJdMdvY' },
-  { id: 2, title: 'Formation - 3 Objects', location: 'Miami, FL', timestamp: '15 min ago', views: 8900, classification: 'Under Review', confidence: 0, verified: false, likes: 456, comments: 123, videoId: 'SKsLK_Na7iw' },
-  { id: 3, title: 'Drone Swarm Detected', location: 'Las Vegas, NV', timestamp: '1 hour ago', views: 5600, classification: 'Drone', confidence: 96, verified: true, likes: 234, comments: 67, videoId: 'c1Y_d0Lp3Iw' },
-  { id: 4, title: 'Night Sky Anomaly', location: 'Chicago, IL', timestamp: '3 hours ago', views: 21000, classification: 'UAP', confidence: 72, verified: true, likes: 1567, comments: 445, videoId: 'bDp5xHokJFE' },
+  { id: 1, title: 'GIMBAL - Navy F/A-18 Encounter', location: 'East Coast, USA', timestamp: '2 min ago', views: 12400, classification: 'UAP', confidence: 87, verified: true, likes: 892, comments: 234, videoId: 'QKHg-vnTFsM' },
+  { id: 2, title: 'GO FAST - High Speed Object', location: 'Atlantic Ocean', timestamp: '15 min ago', views: 8900, classification: 'UAP', confidence: 91, verified: true, likes: 456, comments: 123, videoId: 'u1hNYs55sqs' },
+  { id: 3, title: 'FLIR1 Tic Tac - USS Nimitz', location: 'San Diego, CA', timestamp: '1 hour ago', views: 25600, classification: 'UAP', confidence: 96, verified: true, likes: 1834, comments: 567, videoId: '2TumprpOwHY' },
+  { id: 4, title: 'Jellyfish UAP - Iraq 2018', location: 'Iraq', timestamp: '3 hours ago', views: 21000, classification: 'UAP', confidence: 72, verified: true, likes: 1567, comments: 445, videoId: 'dGOXuuhYoLk' },
+];
+
+const classifyClips = [
+  { id: 1, videoId: 'QKHg-vnTFsM', title: 'Rotating Object - East Coast' },
+  { id: 2, videoId: 'u1hNYs55sqs', title: 'High Speed Target - Atlantic' },
+  { id: 3, videoId: '2TumprpOwHY', title: 'Tic Tac Shape - Pacific' },
+  { id: 4, videoId: 'dGOXuuhYoLk', title: 'Unknown Object - Middle East' },
+  { id: 5, videoId: 'SpeSpA3e56A', title: 'Night Vision Capture - Nevada' },
 ];
 
 const mockSightings = [
@@ -28,7 +37,15 @@ const mockSightings = [
   { id: 8, lat: 47.6062, lng: -122.3321, type: 'UAP', intensity: 0.75, city: 'Seattle', time: '4 min ago' },
 ];
 
-const classificationOptions = ['UAP', 'Drone', 'Aircraft', 'Satellite', 'Bird', 'Weather', 'Unknown'];
+const classificationOptions = [
+  { id: 'UAP', label: 'UAP', desc: 'Unidentified Aerial Phenomena' },
+  { id: 'Drone', label: 'Drone', desc: 'Commercial or Military Drone' },
+  { id: 'Aircraft', label: 'Aircraft', desc: 'Conventional Aircraft' },
+  { id: 'Satellite', label: 'Satellite', desc: 'Orbital Object' },
+  { id: 'Bird', label: 'Bird', desc: 'Avian Wildlife' },
+  { id: 'Weather', label: 'Weather', desc: 'Atmospheric Phenomenon' },
+  { id: 'Unknown', label: 'Unknown', desc: 'Cannot Determine' },
+];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('map');
@@ -76,7 +93,6 @@ export default function App() {
             </div>
             <div className="h-4 w-px bg-gray-700" />
             <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-yellow-400" />
               <span className="text-sm font-mono text-green-400">{totalDetections.toLocaleString()}</span>
               <span className="text-xs text-gray-500">detections</span>
             </div>
@@ -116,7 +132,7 @@ export default function App() {
           {activeTab === 'map' && <GlobalMapView sightings={mockSightings} devices={mockDevices} />}
           {activeTab === 'devices' && <DevicesView devices={mockDevices} />}
           {activeTab === 'trending' && <TrendingView clips={mockClips} selectedClip={selectedClip} setSelectedClip={setSelectedClip} viewMode={viewMode} setViewMode={setViewMode} />}
-          {activeTab === 'classify' && <ClassifyView selectedClassification={selectedClassification} setSelectedClassification={setSelectedClassification} />}
+          {activeTab === 'classify' && <ClassifyView />}
           {activeTab === 'community' && <CommunityView />}
         </main>
       </div>
@@ -285,15 +301,11 @@ function DevicesView({ devices }) {
         ))}
       </div>
 
-      {/* Live Feed Modal */}
       {activeModal === 'feed' && selectedDevice && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeModal}>
           <div className="bg-gray-900 rounded-2xl border border-green-500/20 w-full max-w-4xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-gray-800">
-              <div>
-                <h3 className="font-semibold text-white">{selectedDevice.name} - Live Feed</h3>
-                <p className="text-xs text-gray-400">{selectedDevice.location}</p>
-              </div>
+              <div><h3 className="font-semibold text-white">{selectedDevice.name} - Live Feed</h3><p className="text-xs text-gray-400">{selectedDevice.location}</p></div>
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-2 px-3 py-1 bg-red-500/20 rounded-full"><div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" /><span className="text-xs text-red-400">REC</span></div>
                 <button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button>
@@ -301,11 +313,7 @@ function DevicesView({ devices }) {
             </div>
             <div className="aspect-video bg-black relative">
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center">
-                  <Camera className="w-16 h-16 text-gray-700 mx-auto mb-4" />
-                  <p className="text-gray-500">Live feed streaming...</p>
-                  <p className="text-xs text-gray-600 mt-1">Demo mode - Connect camera for live view</p>
-                </div>
+                <div className="text-center"><Camera className="w-16 h-16 text-gray-700 mx-auto mb-4" /><p className="text-gray-500">Live feed streaming...</p><p className="text-xs text-gray-600 mt-1">Demo mode - Connect camera for live view</p></div>
               </div>
               <div className="absolute top-4 left-4 bg-black/60 px-2 py-1 rounded text-xs text-white font-mono">{new Date().toLocaleTimeString()}</div>
               <div className="absolute top-4 right-4 bg-black/60 px-2 py-1 rounded text-xs text-green-400">1080p • 30fps</div>
@@ -336,7 +344,6 @@ function DevicesView({ devices }) {
         </div>
       )}
 
-      {/* Settings Modal */}
       {activeModal === 'settings' && selectedDevice && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeModal}>
           <div className="bg-gray-900 rounded-2xl border border-green-500/20 w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
@@ -344,40 +351,15 @@ function DevicesView({ devices }) {
               <div className="flex items-center gap-3"><Settings className="w-5 h-5 text-green-400" /><h3 className="font-semibold text-white">Device Settings</h3></div>
               <button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button>
             </div>
-            <div className="p-4 space-y-4">
-              <div>
-                <label className="block text-xs text-gray-400 mb-2">Device Name</label>
-                <input type="text" defaultValue={selectedDevice.name} className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-2">Location</label>
-                <input type="text" defaultValue={selectedDevice.location} className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-2">WiFi Network</label>
-                <input type="text" defaultValue="SKEYE_Network_5G" className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-400 mb-2">WiFi Password</label>
-                <input type="password" defaultValue="••••••••••" className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" />
-              </div>
-              <div className="pt-2">
-                <label className="block text-xs text-gray-400 mb-2">Detection Sensitivity</label>
-                <input type="range" min="1" max="10" defaultValue="7" className="w-full accent-green-500" />
-                <div className="flex justify-between text-xs text-gray-500 mt-1"><span>Low</span><span>High</span></div>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <div><p className="text-sm text-white">Night Vision</p><p className="text-xs text-gray-500">Auto-enable in low light</p></div>
-                <div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <div><p className="text-sm text-white">Motion Alerts</p><p className="text-xs text-gray-500">Push notifications on detection</p></div>
-                <div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <div><p className="text-sm text-white">Auto-Upload Clips</p><p className="text-xs text-gray-500">Automatically upload to cloud</p></div>
-                <div className="w-12 h-6 bg-gray-700 rounded-full relative cursor-pointer"><div className="absolute left-1 top-1 w-4 h-4 bg-gray-400 rounded-full" /></div>
-              </div>
+            <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
+              <div><label className="block text-xs text-gray-400 mb-2">Device Name</label><input type="text" defaultValue={selectedDevice.name} className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" /></div>
+              <div><label className="block text-xs text-gray-400 mb-2">Location</label><input type="text" defaultValue={selectedDevice.location} className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" /></div>
+              <div><label className="block text-xs text-gray-400 mb-2">WiFi Network</label><input type="text" defaultValue="SKEYE_Network_5G" className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" /></div>
+              <div><label className="block text-xs text-gray-400 mb-2">WiFi Password</label><input type="password" defaultValue="••••••••••" className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" /></div>
+              <div className="pt-2"><label className="block text-xs text-gray-400 mb-2">Detection Sensitivity</label><input type="range" min="1" max="10" defaultValue="7" className="w-full accent-green-500" /><div className="flex justify-between text-xs text-gray-500 mt-1"><span>Low</span><span>High</span></div></div>
+              <div className="flex items-center justify-between py-2"><div><p className="text-sm text-white">Night Vision</p><p className="text-xs text-gray-500">Auto-enable in low light</p></div><div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
+              <div className="flex items-center justify-between py-2"><div><p className="text-sm text-white">Motion Alerts</p><p className="text-xs text-gray-500">Push notifications on detection</p></div><div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
+              <div className="flex items-center justify-between py-2"><div><p className="text-sm text-white">Auto-Upload Clips</p><p className="text-xs text-gray-500">Automatically upload to cloud</p></div><div className="w-12 h-6 bg-gray-700 rounded-full relative cursor-pointer"><div className="absolute left-1 top-1 w-4 h-4 bg-gray-400 rounded-full" /></div></div>
             </div>
             <div className="p-4 border-t border-gray-800 flex items-center justify-between">
               <button className="px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"><Trash2 className="w-4 h-4" />Remove Device</button>
@@ -390,7 +372,6 @@ function DevicesView({ devices }) {
         </div>
       )}
 
-      {/* History Modal */}
       {activeModal === 'history' && selectedDevice && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeModal}>
           <div className="bg-gray-900 rounded-2xl border border-green-500/20 w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
@@ -512,32 +493,119 @@ function TrendingView({ clips, selectedClip, setSelectedClip, viewMode, setViewM
   );
 }
 
-function ClassifyView({ selectedClassification, setSelectedClassification }) {
+function ClassifyView() {
+  const [currentClipIndex, setCurrentClipIndex] = useState(0);
+  const [selectedClassification, setSelectedClassification] = useState(null);
+  const [classified, setClassified] = useState(12);
+
+  const currentClip = classifyClips[currentClipIndex];
+
+  const handleSubmit = () => {
+    if (!selectedClassification) return;
+    setClassified(prev => prev + 1);
+    setSelectedClassification(null);
+    setCurrentClipIndex(prev => (prev + 1) % classifyClips.length);
+  };
+
+  const handleSkip = () => {
+    setSelectedClassification(null);
+    setCurrentClipIndex(prev => (prev + 1) % classifyClips.length);
+  };
+
   return (
     <div className="h-full p-5 overflow-y-auto">
-      <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-white">Help Classify Footage</h2>
           <p className="text-gray-400 mt-2">Contribute to the collective intelligence</p>
-          <div className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-green-500/10 rounded-full"><span className="text-green-400 font-bold">+50 $SKEYE</span><span className="text-gray-400 text-sm">per classification</span></div>
-        </div>
-        <div className="bg-gradient-to-br from-white/5 to-transparent rounded-2xl border border-green-500/20 overflow-hidden">
-          <div className="aspect-video bg-black relative overflow-hidden">
-            <iframe src="https://www.youtube.com/embed/bDp5xHokJFE?autoplay=0&rel=0" className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Classify this footage" />
-            <div className="absolute top-4 right-4 bg-yellow-500 text-black px-3 py-1 rounded-lg text-xs font-bold">NEEDS REVIEW</div>
+          <div className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-green-500/10 rounded-full border border-green-500/20">
+            <span className="text-green-400 font-bold">+50 $SKEYE</span>
+            <span className="text-gray-400 text-sm">per classification</span>
           </div>
+        </div>
+
+        <div className="bg-gray-900/50 rounded-2xl border border-gray-800 overflow-hidden">
+          <div className="aspect-video bg-black relative">
+            <iframe 
+              key={currentClip.videoId}
+              src={`https://www.youtube.com/embed/${currentClip.videoId}?autoplay=0&rel=0&modestbranding=1`}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title={currentClip.title}
+            />
+            <div className="absolute top-4 left-4 px-3 py-1.5 bg-black/70 backdrop-blur rounded-lg border border-gray-700">
+              <span className="text-xs text-gray-400">Clip {currentClipIndex + 1} of {classifyClips.length}</span>
+            </div>
+            <div className="absolute top-4 right-4 px-3 py-1.5 bg-yellow-500/90 rounded-lg">
+              <span className="text-xs font-bold text-black">NEEDS REVIEW</span>
+            </div>
+          </div>
+
           <div className="p-6">
-            <h3 className="font-semibold text-white mb-4">What do you see?</h3>
-            <div className="grid grid-cols-4 gap-3">
-              {classificationOptions.map((option) => (<button key={option} onClick={() => setSelectedClassification(option)} className={`p-4 rounded-xl border transition-all ${selectedClassification === option ? 'border-green-500 bg-green-500/10 text-green-400' : 'border-gray-700 bg-white/5 text-gray-300 hover:border-gray-600'}`}><span className="text-2xl mb-2 block">{option === 'UAP' && '👽'}{option === 'Drone' && '🚁'}{option === 'Aircraft' && '✈️'}{option === 'Satellite' && '🛰️'}{option === 'Bird' && '🦅'}{option === 'Weather' && '⛈️'}{option === 'Unknown' && '❓'}</span><span className="text-sm font-medium">{option}</span></button>))}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Select Classification</h3>
+              <span className="text-xs text-gray-500">{currentClip.title}</span>
             </div>
-            <div className="flex items-center gap-4 mt-6">
-              <button className={`flex-1 py-3 rounded-xl font-semibold transition-all ${selectedClassification ? 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:shadow-lg hover:shadow-green-500/30' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`} disabled={!selectedClassification}>Submit Classification</button>
-              <button className="px-6 py-3 bg-white/5 rounded-xl text-gray-400 hover:bg-white/10 transition-colors">Skip</button>
+
+            <div className="grid grid-cols-7 gap-2">
+              {classificationOptions.map((option) => (
+                <button
+                  key={option.id}
+                  onClick={() => setSelectedClassification(option.id)}
+                  className={`p-3 rounded-xl border transition-all flex flex-col items-center gap-2 ${
+                    selectedClassification === option.id 
+                      ? 'border-green-500 bg-green-500/10' 
+                      : 'border-gray-700 bg-gray-800/50 hover:border-gray-600 hover:bg-gray-800'
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    selectedClassification === option.id ? 'bg-green-500/20' : 'bg-gray-700/50'
+                  }`}>
+                    {option.id === 'UAP' && <Target className={`w-5 h-5 ${selectedClassification === option.id ? 'text-green-400' : 'text-gray-400'}`} />}
+                    {option.id === 'Drone' && <Radio className={`w-5 h-5 ${selectedClassification === option.id ? 'text-green-400' : 'text-gray-400'}`} />}
+                    {option.id === 'Aircraft' && <Globe className={`w-5 h-5 ${selectedClassification === option.id ? 'text-green-400' : 'text-gray-400'}`} />}
+                    {option.id === 'Satellite' && <Circle className={`w-5 h-5 ${selectedClassification === option.id ? 'text-green-400' : 'text-gray-400'}`} />}
+                    {option.id === 'Bird' && <Eye className={`w-5 h-5 ${selectedClassification === option.id ? 'text-green-400' : 'text-gray-400'}`} />}
+                    {option.id === 'Weather' && <AlertTriangle className={`w-5 h-5 ${selectedClassification === option.id ? 'text-green-400' : 'text-gray-400'}`} />}
+                    {option.id === 'Unknown' && <Crosshair className={`w-5 h-5 ${selectedClassification === option.id ? 'text-green-400' : 'text-gray-400'}`} />}
+                  </div>
+                  <span className={`text-xs font-medium ${selectedClassification === option.id ? 'text-green-400' : 'text-gray-300'}`}>{option.label}</span>
+                </button>
+              ))}
             </div>
+
+            <div className="flex items-center gap-3 mt-6">
+              <button
+                onClick={handleSubmit}
+                disabled={!selectedClassification}
+                className={`flex-1 py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+                  selectedClassification 
+                    ? 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:shadow-lg hover:shadow-green-500/30' 
+                    : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                Submit Classification
+              </button>
+              <button 
+                onClick={handleSkip}
+                className="px-8 py-3.5 bg-gray-800 rounded-xl text-gray-400 hover:bg-gray-700 hover:text-white transition-colors font-medium"
+              >
+                Skip
+              </button>
+            </div>
+
             <div className="mt-6 pt-6 border-t border-gray-800">
-              <div className="flex items-center justify-between text-sm"><span className="text-gray-400">Your progress today</span><span className="text-green-400 font-semibold">12 / 20 clips</span></div>
-              <div className="mt-2 h-2 bg-gray-800 rounded-full overflow-hidden"><div className="w-3/5 h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full" /></div>
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="text-gray-400">Your progress today</span>
+                <span className="text-green-400 font-semibold">{classified} / 20 clips</span>
+              </div>
+              <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full transition-all duration-300" 
+                  style={{ width: `${(classified / 20) * 100}%` }} 
+                />
+              </div>
             </div>
           </div>
         </div>
