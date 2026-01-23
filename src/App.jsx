@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Camera, TrendingUp, Users, Bell, Search, Play, Eye, Zap, Globe, Shield, Radio, Wifi, AlertTriangle, MapPin, Grid, List, ThumbsUp, MessageCircle, Share2, Download, Plus, Minus, X, Settings, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, Pause, Volume2, VolumeX, Save, Trash2, RefreshCw, Circle, Target, Crosshair } from 'lucide-react';
+import { Camera, TrendingUp, Users, Bell, Search, Play, Eye, Zap, Globe, Shield, Radio, Wifi, AlertTriangle, MapPin, Grid, List, ThumbsUp, MessageCircle, Share2, Download, Plus, Minus, X, Settings, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, Volume2, Save, Trash2, Circle, Target, Crosshair } from 'lucide-react';
 import logo from './logo.png';
 import cameraImg from './camera.png';
 
@@ -10,7 +10,6 @@ const mockDevices = [
   { id: 4, name: 'Beach House (Roof)', location: 'San Diego, CA', status: 'online', detections: 56, signal: 87, lat: 32.7157, lng: -117.1611, serial: 'SKY-2024-2048-D4' },
 ];
 
-// Using official Pentagon UAP videos and other verified UFO footage
 const mockClips = [
   { id: 1, title: 'GIMBAL - Navy F/A-18 Encounter', location: 'East Coast, USA', timestamp: '2 min ago', views: 12400, classification: 'UAP', confidence: 87, verified: true, likes: 892, comments: 234, videoId: 'QKHg-vnTFsM' },
   { id: 2, title: 'GO FAST - High Speed Object', location: 'Atlantic Ocean', timestamp: '15 min ago', views: 8900, classification: 'UAP', confidence: 91, verified: true, likes: 456, comments: 123, videoId: 'u1hNYs55sqs' },
@@ -35,6 +34,10 @@ const mockSightings = [
   { id: 6, lat: 30.2672, lng: -97.7431, type: 'UAP', intensity: 0.8, city: 'Austin', time: '7 min ago' },
   { id: 7, lat: 29.7604, lng: -95.3698, type: 'Drone', intensity: 0.6, city: 'Houston', time: '15 min ago' },
   { id: 8, lat: 47.6062, lng: -122.3321, type: 'UAP', intensity: 0.75, city: 'Seattle', time: '4 min ago' },
+  { id: 9, lat: 51.5074, lng: -0.1278, type: 'UAP', intensity: 0.88, city: 'London', time: '6 min ago' },
+  { id: 10, lat: 48.8566, lng: 2.3522, type: 'Drone', intensity: 0.65, city: 'Paris', time: '12 min ago' },
+  { id: 11, lat: 52.5200, lng: 13.4050, type: 'UAP', intensity: 0.92, city: 'Berlin', time: '3 min ago' },
+  { id: 12, lat: 35.6762, lng: 139.6503, type: 'UAP', intensity: 0.78, city: 'Tokyo', time: '8 min ago' },
 ];
 
 const classificationOptions = [
@@ -50,7 +53,6 @@ const classificationOptions = [
 export default function App() {
   const [activeTab, setActiveTab] = useState('map');
   const [selectedClip, setSelectedClip] = useState(null);
-  const [selectedClassification, setSelectedClassification] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
   const [time, setTime] = useState(new Date());
   const [activeDevices, setActiveDevices] = useState(2847);
@@ -141,114 +143,237 @@ export default function App() {
 }
 
 function GlobalMapView({ sightings, devices }) {
-  const [mapCenter, setMapCenter] = useState({ lat: 39.8283, lng: -98.5795 });
-  const [zoom, setZoom] = useState(4);
-  const [selectedSighting, setSelectedSighting] = useState(null);
+  const mapContainerRef = useRef(null);
+  const mapRef = useRef(null);
+  const markersRef = useRef([]);
   const [mapLayer, setMapLayer] = useState('sightings');
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [selectedSighting, setSelectedSighting] = useState(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
-  const handleMouseDown = (e) => { setIsDragging(true); setDragStart({ x: e.clientX, y: e.clientY }); };
-  const handleMouseMove = (e) => {
-    if (!isDragging) return;
-    const dx = e.clientX - dragStart.x;
-    const dy = e.clientY - dragStart.y;
-    const scale = 0.5 / zoom;
-    setMapCenter(prev => ({ lat: Math.max(-85, Math.min(85, prev.lat + dy * scale)), lng: prev.lng - dx * scale }));
-    setDragStart({ x: e.clientX, y: e.clientY });
-  };
-  const handleMouseUp = () => setIsDragging(false);
-  const handleZoom = (delta) => setZoom(prev => Math.max(1, Math.min(12, prev + delta)));
-  const latLngToXY = (lat, lng) => ({ x: `${((lng - mapCenter.lng) * zoom * 8 + 50)}%`, y: `${((mapCenter.lat - lat) * zoom * 8 + 50)}%` });
+  useEffect(() => {
+    // Load Mapbox GL JS
+    if (!window.mapboxgl) {
+      const link = document.createElement('link');
+      link.href = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css';
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+
+      const script = document.createElement('script');
+      script.src = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
+      script.onload = () => setMapLoaded(true);
+      document.head.appendChild(script);
+    } else {
+      setMapLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!mapLoaded || !mapContainerRef.current || mapRef.current) return;
+
+    // Using a free dark style that doesn't require API key
+    window.mapboxgl.accessToken = 'pk.eyJ1Ijoic2tleWVhaSIsImEiOiJjbTY5OHZ4NXUwMGF4MmtzOGx6dHVnNnBnIn0.placeholder';
+    
+    // Use Carto Dark basemap (free, no API key needed)
+    mapRef.current = new window.mapboxgl.Map({
+      container: mapContainerRef.current,
+      style: {
+        version: 8,
+        sources: {
+          'carto-dark': {
+            type: 'raster',
+            tiles: [
+              'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
+              'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
+              'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'
+            ],
+            tileSize: 256,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          }
+        },
+        layers: [{
+          id: 'carto-dark-layer',
+          type: 'raster',
+          source: 'carto-dark',
+          minzoom: 0,
+          maxzoom: 22
+        }]
+      },
+      center: [-98.5, 39.8],
+      zoom: 3.5,
+      attributionControl: false
+    });
+
+    mapRef.current.addControl(new window.mapboxgl.NavigationControl(), 'top-right');
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [mapLoaded]);
+
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return;
+
+    // Clear existing markers
+    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current = [];
+
+    const data = mapLayer === 'sightings' ? sightings : devices;
+
+    data.forEach((item) => {
+      const el = document.createElement('div');
+      el.className = 'custom-marker';
+      
+      const color = mapLayer === 'sightings' 
+        ? (item.type === 'UAP' ? '#a855f7' : item.type === 'Drone' ? '#3b82f6' : '#22c55e')
+        : (item.status === 'online' ? '#22c55e' : '#ef4444');
+
+      el.innerHTML = `
+        <div style="position: relative; cursor: pointer;">
+          <div style="
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: ${color}33;
+            transform: translate(-50%, -50%);
+            left: 50%;
+            top: 50%;
+            animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+          "></div>
+          <div style="
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: ${color};
+            border: 2px solid ${color}cc;
+            box-shadow: 0 0 20px ${color}aa, 0 0 40px ${color}55;
+          "></div>
+        </div>
+      `;
+
+      const marker = new window.mapboxgl.Marker(el)
+        .setLngLat([item.lng, item.lat])
+        .addTo(mapRef.current);
+
+      el.addEventListener('click', () => {
+        if (mapLayer === 'sightings') {
+          setSelectedSighting(item);
+        }
+      });
+
+      markersRef.current.push(marker);
+    });
+
+    // Add CSS animation if not exists
+    if (!document.getElementById('marker-styles')) {
+      const style = document.createElement('style');
+      style.id = 'marker-styles';
+      style.textContent = `
+        @keyframes ping {
+          75%, 100% {
+            transform: translate(-50%, -50%) scale(2);
+            opacity: 0;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }, [mapLayer, sightings, devices, mapLoaded]);
 
   return (
     <div className="h-full flex">
       <div className="flex-1 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gray-900 cursor-grab active:cursor-grabbing select-none"
-          onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
-          <div className="absolute inset-0" style={{ backgroundImage: `url(https://cartodb-basemaps-a.global.ssl.fastly.net/dark_all/${Math.floor(zoom)}/${Math.floor((mapCenter.lng + 180) / 360 * Math.pow(2, Math.floor(zoom)))}/${Math.floor((1 - Math.log(Math.tan(mapCenter.lat * Math.PI / 180) + 1 / Math.cos(mapCenter.lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, Math.floor(zoom)))}.png)`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'brightness(0.8) saturate(0.8)' }} />
-          <svg className="absolute inset-0 w-full h-full opacity-20 pointer-events-none">
-            <defs><pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse"><path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(34,197,94,0.3)" strokeWidth="0.5"/></pattern></defs>
-            <rect width="100%" height="100%" fill="url(#grid)" />
-          </svg>
-          {mapLayer === 'sightings' && sightings.map((s) => {
-            const pos = latLngToXY(s.lat, s.lng);
-            return (
-              <div key={s.id} className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group z-10" style={{ left: pos.x, top: pos.y }} onClick={(e) => { e.stopPropagation(); setSelectedSighting(s); }}>
-                <div className="absolute w-12 h-12 -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2 rounded-full animate-ping opacity-30" style={{ backgroundColor: s.type === 'UAP' ? 'rgba(168,85,247,0.5)' : s.type === 'Drone' ? 'rgba(59,130,246,0.5)' : 'rgba(34,197,94,0.5)', animationDuration: '2s' }} />
-                <div className={`relative w-4 h-4 rounded-full border-2 transition-transform group-hover:scale-150 ${s.type === 'UAP' ? 'border-purple-400 bg-purple-500' : s.type === 'Drone' ? 'border-blue-400 bg-blue-500' : 'border-green-400 bg-green-500'}`} style={{ boxShadow: '0 0 20px currentColor' }} />
-                <div className="absolute top-6 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                  <div className="bg-gray-900/95 px-3 py-2 rounded-lg text-xs border border-green-500/30 shadow-xl">
-                    <div className="font-semibold text-white">{s.city}</div>
-                    <div className={`text-xs ${s.type === 'UAP' ? 'text-purple-400' : s.type === 'Drone' ? 'text-blue-400' : 'text-green-400'}`}>{s.type} • {s.time}</div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-          {mapLayer === 'devices' && devices.map((d) => {
-            const pos = latLngToXY(d.lat, d.lng);
-            return (
-              <div key={d.id} className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer group z-10" style={{ left: pos.x, top: pos.y }}>
-                <div className={`relative w-6 h-6 rounded-lg flex items-center justify-center ${d.status === 'online' ? 'bg-green-500' : 'bg-red-500'}`}><Camera className="w-3 h-3 text-white" /></div>
-                <div className="absolute top-8 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                  <div className="bg-gray-900/95 px-3 py-2 rounded-lg text-xs border border-green-500/30 shadow-xl">
-                    <div className="font-semibold text-white">{d.name}</div>
-                    <div className="text-gray-400">{d.location}</div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <div ref={mapContainerRef} className="absolute inset-0" />
+        
+        {!mapLoaded && (
+          <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
+            <div className="text-center">
+              <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-400 text-sm">Loading map...</p>
+            </div>
+          </div>
+        )}
+
         <div className="absolute top-4 left-4 flex flex-col gap-2 z-20">
-          <div className="bg-gray-900/90 backdrop-blur rounded-lg border border-green-500/20 p-1 flex gap-1">
-            {['sightings', 'devices', 'heat'].map((layer) => (<button key={layer} onClick={() => setMapLayer(layer)} className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${mapLayer === layer ? 'bg-green-500/20 text-green-400' : 'text-gray-400 hover:text-white'}`}>{layer.charAt(0).toUpperCase() + layer.slice(1)}</button>))}
+          <div className="bg-gray-900/90 backdrop-blur rounded-lg border border-gray-700 p-1 flex gap-1">
+            {['sightings', 'devices', 'heat'].map((layer) => (
+              <button 
+                key={layer} 
+                onClick={() => setMapLayer(layer)} 
+                className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${mapLayer === layer ? 'bg-green-500/20 text-green-400' : 'text-gray-400 hover:text-white'}`}
+              >
+                {layer.charAt(0).toUpperCase() + layer.slice(1)}
+              </button>
+            ))}
           </div>
         </div>
-        <div className="absolute top-4 right-4 flex flex-col gap-1 z-20">
-          <button onClick={() => handleZoom(1)} className="w-10 h-10 bg-gray-900/90 backdrop-blur border border-green-500/20 rounded-lg flex items-center justify-center text-white hover:bg-gray-800"><Plus className="w-5 h-5" /></button>
-          <button onClick={() => handleZoom(-1)} className="w-10 h-10 bg-gray-900/90 backdrop-blur border border-green-500/20 rounded-lg flex items-center justify-center text-white hover:bg-gray-800"><Minus className="w-5 h-5" /></button>
-        </div>
-        <div className="absolute bottom-4 left-4 bg-gray-900/90 backdrop-blur rounded-lg border border-green-500/20 p-3 z-20">
+
+        <div className="absolute bottom-4 left-4 bg-gray-900/90 backdrop-blur rounded-lg border border-gray-700 p-3 z-20">
           <h4 className="text-xs font-semibold text-gray-400 mb-2">LEGEND</h4>
           <div className="space-y-1.5">
-            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-purple-500" /><span className="text-xs text-gray-300">UAP Sighting</span></div>
-            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500" /><span className="text-xs text-gray-300">Drone Activity</span></div>
-            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-green-500" /><span className="text-xs text-gray-300">Aircraft/Other</span></div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-purple-500 shadow-lg shadow-purple-500/50" /><span className="text-xs text-gray-300">UAP Sighting</span></div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-blue-500 shadow-lg shadow-blue-500/50" /><span className="text-xs text-gray-300">Drone Activity</span></div>
+            <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-green-500 shadow-lg shadow-green-500/50" /><span className="text-xs text-gray-300">Aircraft/Other</span></div>
           </div>
         </div>
-        <div className="absolute bottom-4 right-4 bg-gray-900/90 backdrop-blur rounded-lg border border-green-500/20 px-3 py-2 z-20">
-          <div className="text-xs font-mono text-green-400">{mapCenter.lat.toFixed(4)}°N, {Math.abs(mapCenter.lng).toFixed(4)}°W</div>
-          <div className="text-xs text-gray-500">Zoom: {zoom}x</div>
-        </div>
+
         {selectedSighting && (
-          <div className="absolute top-20 left-4 w-72 bg-gray-900/95 backdrop-blur rounded-xl border border-green-500/20 p-4 z-30 shadow-2xl">
+          <div className="absolute top-20 left-4 w-72 bg-gray-900/95 backdrop-blur rounded-xl border border-gray-700 p-4 z-30 shadow-2xl">
             <div className="flex items-start justify-between mb-3">
-              <div><h3 className="font-semibold text-white">{selectedSighting.city}</h3><p className="text-xs text-gray-400">{selectedSighting.time}</p></div>
-              <button onClick={() => setSelectedSighting(null)} className="text-gray-400 hover:text-white">×</button>
+              <div>
+                <h3 className="font-semibold text-white">{selectedSighting.city}</h3>
+                <p className="text-xs text-gray-400">{selectedSighting.time}</p>
+              </div>
+              <button onClick={() => setSelectedSighting(null)} className="text-gray-400 hover:text-white text-xl leading-none">&times;</button>
             </div>
-            <div className={`inline-block px-2 py-1 rounded text-xs font-bold ${selectedSighting.type === 'UAP' ? 'bg-purple-500/20 text-purple-400' : selectedSighting.type === 'Drone' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'}`}>{selectedSighting.type}</div>
+            <div className={`inline-block px-2 py-1 rounded text-xs font-bold ${selectedSighting.type === 'UAP' ? 'bg-purple-500/20 text-purple-400' : selectedSighting.type === 'Drone' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'}`}>
+              {selectedSighting.type}
+            </div>
             <div className="mt-3 pt-3 border-t border-gray-800">
-              <div className="flex items-center justify-between text-xs"><span className="text-gray-400">Confidence</span><span className="text-green-400">{Math.round(selectedSighting.intensity * 100)}%</span></div>
-              <div className="mt-1 h-1.5 bg-gray-800 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full" style={{ width: `${selectedSighting.intensity * 100}%` }} /></div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-400">Confidence</span>
+                <span className="text-green-400">{Math.round(selectedSighting.intensity * 100)}%</span>
+              </div>
+              <div className="mt-1 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full" style={{ width: `${selectedSighting.intensity * 100}%` }} />
+              </div>
             </div>
-            <button className="w-full mt-3 py-2 bg-green-500/20 text-green-400 rounded-lg text-xs font-medium hover:bg-green-500/30">View Full Report</button>
+            <button className="w-full mt-3 py-2 bg-green-500/20 text-green-400 rounded-lg text-xs font-medium hover:bg-green-500/30 transition-colors">
+              View Full Report
+            </button>
           </div>
         )}
       </div>
+
       <div className="w-72 border-l border-green-500/10 bg-gray-950/80 overflow-y-auto flex-shrink-0">
-        <div className="p-3 border-b border-green-500/10"><h3 className="text-sm font-semibold text-white flex items-center gap-2"><Radio className="w-4 h-4 text-green-400" />Live Activity Feed</h3></div>
+        <div className="p-3 border-b border-green-500/10">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <Radio className="w-4 h-4 text-green-400" />
+            Live Activity Feed
+          </h3>
+        </div>
         <div className="p-3 space-y-2">
-          {sightings.slice(0, 6).map((s) => (
-            <div key={s.id} className="p-3 bg-white/5 rounded-lg border border-transparent hover:border-green-500/30 cursor-pointer transition-all" onClick={() => setSelectedSighting(s)}>
+          {sightings.slice(0, 8).map((s) => (
+            <div 
+              key={s.id} 
+              className="p-3 bg-white/5 rounded-lg border border-transparent hover:border-green-500/30 cursor-pointer transition-all"
+              onClick={() => setSelectedSighting(s)}
+            >
               <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2"><Eye className={`w-4 h-4 ${s.type === 'UAP' ? 'text-purple-400' : s.type === 'Drone' ? 'text-blue-400' : 'text-green-400'}`} /><span className="text-xs text-gray-400">{s.city}</span></div>
+                <div className="flex items-center gap-2">
+                  <Eye className={`w-4 h-4 ${s.type === 'UAP' ? 'text-purple-400' : s.type === 'Drone' ? 'text-blue-400' : 'text-green-400'}`} />
+                  <span className="text-xs text-gray-400">{s.city}</span>
+                </div>
                 <span className="text-[10px] text-gray-500">{s.time}</span>
               </div>
               <div className="mt-2 flex items-center justify-between">
                 <span className="text-sm text-white">{s.type} detected</span>
-                <span className={`text-xs px-2 py-0.5 rounded ${s.intensity >= 0.8 ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>{Math.round(s.intensity * 100)}%</span>
+                <span className={`text-xs px-2 py-0.5 rounded ${s.intensity >= 0.8 ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                  {Math.round(s.intensity * 100)}%
+                </span>
               </div>
             </div>
           ))}
@@ -359,7 +484,6 @@ function DevicesView({ devices }) {
               <div className="pt-2"><label className="block text-xs text-gray-400 mb-2">Detection Sensitivity</label><input type="range" min="1" max="10" defaultValue="7" className="w-full accent-green-500" /><div className="flex justify-between text-xs text-gray-500 mt-1"><span>Low</span><span>High</span></div></div>
               <div className="flex items-center justify-between py-2"><div><p className="text-sm text-white">Night Vision</p><p className="text-xs text-gray-500">Auto-enable in low light</p></div><div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
               <div className="flex items-center justify-between py-2"><div><p className="text-sm text-white">Motion Alerts</p><p className="text-xs text-gray-500">Push notifications on detection</p></div><div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
-              <div className="flex items-center justify-between py-2"><div><p className="text-sm text-white">Auto-Upload Clips</p><p className="text-xs text-gray-500">Automatically upload to cloud</p></div><div className="w-12 h-6 bg-gray-700 rounded-full relative cursor-pointer"><div className="absolute left-1 top-1 w-4 h-4 bg-gray-400 rounded-full" /></div></div>
             </div>
             <div className="p-4 border-t border-gray-800 flex items-center justify-between">
               <button className="px-4 py-2 text-red-400 hover:bg-red-500/10 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"><Trash2 className="w-4 h-4" />Remove Device</button>
@@ -387,8 +511,6 @@ function DevicesView({ devices }) {
                 { time: 'Yesterday, 11:23 PM', type: 'UAP', duration: '0:45', confidence: 76 },
                 { time: 'Yesterday, 10:05 PM', type: 'Unknown', duration: '0:22', confidence: 45 },
                 { time: 'Yesterday, 9:18 PM', type: 'Bird', duration: '0:08', confidence: 98 },
-                { time: 'Jan 20, 8:34 PM', type: 'UAP', duration: '2:15', confidence: 82 },
-                { time: 'Jan 20, 7:12 PM', type: 'Satellite', duration: '0:55', confidence: 89 },
               ].map((clip, i) => (
                 <div key={i} className="flex items-center gap-4 p-3 bg-white/5 rounded-xl hover:bg-white/10 cursor-pointer transition-colors">
                   <div className="w-24 h-16 bg-gray-800 rounded-lg flex items-center justify-center relative">
@@ -413,7 +535,7 @@ function DevicesView({ devices }) {
               ))}
             </div>
             <div className="p-4 border-t border-gray-800 flex items-center justify-between">
-              <p className="text-xs text-gray-500">Showing 8 of {selectedDevice.detections} clips</p>
+              <p className="text-xs text-gray-500">Showing 6 of {selectedDevice.detections} clips</p>
               <button className="px-4 py-2 bg-white/5 text-gray-300 rounded-lg text-sm font-medium hover:bg-white/10">Load More</button>
             </div>
           </div>
@@ -449,7 +571,6 @@ function TrendingView({ clips, selectedClip, setSelectedClip, viewMode, setViewM
                 <div className="absolute inset-0 flex items-center justify-center bg-black/30"><div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center group-hover:bg-green-500/30 transition-colors"><Play className="w-5 h-5 text-white ml-0.5" /></div></div>
                 <div className={`absolute top-2 left-2 px-2 py-1 rounded text-[10px] font-bold uppercase ${clip.classification === 'UAP' ? 'bg-purple-500 text-white' : clip.classification === 'Drone' ? 'bg-blue-500 text-white' : 'bg-yellow-500 text-black'}`}>{clip.classification}</div>
                 {clip.verified && <div className="absolute top-2 right-2 p-1 rounded bg-green-500"><Shield className="w-3 h-3 text-white" /></div>}
-                {clip.confidence > 0 && <div className="absolute bottom-2 right-2 px-2 py-1 rounded bg-black/60 text-[10px] text-green-400">{clip.confidence}% AI</div>}
               </div>
               <div className={viewMode === 'grid' ? 'p-4' : 'flex-1'}>
                 <h3 className="font-semibold text-white group-hover:text-green-400 transition-colors">{clip.title}</h3>
@@ -467,15 +588,15 @@ function TrendingView({ clips, selectedClip, setSelectedClip, viewMode, setViewM
       {selectedClip && (
         <div className="w-96 border-l border-green-500/10 bg-gray-950/80 overflow-y-auto">
           <div className="p-4">
-            <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-white">Clip Details</h3><button onClick={() => setSelectedClip(null)} className="text-gray-400 hover:text-white text-xl">×</button></div>
+            <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-white">Clip Details</h3><button onClick={() => setSelectedClip(null)} className="text-gray-400 hover:text-white text-xl">&times;</button></div>
             <div className="aspect-video bg-black rounded-xl relative mb-4 overflow-hidden">
               <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=0&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={selectedClip.title} />
             </div>
             <h4 className="font-semibold text-white">{selectedClip.title}</h4>
             <p className="text-sm text-gray-400 mt-1">{selectedClip.location} • {selectedClip.timestamp}</p>
             <div className="mt-4 p-4 bg-white/5 rounded-xl">
-              <div className="flex items-center justify-between"><span className="text-xs text-gray-400 uppercase">AI Classification</span><span className={`px-2 py-1 rounded text-xs font-bold ${selectedClip.classification === 'UAP' ? 'bg-purple-500/20 text-purple-400' : 'bg-blue-500/20 text-blue-400'}`}>{selectedClip.classification}</span></div>
-              {selectedClip.confidence > 0 && (<div className="mt-3"><div className="flex items-center justify-between text-xs mb-1"><span className="text-gray-400">Confidence</span><span className="text-green-400">{selectedClip.confidence}%</span></div><div className="h-2 bg-gray-700 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full" style={{ width: `${selectedClip.confidence}%` }} /></div></div>)}
+              <div className="flex items-center justify-between"><span className="text-xs text-gray-400 uppercase">AI Classification</span><span className="px-2 py-1 rounded text-xs font-bold bg-purple-500/20 text-purple-400">{selectedClip.classification}</span></div>
+              <div className="mt-3"><div className="flex items-center justify-between text-xs mb-1"><span className="text-gray-400">Confidence</span><span className="text-green-400">{selectedClip.confidence}%</span></div><div className="h-2 bg-gray-700 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full" style={{ width: `${selectedClip.confidence}%` }} /></div></div>
             </div>
             <div className="mt-4 p-4 bg-green-500/10 rounded-xl border border-green-500/20">
               <div className="flex items-center gap-2"><Shield className="w-5 h-5 text-green-400" /><span className="font-medium text-white">Blockchain Verified</span></div>
@@ -579,7 +700,7 @@ function ClassifyView() {
               <button
                 onClick={handleSubmit}
                 disabled={!selectedClassification}
-                className={`flex-1 py-3.5 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+                className={`flex-1 py-3.5 rounded-xl font-semibold transition-all ${
                   selectedClassification 
                     ? 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:shadow-lg hover:shadow-green-500/30' 
                     : 'bg-gray-800 text-gray-500 cursor-not-allowed'
@@ -601,10 +722,7 @@ function ClassifyView() {
                 <span className="text-green-400 font-semibold">{classified} / 20 clips</span>
               </div>
               <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full transition-all duration-300" 
-                  style={{ width: `${(classified / 20) * 100}%` }} 
-                />
+                <div className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full transition-all duration-300" style={{ width: `${(classified / 20) * 100}%` }} />
               </div>
             </div>
           </div>
