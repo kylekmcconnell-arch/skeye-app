@@ -34,10 +34,10 @@ const mockSightings = [
   { id: 6, lat: 30.2672, lng: -97.7431, type: 'UAP', intensity: 0.8, city: 'Austin', time: '7 min ago' },
   { id: 7, lat: 29.7604, lng: -95.3698, type: 'Drone', intensity: 0.6, city: 'Houston', time: '15 min ago' },
   { id: 8, lat: 47.6062, lng: -122.3321, type: 'UAP', intensity: 0.75, city: 'Seattle', time: '4 min ago' },
-  { id: 9, lat: 51.5074, lng: -0.1278, type: 'UAP', intensity: 0.88, city: 'London', time: '6 min ago' },
-  { id: 10, lat: 48.8566, lng: 2.3522, type: 'Drone', intensity: 0.65, city: 'Paris', time: '12 min ago' },
-  { id: 11, lat: 52.5200, lng: 13.4050, type: 'UAP', intensity: 0.92, city: 'Berlin', time: '3 min ago' },
-  { id: 12, lat: 35.6762, lng: 139.6503, type: 'UAP', intensity: 0.78, city: 'Tokyo', time: '8 min ago' },
+  { id: 9, lat: 41.8781, lng: -87.6298, type: 'UAP', intensity: 0.88, city: 'Chicago', time: '6 min ago' },
+  { id: 10, lat: 39.7392, lng: -104.9903, type: 'Drone', intensity: 0.65, city: 'Denver', time: '12 min ago' },
+  { id: 11, lat: 25.7617, lng: -80.1918, type: 'UAP', intensity: 0.92, city: 'Miami', time: '3 min ago' },
+  { id: 12, lat: 36.1699, lng: -115.1398, type: 'UAP', intensity: 0.78, city: 'Las Vegas', time: '8 min ago' },
 ];
 
 const classificationOptions = [
@@ -53,7 +53,7 @@ const classificationOptions = [
 export default function App() {
   const [activeTab, setActiveTab] = useState('map');
   const [selectedClip, setSelectedClip] = useState(null);
-  const [viewMode, setViewMode] = useState('grid');
+  const [viewMode, setViewMode] = useState('list');
   const [time, setTime] = useState(new Date());
   const [activeDevices, setActiveDevices] = useState(2847);
   const [totalDetections, setTotalDetections] = useState(14892);
@@ -148,62 +148,53 @@ function GlobalMapView({ sightings, devices }) {
   const markersRef = useRef([]);
   const [mapLayer, setMapLayer] = useState('sightings');
   const [selectedSighting, setSelectedSighting] = useState(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
-    // Load Mapbox GL JS
-    if (!window.mapboxgl) {
+    if (!mapContainerRef.current) return;
+
+    // Load Leaflet CSS
+    if (!document.getElementById('leaflet-css')) {
       const link = document.createElement('link');
-      link.href = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css';
+      link.id = 'leaflet-css';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
       link.rel = 'stylesheet';
       document.head.appendChild(link);
+    }
 
+    // Load Leaflet JS
+    if (!window.L) {
       const script = document.createElement('script');
-      script.src = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
-      script.onload = () => setMapLoaded(true);
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.onload = () => {
+        initMap();
+      };
       document.head.appendChild(script);
     } else {
-      setMapLoaded(true);
+      initMap();
     }
-  }, []);
 
-  useEffect(() => {
-    if (!mapLoaded || !mapContainerRef.current || mapRef.current) return;
+    function initMap() {
+      if (mapRef.current) return;
 
-    // Using a free dark style that doesn't require API key
-    window.mapboxgl.accessToken = 'pk.eyJ1Ijoic2tleWVhaSIsImEiOiJjbTY5OHZ4NXUwMGF4MmtzOGx6dHVnNnBnIn0.placeholder';
-    
-    // Use Carto Dark basemap (free, no API key needed)
-    mapRef.current = new window.mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: {
-        version: 8,
-        sources: {
-          'carto-dark': {
-            type: 'raster',
-            tiles: [
-              'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
-              'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
-              'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'
-            ],
-            tileSize: 256,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          }
-        },
-        layers: [{
-          id: 'carto-dark-layer',
-          type: 'raster',
-          source: 'carto-dark',
-          minzoom: 0,
-          maxzoom: 22
-        }]
-      },
-      center: [-98.5, 39.8],
-      zoom: 3.5,
-      attributionControl: false
-    });
+      mapRef.current = window.L.map(mapContainerRef.current, {
+        center: [39.8, -98.5],
+        zoom: 4,
+        zoomControl: false,
+        attributionControl: false
+      });
 
-    mapRef.current.addControl(new window.mapboxgl.NavigationControl(), 'top-right');
+      // Add CARTO Dark basemap
+      window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 19,
+        subdomains: 'abcd'
+      }).addTo(mapRef.current);
+
+      // Add zoom control to top right
+      window.L.control.zoom({ position: 'topright' }).addTo(mapRef.current);
+
+      setMapReady(true);
+    }
 
     return () => {
       if (mapRef.current) {
@@ -211,93 +202,86 @@ function GlobalMapView({ sightings, devices }) {
         mapRef.current = null;
       }
     };
-  }, [mapLoaded]);
+  }, []);
 
   useEffect(() => {
-    if (!mapRef.current || !mapLoaded) return;
+    if (!mapRef.current || !mapReady) return;
 
     // Clear existing markers
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
 
-    const data = mapLayer === 'sightings' ? sightings : devices;
+    const data = mapLayer === 'sightings' ? sightings : mapLayer === 'devices' ? devices : sightings;
 
     data.forEach((item) => {
-      const el = document.createElement('div');
-      el.className = 'custom-marker';
-      
       const color = mapLayer === 'sightings' 
         ? (item.type === 'UAP' ? '#a855f7' : item.type === 'Drone' ? '#3b82f6' : '#22c55e')
         : (item.status === 'online' ? '#22c55e' : '#ef4444');
 
-      el.innerHTML = `
-        <div style="position: relative; cursor: pointer;">
+      const pulseHtml = `
+        <div style="position: relative; width: 20px; height: 20px;">
           <div style="
             position: absolute;
             width: 40px;
             height: 40px;
+            left: -10px;
+            top: -10px;
             border-radius: 50%;
-            background: ${color}33;
-            transform: translate(-50%, -50%);
-            left: 50%;
-            top: 50%;
-            animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+            background: ${color}40;
+            animation: pulse 2s ease-out infinite;
           "></div>
           <div style="
+            position: absolute;
             width: 14px;
             height: 14px;
+            left: 3px;
+            top: 3px;
             border-radius: 50%;
             background: ${color};
             border: 2px solid ${color}cc;
-            box-shadow: 0 0 20px ${color}aa, 0 0 40px ${color}55;
+            box-shadow: 0 0 15px ${color}aa;
           "></div>
         </div>
       `;
 
-      const marker = new window.mapboxgl.Marker(el)
-        .setLngLat([item.lng, item.lat])
+      const icon = window.L.divIcon({
+        html: pulseHtml,
+        className: 'custom-marker',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+
+      const marker = window.L.marker([item.lat, item.lng], { icon })
         .addTo(mapRef.current);
 
-      el.addEventListener('click', () => {
-        if (mapLayer === 'sightings') {
-          setSelectedSighting(item);
-        }
-      });
+      if (mapLayer === 'sightings') {
+        marker.on('click', () => setSelectedSighting(item));
+      }
 
       markersRef.current.push(marker);
     });
 
     // Add CSS animation if not exists
-    if (!document.getElementById('marker-styles')) {
+    if (!document.getElementById('marker-pulse-styles')) {
       const style = document.createElement('style');
-      style.id = 'marker-styles';
+      style.id = 'marker-pulse-styles';
       style.textContent = `
-        @keyframes ping {
-          75%, 100% {
-            transform: translate(-50%, -50%) scale(2);
-            opacity: 0;
-          }
+        @keyframes pulse {
+          0% { transform: scale(0.5); opacity: 1; }
+          100% { transform: scale(2); opacity: 0; }
         }
+        .custom-marker { background: transparent !important; border: none !important; }
       `;
       document.head.appendChild(style);
     }
-  }, [mapLayer, sightings, devices, mapLoaded]);
+  }, [mapLayer, sightings, devices, mapReady]);
 
   return (
     <div className="h-full flex">
       <div className="flex-1 relative overflow-hidden">
-        <div ref={mapContainerRef} className="absolute inset-0" />
-        
-        {!mapLoaded && (
-          <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-400 text-sm">Loading map...</p>
-            </div>
-          </div>
-        )}
+        <div ref={mapContainerRef} className="absolute inset-0 bg-gray-900" />
 
-        <div className="absolute top-4 left-4 flex flex-col gap-2 z-20">
+        <div className="absolute top-4 left-4 flex flex-col gap-2 z-[1000]">
           <div className="bg-gray-900/90 backdrop-blur rounded-lg border border-gray-700 p-1 flex gap-1">
             {['sightings', 'devices', 'heat'].map((layer) => (
               <button 
@@ -311,7 +295,7 @@ function GlobalMapView({ sightings, devices }) {
           </div>
         </div>
 
-        <div className="absolute bottom-4 left-4 bg-gray-900/90 backdrop-blur rounded-lg border border-gray-700 p-3 z-20">
+        <div className="absolute bottom-4 left-4 bg-gray-900/90 backdrop-blur rounded-lg border border-gray-700 p-3 z-[1000]">
           <h4 className="text-xs font-semibold text-gray-400 mb-2">LEGEND</h4>
           <div className="space-y-1.5">
             <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-purple-500 shadow-lg shadow-purple-500/50" /><span className="text-xs text-gray-300">UAP Sighting</span></div>
@@ -321,7 +305,7 @@ function GlobalMapView({ sightings, devices }) {
         </div>
 
         {selectedSighting && (
-          <div className="absolute top-20 left-4 w-72 bg-gray-900/95 backdrop-blur rounded-xl border border-gray-700 p-4 z-30 shadow-2xl">
+          <div className="absolute top-20 left-4 w-72 bg-gray-900/95 backdrop-blur rounded-xl border border-gray-700 p-4 z-[1000] shadow-2xl">
             <div className="flex items-start justify-between mb-3">
               <div>
                 <h3 className="font-semibold text-white">{selectedSighting.city}</h3>
@@ -458,12 +442,6 @@ function DevicesView({ devices }) {
                   <button className="px-4 py-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg text-sm font-medium transition-colors">Record Clip</button>
                 </div>
               </div>
-              <div className="mt-4 grid grid-cols-4 gap-2">
-                <button className="p-3 bg-white/5 hover:bg-white/10 rounded-lg text-center transition-colors"><span className="text-xs text-gray-400">Pan Left</span></button>
-                <button className="p-3 bg-white/5 hover:bg-white/10 rounded-lg text-center transition-colors"><span className="text-xs text-gray-400">Pan Right</span></button>
-                <button className="p-3 bg-white/5 hover:bg-white/10 rounded-lg text-center transition-colors"><span className="text-xs text-gray-400">Tilt Up</span></button>
-                <button className="p-3 bg-white/5 hover:bg-white/10 rounded-lg text-center transition-colors"><span className="text-xs text-gray-400">Tilt Down</span></button>
-              </div>
             </div>
           </div>
         </div>
@@ -547,7 +525,22 @@ function DevicesView({ devices }) {
 
 function TrendingView({ clips, selectedClip, setSelectedClip, viewMode, setViewMode }) {
   const [filter, setFilter] = useState('all');
+  const [playingClipId, setPlayingClipId] = useState(null);
+  const [userClassification, setUserClassification] = useState(null);
   const filteredClips = clips.filter(clip => filter === 'all' || (filter === 'uap' && clip.classification === 'UAP') || (filter === 'verified' && clip.verified));
+
+  const handlePlayClick = (e, clipId) => {
+    e.stopPropagation();
+    setPlayingClipId(playingClipId === clipId ? null : clipId);
+  };
+
+  const handleSubmitClassification = () => {
+    if (userClassification && selectedClip) {
+      alert(`Classification "${userClassification}" submitted for "${selectedClip.title}"`);
+      setUserClassification(null);
+    }
+  };
+
   return (
     <div className="h-full flex">
       <div className="flex-1 p-5 overflow-y-auto">
@@ -563,24 +556,92 @@ function TrendingView({ clips, selectedClip, setSelectedClip, viewMode, setViewM
             </div>
           </div>
         </div>
-        <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'}>
+        <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-3'}>
           {filteredClips.map((clip) => (
-            <div key={clip.id} onClick={() => setSelectedClip(clip)} className={`group cursor-pointer rounded-2xl border border-transparent hover:border-green-500/30 bg-white/5 overflow-hidden transition-all ${viewMode === 'list' ? 'flex items-center gap-4 p-4' : ''}`}>
-              <div className={`relative bg-black ${viewMode === 'grid' ? 'aspect-video' : 'w-44 h-24'} flex-shrink-0 overflow-hidden`}>
-                <img src={`https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`} alt={clip.title} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30"><div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center group-hover:bg-green-500/30 transition-colors"><Play className="w-5 h-5 text-white ml-0.5" /></div></div>
-                <div className={`absolute top-2 left-2 px-2 py-1 rounded text-[10px] font-bold uppercase ${clip.classification === 'UAP' ? 'bg-purple-500 text-white' : clip.classification === 'Drone' ? 'bg-blue-500 text-white' : 'bg-yellow-500 text-black'}`}>{clip.classification}</div>
-                {clip.verified && <div className="absolute top-2 right-2 p-1 rounded bg-green-500"><Shield className="w-3 h-3 text-white" /></div>}
-              </div>
-              <div className={viewMode === 'grid' ? 'p-4' : 'flex-1'}>
-                <h3 className="font-semibold text-white group-hover:text-green-400 transition-colors">{clip.title}</h3>
-                <div className="flex items-center gap-2 mt-2 text-xs text-gray-400"><MapPin className="w-3 h-3" /><span>{clip.location}</span><span className="text-gray-600">•</span><span>{clip.timestamp}</span></div>
-                <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
-                  <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{clip.views.toLocaleString()}</span>
-                  <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3" />{clip.likes}</span>
-                  <span className="flex items-center gap-1"><MessageCircle className="w-3 h-3" />{clip.comments}</span>
+            <div 
+              key={clip.id} 
+              onClick={() => setSelectedClip(clip)} 
+              className={`group cursor-pointer rounded-2xl border border-transparent hover:border-green-500/30 bg-white/5 overflow-hidden transition-all ${viewMode === 'list' ? '' : ''}`}
+            >
+              {viewMode === 'list' ? (
+                <div className="flex items-stretch gap-4 p-3">
+                  <div className={`relative bg-black flex-shrink-0 overflow-hidden rounded-xl transition-all duration-300 ${playingClipId === clip.id ? 'w-96 aspect-video' : 'w-44 h-24'}`}>
+                    {playingClipId === clip.id ? (
+                      <iframe 
+                        src={`https://www.youtube.com/embed/${clip.videoId}?autoplay=1&rel=0`}
+                        className="w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        title={clip.title}
+                      />
+                    ) : (
+                      <>
+                        <img src={`https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`} alt={clip.title} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30" onClick={(e) => handlePlayClick(e, clip.id)}>
+                          <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center group-hover:bg-green-500/30 transition-colors">
+                            <Play className="w-4 h-4 text-white ml-0.5" />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    <div className={`absolute top-2 left-2 px-2 py-1 rounded text-[10px] font-bold uppercase ${clip.classification === 'UAP' ? 'bg-purple-500 text-white' : clip.classification === 'Drone' ? 'bg-blue-500 text-white' : 'bg-yellow-500 text-black'}`}>{clip.classification}</div>
+                    {clip.verified && <div className="absolute top-2 right-2 p-1 rounded bg-green-500"><Shield className="w-3 h-3 text-white" /></div>}
+                  </div>
+                  <div className="flex-1 py-1">
+                    <h3 className="font-semibold text-white group-hover:text-green-400 transition-colors">{clip.title}</h3>
+                    <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+                      <MapPin className="w-3 h-3" /><span>{clip.location}</span><span className="text-gray-600">•</span><span>{clip.timestamp}</span>
+                    </div>
+                    <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
+                      <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{clip.views.toLocaleString()}</span>
+                      <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3" />{clip.likes}</span>
+                      <span className="flex items-center gap-1"><MessageCircle className="w-3 h-3" />{clip.comments}</span>
+                    </div>
+                    {playingClipId === clip.id && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setPlayingClipId(null); }}
+                        className="mt-3 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-xs text-gray-300 transition-colors"
+                      >
+                        Collapse Video
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <>
+                  <div className="relative bg-black aspect-video overflow-hidden">
+                    {playingClipId === clip.id ? (
+                      <iframe 
+                        src={`https://www.youtube.com/embed/${clip.videoId}?autoplay=1&rel=0`}
+                        className="w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        title={clip.title}
+                      />
+                    ) : (
+                      <>
+                        <img src={`https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`} alt={clip.title} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30" onClick={(e) => handlePlayClick(e, clip.id)}>
+                          <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center group-hover:bg-green-500/30 transition-colors">
+                            <Play className="w-5 h-5 text-white ml-0.5" />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                    <div className={`absolute top-2 left-2 px-2 py-1 rounded text-[10px] font-bold uppercase ${clip.classification === 'UAP' ? 'bg-purple-500 text-white' : clip.classification === 'Drone' ? 'bg-blue-500 text-white' : 'bg-yellow-500 text-black'}`}>{clip.classification}</div>
+                    {clip.verified && <div className="absolute top-2 right-2 p-1 rounded bg-green-500"><Shield className="w-3 h-3 text-white" /></div>}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-semibold text-white group-hover:text-green-400 transition-colors">{clip.title}</h3>
+                    <div className="flex items-center gap-2 mt-2 text-xs text-gray-400"><MapPin className="w-3 h-3" /><span>{clip.location}</span><span className="text-gray-600">•</span><span>{clip.timestamp}</span></div>
+                    <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
+                      <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{clip.views.toLocaleString()}</span>
+                      <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3" />{clip.likes}</span>
+                      <span className="flex items-center gap-1"><MessageCircle className="w-3 h-3" />{clip.comments}</span>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>
@@ -589,15 +650,71 @@ function TrendingView({ clips, selectedClip, setSelectedClip, viewMode, setViewM
         <div className="w-96 border-l border-green-500/10 bg-gray-950/80 overflow-y-auto">
           <div className="p-4">
             <div className="flex items-center justify-between mb-4"><h3 className="font-semibold text-white">Clip Details</h3><button onClick={() => setSelectedClip(null)} className="text-gray-400 hover:text-white text-xl">&times;</button></div>
-            <div className="aspect-video bg-black rounded-xl relative mb-4 overflow-hidden">
-              <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=0&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={selectedClip.title} />
-            </div>
+            
             <h4 className="font-semibold text-white">{selectedClip.title}</h4>
             <p className="text-sm text-gray-400 mt-1">{selectedClip.location} • {selectedClip.timestamp}</p>
+            
             <div className="mt-4 p-4 bg-white/5 rounded-xl">
-              <div className="flex items-center justify-between"><span className="text-xs text-gray-400 uppercase">AI Classification</span><span className="px-2 py-1 rounded text-xs font-bold bg-purple-500/20 text-purple-400">{selectedClip.classification}</span></div>
+              <div className="flex items-center justify-between"><span className="text-xs text-gray-400 uppercase">Current AI Classification</span><span className="px-2 py-1 rounded text-xs font-bold bg-purple-500/20 text-purple-400">{selectedClip.classification}</span></div>
               <div className="mt-3"><div className="flex items-center justify-between text-xs mb-1"><span className="text-gray-400">Confidence</span><span className="text-green-400">{selectedClip.confidence}%</span></div><div className="h-2 bg-gray-700 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-full" style={{ width: `${selectedClip.confidence}%` }} /></div></div>
             </div>
+
+            <div className="mt-4 p-4 bg-gray-800/50 rounded-xl border border-gray-700">
+              <h5 className="text-sm font-semibold text-white mb-3">Submit Your Classification</h5>
+              <div className="grid grid-cols-4 gap-2">
+                {classificationOptions.slice(0, 4).map((option) => (
+                  <button
+                    key={option.id}
+                    onClick={() => setUserClassification(option.id)}
+                    className={`p-2 rounded-lg border transition-all flex flex-col items-center gap-1 ${
+                      userClassification === option.id 
+                        ? 'border-green-500 bg-green-500/10' 
+                        : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${userClassification === option.id ? 'bg-green-500/20' : 'bg-gray-700/50'}`}>
+                      {option.id === 'UAP' && <Target className={`w-4 h-4 ${userClassification === option.id ? 'text-green-400' : 'text-gray-400'}`} />}
+                      {option.id === 'Drone' && <Radio className={`w-4 h-4 ${userClassification === option.id ? 'text-green-400' : 'text-gray-400'}`} />}
+                      {option.id === 'Aircraft' && <Globe className={`w-4 h-4 ${userClassification === option.id ? 'text-green-400' : 'text-gray-400'}`} />}
+                      {option.id === 'Satellite' && <Circle className={`w-4 h-4 ${userClassification === option.id ? 'text-green-400' : 'text-gray-400'}`} />}
+                    </div>
+                    <span className={`text-[10px] font-medium ${userClassification === option.id ? 'text-green-400' : 'text-gray-400'}`}>{option.label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-2 mt-2">
+                {classificationOptions.slice(4).map((option) => (
+                  <button
+                    key={option.id}
+                    onClick={() => setUserClassification(option.id)}
+                    className={`p-2 rounded-lg border transition-all flex flex-col items-center gap-1 ${
+                      userClassification === option.id 
+                        ? 'border-green-500 bg-green-500/10' 
+                        : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${userClassification === option.id ? 'bg-green-500/20' : 'bg-gray-700/50'}`}>
+                      {option.id === 'Bird' && <Eye className={`w-4 h-4 ${userClassification === option.id ? 'text-green-400' : 'text-gray-400'}`} />}
+                      {option.id === 'Weather' && <AlertTriangle className={`w-4 h-4 ${userClassification === option.id ? 'text-green-400' : 'text-gray-400'}`} />}
+                      {option.id === 'Unknown' && <Crosshair className={`w-4 h-4 ${userClassification === option.id ? 'text-green-400' : 'text-gray-400'}`} />}
+                    </div>
+                    <span className={`text-[10px] font-medium ${userClassification === option.id ? 'text-green-400' : 'text-gray-400'}`}>{option.label}</span>
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={handleSubmitClassification}
+                disabled={!userClassification}
+                className={`w-full mt-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  userClassification 
+                    ? 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:shadow-lg hover:shadow-green-500/30' 
+                    : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                Submit (+50 $SKEYE)
+              </button>
+            </div>
+            
             <div className="mt-4 p-4 bg-green-500/10 rounded-xl border border-green-500/20">
               <div className="flex items-center gap-2"><Shield className="w-5 h-5 text-green-400" /><span className="font-medium text-white">Blockchain Verified</span></div>
               <p className="text-xs text-gray-400 mt-2">Cryptographically signed on Solana</p>
