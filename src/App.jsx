@@ -221,9 +221,12 @@ export default function App() {
           <div className={`absolute ${isMobile ? 'left-2 right-2 top-14' : 'right-4 top-14 w-80'} bg-[#141414] border border-gray-700 rounded-xl shadow-2xl overflow-hidden`} onClick={e => e.stopPropagation()}>
             <div className="p-3 border-b border-gray-800 flex justify-between items-center">
               <h3 className="font-semibold">Notifications</h3>
-              <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-white/10 rounded"><X className="w-5 h-5 text-gray-400" /></button>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setNotificationsList(prev => prev.map(n => ({...n, read: true})))} className="text-xs text-gray-400 hover:text-green-400">Clear all</button>
+                <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-white/10 rounded"><X className="w-5 h-5 text-gray-400" /></button>
+              </div>
             </div>
-            <div className="max-h-80 overflow-y-auto">
+            <div className="max-h-80 overflow-y-auto scrollbar-dark">
               {notificationsList.map((n) => (
                 <div key={n.id} onClick={() => handleNotificationClick(n)} className={`p-3 border-b border-gray-800/50 hover:bg-white/5 cursor-pointer ${!n.read ? 'bg-green-500/5' : ''}`}>
                   <p className="text-sm text-white font-medium">{n.device}</p>
@@ -326,7 +329,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const [selectedSighting, setSelectedSighting] = useState(null);
-  const [sightings] = useState(allSightings);
+  const [sightings, setSightings] = useState(allSightings);
   const [timeRange, setTimeRange] = useState('24h');
   const [showSightingsList, setShowSightingsList] = useState(!isMobile);
   const [showFilters, setShowFilters] = useState(!isMobile);
@@ -340,6 +343,31 @@ function GlobalMapView({ isMobile, onViewProfile }) {
 
   const toggleTypeFilter = (type) => setTypeFilters(prev => ({ ...prev, [type]: !prev[type] }));
   const handleLikeSighting = (id) => setSightingLikes(prev => ({ ...prev, [id]: !prev[id] }));
+
+  const handlePostSightingComment = () => {
+    if (!newSightingComment.trim() || !selectedSighting) return;
+    const newComment = {
+      id: Date.now(),
+      user: 'You',
+      avatar: 'Y',
+      text: newSightingComment,
+      time: 'Just now',
+      likes: 0
+    };
+    // Update the sighting's comments
+    setSightings(prev => prev.map(s => 
+      s.id === selectedSighting.id 
+        ? { ...s, siteComments: [...(s.siteComments || []), newComment], commentsCount: (s.commentsCount || 0) + 1 }
+        : s
+    ));
+    // Update selected sighting to show new comment
+    setSelectedSighting(prev => ({
+      ...prev,
+      siteComments: [...(prev.siteComments || []), newComment],
+      commentsCount: (prev.commentsCount || 0) + 1
+    }));
+    setNewSightingComment('');
+  };
 
   // Swipe to dismiss handlers
   const handleTouchStart = (e) => setSwipeStartY(e.touches[0].clientY);
@@ -512,8 +540,8 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                       )}
                     </div>
                     <div className="flex gap-1">
-                      <input type="text" value={newSightingComment} onChange={(e) => setNewSightingComment(e.target.value)} placeholder="Add comment..." className="flex-1 px-2 py-1 bg-white/5 border border-gray-700 rounded text-[10px] text-white focus:outline-none focus:border-green-500/50" />
-                      <button className="px-2 py-1 bg-green-500 rounded text-[10px] font-medium">Post</button>
+                      <input type="text" value={newSightingComment} onChange={(e) => setNewSightingComment(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handlePostSightingComment()} placeholder="Add comment..." className="flex-1 px-2 py-1 bg-white/5 border border-gray-700 rounded text-[10px] text-white focus:outline-none focus:border-green-500/50" />
+                      <button onClick={handlePostSightingComment} className="px-2 py-1 bg-green-500 rounded text-[10px] font-medium hover:bg-green-600">Post</button>
                     </div>
                   </div>
                 )}
@@ -543,7 +571,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
           </div>
 
           {/* Sightings List */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto scrollbar-dark">
             {filteredSightings.slice(0, 30).map(s => (
               <div key={s.id} onClick={() => handleSelectSighting(s)} className={`flex items-center gap-3 p-3 border-b border-gray-800/50 cursor-pointer hover:bg-white/5 ${selectedSighting?.id === s.id ? 'bg-green-500/10' : ''}`}>
                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-sm" style={{ backgroundColor: `${classificationOptions.find(o => o.id === s.type)?.color}33`, color: classificationOptions.find(o => o.id === s.type)?.color }}>
@@ -559,7 +587,14 @@ function GlobalMapView({ isMobile, onViewProfile }) {
           </div>
         </div>
 
-        <style>{`.leaflet-container { background: #262626 !important; }`}</style>
+        <style>{`
+          .leaflet-container { background: #262626 !important; }
+          .scrollbar-dark::-webkit-scrollbar { width: 6px; }
+          .scrollbar-dark::-webkit-scrollbar-track { background: #1a1a1a; }
+          .scrollbar-dark::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+          .scrollbar-dark::-webkit-scrollbar-thumb:hover { background: #444; }
+          * { scrollbar-width: thin; scrollbar-color: #333 #1a1a1a; }
+        `}</style>
       </div>
     );
   }
@@ -688,7 +723,13 @@ function GlobalMapView({ isMobile, onViewProfile }) {
         </div>
       )}
 
-      <style>{`.leaflet-container { background: #262626 !important; }`}</style>
+      <style>{`
+        .leaflet-container { background: #262626 !important; }
+        .scrollbar-dark::-webkit-scrollbar { width: 6px; }
+        .scrollbar-dark::-webkit-scrollbar-track { background: #1a1a1a; }
+        .scrollbar-dark::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+        .scrollbar-dark::-webkit-scrollbar-thumb:hover { background: #444; }
+      `}</style>
     </div>
   );
 }
