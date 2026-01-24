@@ -298,48 +298,49 @@ function GlobalMapView({ isMobile }) {
             </div>
           </div>
 
-          {/* Filter Toggle - Bottom Left */}
-          <button onClick={() => setShowFilters(!showFilters)} className="absolute bottom-4 left-4 z-[1000] bg-[#141414]/95 border border-gray-700 rounded-lg px-4 py-2 flex items-center gap-2 hover:bg-[#1a1a1a]">
-            <Filter className="w-4 h-4 text-green-400" />
-            <span className="text-sm">Filters</span>
-          </button>
+          {/* Filter Panel - Bottom Left on Map (auto-expanded on desktop) */}
+          <div className="absolute bottom-4 left-4 z-[1000]">
+            <button onClick={() => setShowFilters(!showFilters)} className="bg-[#141414]/95 border border-gray-700 rounded-lg px-4 py-2 flex items-center gap-2 hover:bg-[#1a1a1a] mb-2">
+              <Filter className="w-4 h-4 text-green-400" />
+              <span className="text-sm">Filters</span>
+              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {showFilters && (
+              <div className="bg-[#141414]/95 border border-gray-700 rounded-lg p-3 w-48">
+                <div className="space-y-1">
+                  {classificationOptions.map(opt => (
+                    <button key={opt.id} onClick={() => toggleTypeFilter(opt.id)} className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors ${typeFilters[opt.id] ? 'bg-white/5' : 'opacity-40'}`}>
+                      <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: opt.color }} />
+                      <span className="flex-1 text-left text-sm">{opt.label}</span>
+                      {typeFilters[opt.id] && <span className="text-green-400 text-xs">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Right Sidebar - Filters & Sightings */}
-        <div className="w-80 bg-[#0a0a0a] border-l border-gray-800 flex flex-col">
-          {/* Filter Panel */}
-          <div className="p-4 border-b border-gray-800">
-            <h3 className="text-sm font-semibold text-gray-400 mb-3">FILTER BY TYPE</h3>
-            <div className="space-y-2">
-              {classificationOptions.map(opt => (
-                <button key={opt.id} onClick={() => toggleTypeFilter(opt.id)} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${typeFilters[opt.id] ? 'bg-white/5' : 'opacity-40'}`}>
-                  <div className="w-4 h-4 rounded flex items-center justify-center text-xs font-bold" style={{ backgroundColor: opt.color }}>{opt.icon}</div>
-                  <span className="flex-1 text-left text-sm">{opt.label}</span>
-                  <div className={`w-4 h-4 rounded border ${typeFilters[opt.id] ? 'bg-green-500 border-green-500' : 'border-gray-600'}`}>
-                    {typeFilters[opt.id] && <span className="text-white text-xs">✓</span>}
-                  </div>
-                </button>
-              ))}
-            </div>
+        {/* Right Sidebar - Live Sightings Only */}
+        <div className="w-72 bg-[#0a0a0a] border-l border-gray-800 flex flex-col">
+          {/* Live Sightings Header */}
+          <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+            <h3 className="text-sm font-semibold flex items-center gap-2"><Radio className="w-4 h-4 text-green-400 animate-pulse" />Live Sightings</h3>
+            <span className="text-xs text-gray-400">{filteredSightings.length} total</span>
           </div>
 
-          {/* Live Sightings */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-              <h3 className="text-sm font-semibold flex items-center gap-2"><Radio className="w-4 h-4 text-green-400 animate-pulse" />Live Sightings</h3>
-              <span className="text-xs text-gray-400">{filteredSightings.length} total</span>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              {filteredSightings.slice(0, 20).map(s => (
-                <div key={s.id} onClick={() => setSelectedSighting(s)} className={`flex items-center gap-3 p-3 border-b border-gray-800/50 cursor-pointer hover:bg-white/5 ${selectedSighting?.id === s.id ? 'bg-green-500/10' : ''}`}>
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: classificationOptions.find(o => o.id === s.type)?.color }} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white truncate">{s.city}</p>
-                    <p className="text-xs text-gray-500">{s.type} • {s.time}</p>
-                  </div>
+          {/* Sightings List */}
+          <div className="flex-1 overflow-y-auto">
+            {filteredSightings.slice(0, 30).map(s => (
+              <div key={s.id} onClick={() => setSelectedSighting(s)} className={`flex items-center gap-3 p-3 border-b border-gray-800/50 cursor-pointer hover:bg-white/5 ${selectedSighting?.id === s.id ? 'bg-green-500/10' : ''}`}>
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: classificationOptions.find(o => o.id === s.type)?.color }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-white truncate">{s.city}</p>
+                  <p className="text-xs text-gray-500">{s.type} • {s.time}</p>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
 
