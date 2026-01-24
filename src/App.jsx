@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Camera, TrendingUp, Users, Bell, Play, Eye, Zap, Globe, Radio, Wifi, MapPin, ThumbsUp, MessageCircle, Share2, Download, X, Settings, ChevronLeft, ChevronRight, Volume2, CreditCard, HardDrive, User, LogOut, ChevronDown, ChevronUp, Send, Film, SkipBack, Plus, Filter, List } from 'lucide-react';
+import { Camera, TrendingUp, Users, Bell, Play, Eye, Zap, Globe, Radio, Wifi, MapPin, ThumbsUp, MessageCircle, Share2, Download, X, Settings, ChevronLeft, ChevronRight, Volume2, CreditCard, HardDrive, User, LogOut, ChevronDown, ChevronUp, Send, Film, SkipBack, Plus, Filter, List, Grid } from 'lucide-react';
 import logo from './logo.png';
 import cameraImg from './camera.png';
 import profileImg from './profile.jpg';
@@ -12,10 +12,10 @@ const mockDevices = [
 ];
 
 const myClips = [
-  { id: 1, device: 'Home (Rooftop)', time: 'Today, 9:34 PM', type: 'UAP', confidence: 87, duration: '0:32', videoId: 'QKHg-vnTFsM' },
-  { id: 2, device: 'Home (Rooftop)', time: 'Today, 8:12 PM', type: 'Aircraft', confidence: 94, duration: '0:18', videoId: 'u1hNYs55sqs' },
-  { id: 3, device: 'Home (Barn)', time: 'Today, 6:45 PM', type: 'Drone', confidence: 91, duration: '1:24', videoId: '2TumprpOwHY' },
-  { id: 4, device: 'Beach House (Roof)', time: 'Yesterday, 11:23 PM', type: 'UAP', confidence: 76, duration: '0:45', videoId: 'dGOXuuhYoLk' },
+  { id: 1, device: 'Home (Rooftop)', time: 'Today, 9:34 PM', type: 'UAP', confidence: 87, duration: '0:32', videoId: 'QKHg-vnTFsM', likes: 24, commentsCount: 8 },
+  { id: 2, device: 'Home (Rooftop)', time: 'Today, 8:12 PM', type: 'Aircraft', confidence: 94, duration: '0:18', videoId: 'u1hNYs55sqs', likes: 12, commentsCount: 3 },
+  { id: 3, device: 'Home (Barn)', time: 'Today, 6:45 PM', type: 'Drone', confidence: 91, duration: '1:24', videoId: '2TumprpOwHY', likes: 45, commentsCount: 15 },
+  { id: 4, device: 'Beach House (Roof)', time: 'Yesterday, 11:23 PM', type: 'UAP', confidence: 76, duration: '0:45', videoId: 'dGOXuuhYoLk', likes: 67, commentsCount: 22 },
 ];
 
 const mockClips = [
@@ -578,38 +578,39 @@ function CommunityView({ isMobile }) {
 
 function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips }) {
   const subTabs = [
-    { id: 'devices', label: 'Devices', icon: Camera },
-    { id: 'clips', label: 'Clips', icon: Film },
+    { id: 'devices', label: 'My Devices', icon: Camera },
+    { id: 'clips', label: 'My Clips', icon: Film },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex-shrink-0 p-4 bg-gradient-to-b from-green-500/10 to-transparent">
+      <div className={`flex-shrink-0 ${isMobile ? 'p-4' : 'p-6'} bg-gradient-to-b from-green-500/10 to-transparent`}>
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-green-500/50">
+          <div className={`${isMobile ? 'w-16 h-16' : 'w-20 h-20'} rounded-full overflow-hidden border-2 border-green-500/50`}>
             <img src={profileImg} alt="Profile" className="w-full h-full object-cover" />
           </div>
           <div>
-            <h2 className="font-bold text-lg">John Doe</h2>
-            <p className="text-sm text-gray-400">john@example.com</p>
+            <h2 className={`font-bold ${isMobile ? 'text-lg' : 'text-2xl'}`}>John Doe</h2>
+            <p className={`text-gray-400 ${isMobile ? 'text-sm' : ''}`}>john@example.com</p>
           </div>
         </div>
-        <div className="flex gap-6 mt-4">
-          <div><p className="font-bold text-green-400">12,450</p><p className="text-[10px] text-gray-500">$SKEYE</p></div>
-          <div><p className="font-bold">156</p><p className="text-[10px] text-gray-500">Classified</p></div>
-          <div><p className="font-bold">#47</p><p className="text-[10px] text-gray-500">Rank</p></div>
+        <div className={`flex ${isMobile ? 'gap-6 mt-4' : 'gap-8 mt-5'}`}>
+          <div><p className={`font-bold text-green-400 ${isMobile ? '' : 'text-xl'}`}>12,450</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>$SKEYE</p></div>
+          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>156</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Classified</p></div>
+          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>#47</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Rank</p></div>
         </div>
       </div>
 
       {/* Sub Tabs */}
-      <div className="flex-shrink-0 flex border-b border-gray-800">
+      <div className={`flex-shrink-0 flex border-b border-gray-800 ${isMobile ? '' : 'px-4'}`}>
         {subTabs.map(tab => {
           const Icon = tab.icon;
           return (
-            <button key={tab.id} onClick={() => setProfileSubTab(tab.id)} className={`flex-1 flex items-center justify-center gap-2 py-3 border-b-2 ${profileSubTab === tab.id ? 'border-green-400 text-green-400' : 'border-transparent text-gray-500'}`}>
-              <Icon className="w-4 h-4" /><span className="text-xs">{tab.label}</span>
+            <button key={tab.id} onClick={() => setProfileSubTab(tab.id)} className={`flex-1 flex items-center justify-center gap-2 ${isMobile ? 'py-3' : 'py-4'} border-b-2 ${profileSubTab === tab.id ? 'border-green-400 text-green-400' : 'border-transparent text-gray-500 hover:text-gray-300'}`}>
+              <Icon className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+              <span className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>{tab.label}</span>
             </button>
           );
         })}
@@ -617,107 +618,179 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        {profileSubTab === 'devices' && <DevicesSubView devices={devices} />}
-        {profileSubTab === 'clips' && <ClipsSubView clips={clips} />}
-        {profileSubTab === 'settings' && <SettingsSubView />}
+        {profileSubTab === 'devices' && <DevicesSubView isMobile={isMobile} devices={devices} />}
+        {profileSubTab === 'clips' && <ClipsSubView isMobile={isMobile} clips={clips} devices={devices} />}
+        {profileSubTab === 'settings' && <SettingsSubView isMobile={isMobile} />}
       </div>
     </div>
   );
 }
 
-function DevicesSubView({ devices }) {
+function DevicesSubView({ isMobile, devices }) {
   const [selectedDevice, setSelectedDevice] = useState(null);
-  const [showSettings, setShowSettings] = useState(false);
+  const [activeModal, setActiveModal] = useState(null);
+  const [showAddDevice, setShowAddDevice] = useState(false);
+
+  const openModal = (type, device) => { setSelectedDevice(device); setActiveModal(type); };
+  const closeModal = () => { setActiveModal(null); setSelectedDevice(null); };
 
   return (
-    <div className="p-3 space-y-3">
-      <button className="w-full py-3 border-2 border-dashed border-gray-700 rounded-2xl text-gray-400 flex items-center justify-center gap-2">
-        <Plus className="w-5 h-5" />Add Device
+    <div className={`${isMobile ? 'p-3 space-y-3' : 'p-5'}`}>
+      {/* Add Device Button */}
+      <button onClick={() => setShowAddDevice(true)} className={`w-full ${isMobile ? 'py-3' : 'py-4 mb-4'} border-2 border-dashed border-gray-700 rounded-2xl text-gray-400 flex items-center justify-center gap-2 hover:border-green-500/50 hover:text-green-400 transition-colors`}>
+        <Plus className="w-5 h-5" />
+        <span className="font-medium">Add New Device</span>
       </button>
-      {devices.map(device => (
-        <div key={device.id} className={`p-3 rounded-2xl border ${device.status === 'online' ? 'bg-green-500/5 border-green-500/20' : 'bg-gray-800/30 border-gray-700/50'}`}>
-          <div className="flex items-start gap-3">
-            <img src={cameraImg} alt="Camera" className="w-12 h-12 object-contain" />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-sm truncate">{device.name}</h3>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full ${device.status === 'online' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>{device.status}</span>
+
+      {/* Device Cards */}
+      <div className={`${isMobile ? 'space-y-3' : 'grid grid-cols-1 lg:grid-cols-2 gap-4'}`}>
+        {devices.map(device => (
+          <div key={device.id} className={`${isMobile ? 'p-3' : 'p-5'} rounded-2xl border ${device.status === 'online' ? 'bg-gradient-to-br from-green-500/5 to-transparent border-green-500/20 hover:border-green-500/40' : 'bg-gradient-to-br from-gray-800/30 to-transparent border-gray-700/50'} transition-colors`}>
+            <div className="flex items-start gap-3">
+              <div className={`${isMobile ? 'w-12 h-12' : 'w-20 h-20'} flex items-center justify-center`}>
+                <img src={cameraImg} alt="Camera" className="w-full h-full object-contain" />
               </div>
-              <p className="text-xs text-gray-400 mt-0.5">{device.location}</p>
-              <div className="flex gap-3 mt-1 text-[10px] text-gray-500">
-                <span><Wifi className="w-3 h-3 inline" /> {device.signal}%</span>
-                <span><Eye className="w-3 h-3 inline" /> {device.detections}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <h3 className={`font-semibold truncate ${isMobile ? 'text-sm' : 'text-lg'}`}>{device.name}</h3>
+                  <span className={`px-2 py-0.5 rounded-full flex items-center gap-1 ${device.status === 'online' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'} ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${device.status === 'online' ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+                    {device.status === 'online' ? 'Live' : 'Offline'}
+                  </span>
+                </div>
+                <p className={`text-gray-400 flex items-center gap-1 mt-1 ${isMobile ? 'text-xs' : 'text-sm'}`}><MapPin className="w-3 h-3" />{device.location}</p>
+                <p className={`text-gray-500 font-mono mt-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>S/N: {device.serial}</p>
+                <div className={`flex items-center gap-4 mt-2 ${isMobile ? 'text-[10px]' : 'text-xs'} text-gray-500`}>
+                  <span className="flex items-center gap-1"><Wifi className={`w-3 h-3 ${device.signal > 80 ? 'text-green-400' : device.signal > 0 ? 'text-yellow-400' : 'text-red-400'}`} />{device.signal > 0 ? `${device.signal}%` : 'N/A'}</span>
+                  <span className="flex items-center gap-1"><Eye className="w-3 h-3 text-green-400" />{device.detections} detections</span>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="flex gap-2 mt-3">
-            <button disabled={device.status !== 'online'} className={`flex-1 py-2 rounded-lg text-xs font-medium ${device.status === 'online' ? 'bg-green-500/10 text-green-400' : 'bg-gray-800 text-gray-500'}`}>View Feed</button>
-            <button onClick={() => { setSelectedDevice(device); setShowSettings(true); }} className="flex-1 py-2 rounded-lg text-xs bg-white/5 text-gray-400">Settings</button>
-          </div>
-        </div>
-      ))}
-
-      {showSettings && selectedDevice && (
-        <div className="fixed inset-0 z-50 bg-black/80" onClick={() => setShowSettings(false)}>
-          <div className="absolute inset-x-0 bottom-0 bg-[#141414] rounded-t-3xl max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mt-3" />
-            <div className="p-4 border-b border-gray-800 flex justify-between">
-              <h3 className="font-semibold">Settings</h3>
-              <button onClick={() => setShowSettings(false)}><X className="w-5 h-5 text-gray-400" /></button>
-            </div>
-            <div className="p-4 space-y-4">
-              <div><label className="text-xs text-gray-400">Device Name</label><input defaultValue={selectedDevice.name} className="w-full mt-1 px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white" /></div>
-              <div><label className="text-xs text-gray-400">Location</label><div className="mt-1 px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-gray-400">{selectedDevice.location}</div></div>
-              <div><label className="text-xs text-gray-400">WiFi Network</label><input defaultValue="Home_Network_5G" className="w-full mt-1 px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white" /></div>
-              <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><span>Starlight Vision</span><div className="w-12 h-6 bg-green-500 rounded-full relative"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
-              <button className="w-full py-3 bg-red-500/10 text-red-400 rounded-xl">Delete Device</button>
-            </div>
-            <div className="p-4 border-t border-gray-800">
-              <button className="w-full py-3 bg-green-500 rounded-xl font-medium">Save</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ClipsSubView({ clips }) {
-  const [selectedClip, setSelectedClip] = useState(null);
-
-  return (
-    <div className="p-3">
-      <div className="grid grid-cols-2 gap-2">
-        {clips.map(clip => (
-          <div key={clip.id} onClick={() => setSelectedClip(clip)} className="rounded-xl overflow-hidden bg-white/5">
-            <div className="aspect-video bg-black relative">
-              <img src={`https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`} alt="Clip" className="w-full h-full object-cover" />
-              <Play className="absolute inset-0 m-auto w-8 h-8 text-white/80" />
-              <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[8px] font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === clip.type)?.color, color: 'white' }}>{clip.type}</span>
-            </div>
-            <div className="p-2">
-              <p className="text-xs truncate">{clip.device}</p>
-              <p className="text-[10px] text-gray-500">{clip.time}</p>
+            <div className={`flex gap-2 ${isMobile ? 'mt-3' : 'mt-4 pt-4 border-t border-gray-800/50'}`}>
+              <button onClick={() => openModal('feed', device)} disabled={device.status !== 'online'} className={`flex-1 ${isMobile ? 'py-2 text-xs' : 'py-2.5 text-sm'} font-medium rounded-lg ${device.status === 'online' ? 'bg-green-500/10 text-green-400 hover:bg-green-500/20' : 'bg-gray-800/50 text-gray-500 cursor-not-allowed'}`}>View Feed</button>
+              <button onClick={() => openModal('settings', device)} className={`flex-1 ${isMobile ? 'py-2 text-xs' : 'py-2.5 text-sm'} font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-lg`}>Settings</button>
+              <button onClick={() => openModal('history', device)} className={`flex-1 ${isMobile ? 'py-2 text-xs' : 'py-2.5 text-sm'} font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-lg`}>History</button>
             </div>
           </div>
         ))}
       </div>
 
-      {selectedClip && (
-        <div className="fixed inset-0 z-50 bg-black" onClick={() => setSelectedClip(null)}>
-          <div className="h-full flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-4">
-              <div><h3 className="font-semibold">{selectedClip.device}</h3><p className="text-xs text-gray-400">{selectedClip.time}</p></div>
-              <button onClick={() => setSelectedClip(null)}><X className="w-6 h-6 text-gray-400" /></button>
+      {/* View Feed Modal */}
+      {activeModal === 'feed' && selectedDevice && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeModal}>
+          <div className={`bg-[#141414] rounded-2xl border border-green-500/20 ${isMobile ? 'w-full' : 'w-full max-w-4xl'} overflow-hidden`} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-800">
+              <div><h3 className="font-semibold text-white">{selectedDevice.name} - Live Feed</h3><p className="text-xs text-gray-400">{selectedDevice.location}</p></div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 px-3 py-1 bg-red-500/20 rounded-full"><div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" /><span className="text-xs text-red-400">REC</span></div>
+                <button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button>
+              </div>
             </div>
-            <div className="flex-1 bg-black">
-              <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Clip" />
+            <div className="aspect-video bg-black relative">
+              <div className="absolute inset-0 flex items-center justify-center"><Camera className="w-16 h-16 text-gray-700" /><p className="text-gray-500 ml-4">Live feed streaming...</p></div>
+              <div className="absolute top-4 left-4 bg-black/60 px-2 py-1 rounded text-xs text-white font-mono">{new Date().toLocaleTimeString()}</div>
+              <div className="absolute top-4 right-4 bg-black/60 px-2 py-1 rounded text-xs text-green-400">1080p • 30fps</div>
             </div>
-            <div className="p-4 flex justify-between items-center">
-              <span className="px-3 py-1 rounded-lg text-sm font-bold" style={{ backgroundColor: `${classificationOptions.find(o => o.id === selectedClip.type)?.color}33`, color: classificationOptions.find(o => o.id === selectedClip.type)?.color }}>{selectedClip.type}</span>
-              <div className="flex gap-2">
-                <button className="p-3 bg-white/5 rounded-full"><Download className="w-5 h-5" /></button>
-                <button className="p-3 bg-white/5 rounded-full"><Share2 className="w-5 h-5" /></button>
+            <div className="p-4">
+              <p className="text-xs text-gray-400 text-center mb-3">Pan / Tilt / Zoom Controls</p>
+              <div className="flex items-center justify-center gap-4">
+                <button className="p-3 bg-white/5 rounded-full hover:bg-white/10"><ChevronLeft className="w-5 h-5" /></button>
+                <div className="flex flex-col gap-2">
+                  <button className="p-3 bg-white/5 rounded-full hover:bg-white/10"><ChevronUp className="w-5 h-5" /></button>
+                  <button className="p-3 bg-white/5 rounded-full hover:bg-white/10"><ChevronDown className="w-5 h-5" /></button>
+                </div>
+                <button className="p-3 bg-white/5 rounded-full hover:bg-white/10"><ChevronRight className="w-5 h-5" /></button>
+                <div className="w-px h-12 bg-gray-700 mx-4" />
+                <div className="flex items-center gap-2">
+                  <button className="p-3 bg-white/5 rounded-full hover:bg-white/10 text-lg font-bold">−</button>
+                  <span className="text-xs text-gray-400 w-12 text-center">Zoom</span>
+                  <button className="p-3 bg-white/5 rounded-full hover:bg-white/10"><Plus className="w-5 h-5" /></button>
+                </div>
+                <div className="w-px h-12 bg-gray-700 mx-4" />
+                <button className="p-3 bg-white/5 rounded-full hover:bg-white/10"><Volume2 className="w-5 h-5" /></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Settings Modal */}
+      {activeModal === 'settings' && selectedDevice && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeModal}>
+          <div className={`bg-[#141414] rounded-2xl border border-green-500/20 ${isMobile ? 'w-full max-h-[90vh]' : 'w-full max-w-lg'} overflow-hidden flex flex-col`} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-800">
+              <h3 className="font-semibold text-white flex items-center gap-2"><Settings className="w-5 h-5 text-green-400" />Device Settings</h3>
+              <button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              <div><label className="block text-xs text-gray-400 mb-2">Device Name</label><input type="text" defaultValue={selectedDevice.name} className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" /></div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-2">Location</label>
+                <div className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-gray-400">{selectedDevice.location}</div>
+                <p className="text-xs text-gray-500 mt-1">Coordinates: {selectedDevice.id === 1 || selectedDevice.id === 2 ? '38.7223° N, 9.1393° W' : selectedDevice.id === 3 ? '30.2672° N, 97.7431° W' : '32.7157° N, 117.1611° W'}</p>
+              </div>
+              <div className="border-t border-gray-800 pt-4">
+                <h4 className="text-sm font-semibold text-white mb-3">WiFi Settings</h4>
+                <div className="space-y-3">
+                  <div><label className="block text-xs text-gray-400 mb-2">WiFi Network</label><input type="text" defaultValue="Home_Network_5G" className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" /></div>
+                  <div><label className="block text-xs text-gray-400 mb-2">WiFi Password</label><input type="password" defaultValue="password123" className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" /></div>
+                </div>
+              </div>
+              <div className="border-t border-gray-800 pt-4">
+                <h4 className="text-sm font-semibold text-white mb-3">Detection Settings</h4>
+                <div><label className="block text-xs text-gray-400 mb-2">Detection Sensitivity</label><input type="range" defaultValue="70" className="w-full" /><div className="flex justify-between text-xs text-gray-500 mt-1"><span>Low</span><span>High</span></div></div>
+              </div>
+              <div className="border-t border-gray-800 pt-4 space-y-3">
+                <h4 className="text-sm font-semibold text-white mb-3">Features</h4>
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Motion Detection</p><p className="text-xs text-gray-400">Trigger recording on movement</p></div><div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Starlight Vision</p><p className="text-xs text-gray-400">Enhanced low-light capture</p></div><div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Audio Recording</p><p className="text-xs text-gray-400">Capture sound with video</p></div><div className="w-12 h-6 bg-gray-600 rounded-full relative cursor-pointer"><div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Auto-Upload Clips</p><p className="text-xs text-gray-400">Upload detections to cloud</p></div><div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
+              </div>
+              <div className="border-t border-gray-800 pt-4">
+                <button className="w-full py-3 bg-red-500/10 text-red-400 rounded-xl font-medium hover:bg-red-500/20 transition-colors">Delete This Device</button>
+                <p className="text-xs text-gray-500 text-center mt-2">This will remove the device from your account</p>
+              </div>
+            </div>
+            <div className="p-4 border-t border-gray-800 flex justify-end gap-2">
+              <button onClick={closeModal} className="px-4 py-2 text-gray-400 hover:bg-white/5 rounded-lg text-sm">Cancel</button>
+              <button className="px-6 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* History Modal */}
+      {activeModal === 'history' && selectedDevice && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeModal}>
+          <div className={`bg-[#141414] rounded-2xl border border-green-500/20 ${isMobile ? 'w-full max-h-[80vh]' : 'w-full max-w-2xl max-h-[80vh]'} overflow-hidden flex flex-col`} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-800"><h3 className="font-semibold text-white">{selectedDevice.name} - Detection History</h3><button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button></div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {[{ time: 'Today, 9:34 PM', type: 'UAP', duration: '0:32', confidence: 87 }, { time: 'Today, 8:12 PM', type: 'Aircraft', duration: '0:18', confidence: 94 }, { time: 'Today, 6:45 PM', type: 'Drone', duration: '1:24', confidence: 91 }, { time: 'Yesterday, 11:23 PM', type: 'UAP', duration: '0:45', confidence: 76 }, { time: 'Yesterday, 9:15 PM', type: 'Bird', duration: '0:12', confidence: 89 }].map((clip, i) => (
+                <div key={i} className="flex items-center gap-4 p-3 bg-white/5 rounded-xl hover:bg-white/10 cursor-pointer">
+                  <div className="w-20 h-14 bg-gray-800 rounded-lg flex items-center justify-center relative"><Play className="w-5 h-5 text-gray-500" /><span className="absolute bottom-1 right-1 text-[10px] bg-black/60 px-1 rounded">{clip.duration}</span></div>
+                  <div className="flex-1"><span className={`px-2 py-0.5 rounded text-[10px] font-bold`} style={{ backgroundColor: classificationOptions.find(o => o.id === clip.type)?.color + '30', color: classificationOptions.find(o => o.id === clip.type)?.color }}>{classificationOptions.find(o => o.id === clip.type)?.short} {clip.type}</span><p className="text-xs text-gray-400 mt-1">{clip.time}</p></div>
+                  <span className="text-xs text-green-400 font-medium">{clip.confidence}%</span>
+                  <div className="flex gap-1"><button className="p-2 hover:bg-white/10 rounded-lg"><Download className="w-4 h-4 text-gray-400" /></button><button className="p-2 hover:bg-white/10 rounded-lg"><Share2 className="w-4 h-4 text-gray-400" /></button></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Device Modal */}
+      {showAddDevice && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowAddDevice(false)}>
+          <div className={`bg-[#141414] rounded-2xl border border-green-500/20 ${isMobile ? 'w-full' : 'w-full max-w-md'} overflow-hidden`} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-800"><h3 className="font-semibold text-white">Add New Device</h3><button onClick={() => setShowAddDevice(false)} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button></div>
+            <div className="p-6 text-center">
+              <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4"><Camera className="w-10 h-10 text-green-400" /></div>
+              <h4 className="text-lg font-semibold text-white mb-2">Connect Your Skeye Camera</h4>
+              <p className="text-sm text-gray-400 mb-6">Make sure your camera is powered on and in pairing mode (blue LED blinking)</p>
+              <div className="space-y-3">
+                <button className="w-full py-3 bg-green-500/10 text-green-400 rounded-xl font-medium hover:bg-green-500/20">Scan QR Code</button>
+                <button className="w-full py-3 bg-white/5 text-gray-400 rounded-xl font-medium hover:bg-white/10">Enter Serial Number Manually</button>
               </div>
             </div>
           </div>
@@ -727,19 +800,176 @@ function ClipsSubView({ clips }) {
   );
 }
 
-function SettingsSubView() {
+function ClipsSubView({ isMobile, clips, devices }) {
+  const [selectedClip, setSelectedClip] = useState(null);
+  const [deviceFilter, setDeviceFilter] = useState('all');
+  const [viewMode, setViewMode] = useState('list');
+
+  const filteredClips = deviceFilter === 'all' ? clips : clips.filter(c => c.device === deviceFilter);
+  const uniqueDevices = [...new Set(clips.map(c => c.device))];
+
   return (
-    <div className="p-3 space-y-4">
-      <div className="bg-white/5 rounded-2xl overflow-hidden">
-        <button className="w-full flex items-center gap-3 px-4 py-3 active:bg-white/5"><User className="w-5 h-5 text-gray-400" /><span className="flex-1 text-left">Edit Profile</span><ChevronRight className="w-4 h-4 text-gray-600" /></button>
-        <button className="w-full flex items-center gap-3 px-4 py-3 border-t border-gray-800 active:bg-white/5"><CreditCard className="w-5 h-5 text-gray-400" /><span className="flex-1 text-left">Subscription</span><span className="text-xs text-green-400">Pro</span><ChevronRight className="w-4 h-4 text-gray-600" /></button>
-        <button className="w-full flex items-center gap-3 px-4 py-3 border-t border-gray-800 active:bg-white/5"><HardDrive className="w-5 h-5 text-gray-400" /><span className="flex-1 text-left">Storage</span><span className="text-xs text-gray-400">45/100GB</span><ChevronRight className="w-4 h-4 text-gray-600" /></button>
+    <div className={`${isMobile ? 'p-3' : 'p-5'}`}>
+      {/* Filters */}
+      <div className={`flex items-center justify-between ${isMobile ? 'mb-3' : 'mb-5'}`}>
+        <div className="flex items-center gap-2">
+          <Filter className="w-4 h-4 text-gray-400" />
+          <select value={deviceFilter} onChange={e => setDeviceFilter(e.target.value)} className={`bg-white/5 border border-gray-700 rounded-lg text-white ${isMobile ? 'px-2 py-1.5 text-xs' : 'px-3 py-2 text-sm'}`}>
+            <option value="all">All Devices</option>
+            {uniqueDevices.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </div>
+        {!isMobile && (
+          <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1">
+            <button onClick={() => setViewMode('list')} className={`p-2 rounded ${viewMode === 'list' ? 'bg-white/10 text-white' : 'text-gray-400'}`}><List className="w-4 h-4" /></button>
+            <button onClick={() => setViewMode('grid')} className={`p-2 rounded ${viewMode === 'grid' ? 'bg-white/10 text-white' : 'text-gray-400'}`}><Grid className="w-4 h-4" /></button>
+          </div>
+        )}
       </div>
-      <div className="bg-white/5 rounded-2xl overflow-hidden">
-        <button className="w-full flex items-center gap-3 px-4 py-3 active:bg-white/5"><Bell className="w-5 h-5 text-gray-400" /><span className="flex-1 text-left">Notifications</span><ChevronRight className="w-4 h-4 text-gray-600" /></button>
-        <button className="w-full flex items-center gap-3 px-4 py-3 border-t border-gray-800 active:bg-white/5"><Globe className="w-5 h-5 text-gray-400" /><span className="flex-1 text-left">Language</span><ChevronRight className="w-4 h-4 text-gray-600" /></button>
-      </div>
-      <button className="w-full py-3 bg-red-500/10 text-red-400 rounded-xl font-medium">Sign Out</button>
+
+      {/* List View */}
+      {(isMobile || viewMode === 'list') ? (
+        <div className="space-y-2">
+          {filteredClips.map(clip => (
+            <div key={clip.id} onClick={() => setSelectedClip(clip)} className={`flex items-center gap-3 ${isMobile ? 'p-2' : 'p-3'} bg-white/5 rounded-xl hover:bg-white/10 cursor-pointer`}>
+              <div className={`${isMobile ? 'w-20 h-14' : 'w-32 h-20'} bg-black rounded-lg relative flex-shrink-0 overflow-hidden`}>
+                <img src={`https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`} alt="Clip" className="w-full h-full object-cover" />
+                <Play className={`absolute inset-0 m-auto ${isMobile ? 'w-6 h-6' : 'w-8 h-8'} text-white/80`} />
+                <span className="absolute bottom-1 right-1 text-[10px] bg-black/70 px-1 rounded">{clip.duration}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`px-2 py-0.5 rounded font-bold ${isMobile ? 'text-[10px]' : 'text-xs'}`} style={{ backgroundColor: classificationOptions.find(o => o.id === clip.type)?.color + '30', color: classificationOptions.find(o => o.id === clip.type)?.color }}>
+                    {classificationOptions.find(o => o.id === clip.type)?.short} {clip.type}
+                  </span>
+                  <span className={`text-green-400 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>{clip.confidence}%</span>
+                </div>
+                <p className={`text-white truncate ${isMobile ? 'text-xs' : 'text-sm font-medium'}`}>{clip.device}</p>
+                <p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>{clip.time}</p>
+                {!isMobile && (
+                  <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
+                    <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3" />{clip.likes || 0}</span>
+                    <span className="flex items-center gap-1"><MessageCircle className="w-3 h-3" />{clip.commentsCount || 0}</span>
+                  </div>
+                )}
+              </div>
+              <div className={`flex ${isMobile ? 'gap-1' : 'gap-2'}`}>
+                <button className={`${isMobile ? 'p-2' : 'p-2'} hover:bg-white/10 rounded-lg`}><Download className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-400`} /></button>
+                <button className={`${isMobile ? 'p-2' : 'p-2'} hover:bg-white/10 rounded-lg`}><Share2 className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-gray-400`} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* Grid View - Desktop only */
+        <div className="grid grid-cols-3 gap-4">
+          {filteredClips.map(clip => (
+            <div key={clip.id} onClick={() => setSelectedClip(clip)} className="rounded-xl overflow-hidden bg-white/5 hover:bg-white/10 cursor-pointer">
+              <div className="aspect-video bg-black relative">
+                <img src={`https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`} alt="Clip" className="w-full h-full object-cover" />
+                <Play className="absolute inset-0 m-auto w-10 h-10 text-white/80" />
+                <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === clip.type)?.color, color: 'white' }}>{classificationOptions.find(o => o.id === clip.type)?.short} {clip.type}</span>
+                <span className="absolute bottom-2 right-2 text-xs bg-black/70 px-1.5 py-0.5 rounded">{clip.duration}</span>
+              </div>
+              <div className="p-3">
+                <p className="text-sm font-medium truncate">{clip.device}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{clip.time}</p>
+                <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                  <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3" />{clip.likes || 0}</span>
+                  <span className="flex items-center gap-1"><MessageCircle className="w-3 h-3" />{clip.commentsCount || 0}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Clip Detail Modal */}
+      {selectedClip && (
+        <div className="fixed inset-0 z-50 bg-black/90" onClick={() => setSelectedClip(null)}>
+          <div className={`h-full flex ${isMobile ? 'flex-col' : 'items-center justify-center p-8'}`} onClick={e => e.stopPropagation()}>
+            {isMobile ? (
+              <>
+                <div className="flex items-center justify-between p-4">
+                  <div><h3 className="font-semibold">{selectedClip.device}</h3><p className="text-xs text-gray-400">{selectedClip.time}</p></div>
+                  <button onClick={() => setSelectedClip(null)}><X className="w-6 h-6 text-gray-400" /></button>
+                </div>
+                <div className="flex-1 bg-black">
+                  <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Clip" />
+                </div>
+                <div className="p-4 flex justify-between items-center">
+                  <span className="px-3 py-1 rounded-lg text-sm font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === selectedClip.type)?.color + '33', color: classificationOptions.find(o => o.id === selectedClip.type)?.color }}>{classificationOptions.find(o => o.id === selectedClip.type)?.short} {selectedClip.type}</span>
+                  <div className="flex gap-2">
+                    <button className="p-3 bg-white/5 rounded-full"><Download className="w-5 h-5" /></button>
+                    <button className="p-3 bg-white/5 rounded-full"><Share2 className="w-5 h-5" /></button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="bg-[#141414] rounded-2xl overflow-hidden max-w-5xl w-full flex">
+                <div className="flex-1 aspect-video bg-black">
+                  <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Clip" />
+                </div>
+                <div className="w-80 border-l border-gray-800 flex flex-col">
+                  <div className="p-4 border-b border-gray-800 flex justify-between items-start">
+                    <div>
+                      <span className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === selectedClip.type)?.color + '30', color: classificationOptions.find(o => o.id === selectedClip.type)?.color }}>{classificationOptions.find(o => o.id === selectedClip.type)?.short} {selectedClip.type}</span>
+                      <h3 className="font-semibold mt-2">{selectedClip.device}</h3>
+                      <p className="text-sm text-gray-400">{selectedClip.time}</p>
+                    </div>
+                    <button onClick={() => setSelectedClip(null)} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button>
+                  </div>
+                  <div className="p-4 border-b border-gray-800">
+                    <div className="flex items-center gap-4 text-sm">
+                      <span className="flex items-center gap-2"><ThumbsUp className="w-4 h-4 text-gray-400" />{selectedClip.likes || 0} likes</span>
+                      <span className="flex items-center gap-2"><MessageCircle className="w-4 h-4 text-gray-400" />{selectedClip.commentsCount || 0} comments</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 p-4">
+                    <p className="text-sm text-gray-400">Confidence: <span className="text-green-400 font-semibold">{selectedClip.confidence}%</span></p>
+                  </div>
+                  <div className="p-4 border-t border-gray-800 flex gap-2">
+                    <button className="flex-1 py-2 bg-white/5 rounded-lg text-sm hover:bg-white/10 flex items-center justify-center gap-2"><Download className="w-4 h-4" />Download</button>
+                    <button className="flex-1 py-2 bg-white/5 rounded-lg text-sm hover:bg-white/10 flex items-center justify-center gap-2"><Share2 className="w-4 h-4" />Share</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SettingsSubView({ isMobile }) {
+  const settingsGroups = [
+    { title: 'Account', items: [{ icon: User, label: 'Edit Profile' }, { icon: CreditCard, label: 'Subscription', badge: 'Pro' }, { icon: HardDrive, label: 'Storage', badge: '45/100GB' }] },
+    { title: 'Preferences', items: [{ icon: Bell, label: 'Notifications' }, { icon: Globe, label: 'Language' }] },
+    { title: 'Support', items: [{ icon: MessageCircle, label: 'Help Center' }, { icon: Settings, label: 'About' }] },
+  ];
+
+  return (
+    <div className={`${isMobile ? 'p-3 space-y-4' : 'p-5 space-y-6 max-w-2xl'}`}>
+      {settingsGroups.map(group => (
+        <div key={group.title}>
+          <h4 className={`text-gray-500 uppercase font-semibold mb-2 px-2 ${isMobile ? 'text-xs' : 'text-xs'}`}>{group.title}</h4>
+          <div className="bg-white/5 rounded-2xl overflow-hidden">
+            {group.items.map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <button key={item.label} className={`w-full flex items-center gap-3 ${isMobile ? 'px-4 py-3' : 'px-4 py-4'} hover:bg-white/5 ${i > 0 ? 'border-t border-gray-800' : ''}`}>
+                  <Icon className="w-5 h-5 text-gray-400" />
+                  <span className="flex-1 text-left text-white">{item.label}</span>
+                  {item.badge && <span className="text-xs text-green-400">{item.badge}</span>}
+                  <ChevronRight className="w-4 h-4 text-gray-600" />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      <button className={`w-full ${isMobile ? 'py-3' : 'py-4'} bg-red-500/10 text-red-400 rounded-xl font-medium hover:bg-red-500/20`}>Sign Out</button>
     </div>
   );
 }
