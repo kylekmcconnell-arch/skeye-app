@@ -99,11 +99,36 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   const unreadCount = notificationsList.filter(n => !n.read).length;
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const liveDevices = mockDevices.filter(d => d.status === 'online').length;
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Prevent zoom on mobile
+  useEffect(() => {
+    const preventZoom = (e) => {
+      if (e.touches && e.touches.length > 1) e.preventDefault();
+    };
+    const preventDoubleTapZoom = (e) => {
+      const now = Date.now();
+      if (now - (window.lastTouchEnd || 0) < 300) e.preventDefault();
+      window.lastTouchEnd = now;
+    };
+    document.addEventListener('touchmove', preventZoom, { passive: false });
+    document.addEventListener('touchend', preventDoubleTapZoom, { passive: false });
+    return () => {
+      document.removeEventListener('touchmove', preventZoom);
+      document.removeEventListener('touchend', preventDoubleTapZoom);
+    };
   }, []);
 
   const tabs = [
@@ -114,29 +139,43 @@ export default function App() {
     { id: 'profile', label: 'Profile', icon: User },
   ];
 
+  const utcTime = currentTime.toISOString().slice(11, 19) + ' UTC';
+
   return (
-    <div className="fixed inset-0 bg-[#0a0a0a] text-white flex flex-col overflow-hidden">
+    <div className="fixed inset-0 bg-[#0a0a0a] text-white flex flex-col overflow-hidden" style={{ touchAction: 'pan-x pan-y' }}>
       {/* Header */}
-      <header className="relative z-50 border-b border-green-500/20 bg-[#0a0a0a] flex-shrink-0 px-3 py-2">
-        <div className="flex items-center justify-between">
-          <img src={logo} alt="SKEYE.AI" className="h-6 w-auto" />
-          <button onClick={() => setShowNotifications(!showNotifications)} className="relative p-2 active:scale-95">
-            <Bell className="w-5 h-5 text-gray-400" />
+      <header className="relative z-50 border-b border-green-500/20 bg-[#0a0a0a] flex-shrink-0">
+        <div className={`flex items-center justify-between ${isMobile ? 'px-3 py-2' : 'px-4 py-3 ml-16'}`}>
+          <div className="flex items-center gap-4">
+            <img src={logo} alt="SKEYE.AI" className={`${isMobile ? 'h-6' : 'h-7'} w-auto`} />
+            {/* UTC Time & Live Devices */}
+            <div className={`flex items-center gap-3 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+              <span className="text-gray-400 font-mono">{utcTime}</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-green-400 font-medium">{liveDevices} devices live</span>
+              </div>
+            </div>
+          </div>
+          <button onClick={(e) => { e.stopPropagation(); setShowNotifications(!showNotifications); }} className="relative p-2 hover:bg-white/5 rounded-lg">
+            <Bell className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-gray-400`} />
             {unreadCount > 0 && <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-[10px] flex items-center justify-center font-bold">{unreadCount}</span>}
           </button>
         </div>
+
+        {/* Notifications Dropdown */}
         {showNotifications && (
-          <div className="absolute left-2 right-2 top-full mt-2 bg-[#141414] border border-gray-700 rounded-xl shadow-2xl overflow-hidden z-50">
+          <div className={`absolute ${isMobile ? 'left-2 right-2' : 'right-4 w-80'} top-full mt-2 bg-[#141414] border border-gray-700 rounded-xl shadow-2xl overflow-hidden z-[100]`} onClick={e => e.stopPropagation()}>
             <div className="p-3 border-b border-gray-800 flex justify-between items-center">
               <h3 className="font-semibold">Notifications</h3>
-              <button onClick={() => setShowNotifications(false)}><X className="w-5 h-5 text-gray-400" /></button>
+              <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-white/10 rounded"><X className="w-5 h-5 text-gray-400" /></button>
             </div>
-            <div className="max-h-64 overflow-y-auto">
+            <div className="max-h-80 overflow-y-auto">
               {notificationsList.map((n) => (
-                <div key={n.id} className={`p-3 border-b border-gray-800/50 ${!n.read ? 'bg-green-500/5' : ''}`}>
-                  <p className="text-sm text-white">{n.device}</p>
-                  <p className="text-xs text-gray-400">{n.message}</p>
-                  <p className="text-[10px] text-gray-500 mt-1">{n.time}</p>
+                <div key={n.id} className={`p-3 border-b border-gray-800/50 hover:bg-white/5 cursor-pointer ${!n.read ? 'bg-green-500/5' : ''}`}>
+                  <p className="text-sm text-white font-medium">{n.device}</p>
+                  <p className="text-sm text-gray-400">{n.message}</p>
+                  <p className="text-xs text-gray-500 mt-1">{n.time}</p>
                 </div>
               ))}
             </div>
@@ -155,7 +194,8 @@ export default function App() {
 
       {/* Side Navigation - Desktop */}
       {!isMobile && (
-        <nav className="fixed left-0 top-0 bottom-0 w-16 border-r border-green-500/10 bg-[#0a0a0a] flex flex-col items-center py-20 z-40">
+        <nav className="fixed left-0 top-0 bottom-0 w-16 border-r border-green-500/10 bg-[#0a0a0a] flex flex-col items-center pt-4 z-40">
+          <div className="mb-8" />
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -586,18 +626,65 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
     );
   }
 
-  // Mobile Layout
+  // Mobile Layout with Swipe
+  const [touchStart, setTouchStart] = useState({ x: 0, y: 0 });
+  const [swipeOffset, setSwipeOffset] = useState(0);
+
+  const handleTouchStart = (e) => {
+    setTouchStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+  };
+
+  const handleTouchMove = (e) => {
+    const deltaX = e.touches[0].clientX - touchStart.x;
+    const deltaY = e.touches[0].clientY - touchStart.y;
+    // Only track horizontal swipes
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      setSwipeOffset(deltaX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (swipeOffset > 80) {
+      handlePrev();
+    } else if (swipeOffset < -80) {
+      handleNext();
+    }
+    setSwipeOffset(0);
+  };
+
   return (
-    <div className="h-full relative bg-black">
+    <div 
+      className="h-full relative bg-black overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Full Screen Video */}
-      <iframe 
-        key={currentClip.id} 
-        src={`https://www.youtube.com/embed/${currentClip.videoId}?autoplay=1&mute=0&playsinline=1&rel=0&modestbranding=1`} 
-        className="absolute inset-0 w-full h-full" 
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-        allowFullScreen 
-        title={currentClip.title} 
-      />
+      <div 
+        className="absolute inset-0 transition-transform duration-200"
+        style={{ transform: `translateX(${swipeOffset * 0.3}px)` }}
+      >
+        <iframe 
+          key={currentClip.id} 
+          src={`https://www.youtube.com/embed/${currentClip.videoId}?autoplay=1&mute=0&playsinline=1&rel=0&modestbranding=1`} 
+          className="absolute inset-0 w-full h-full" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+          allowFullScreen 
+          title={currentClip.title} 
+        />
+      </div>
+
+      {/* Swipe Indicators */}
+      {swipeOffset > 40 && currentIndex > 0 && (
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 backdrop-blur rounded-full p-3">
+          <ChevronLeft className="w-8 h-8" />
+        </div>
+      )}
+      {swipeOffset < -40 && (
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 backdrop-blur rounded-full p-3">
+          <ChevronRight className="w-8 h-8" />
+        </div>
+      )}
       
       {/* Top Bar - Progress & Info */}
       <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-3 pb-12">
@@ -609,6 +696,8 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
           {showReward && (<div className="flex items-center gap-1 bg-green-500/20 backdrop-blur px-3 py-1.5 rounded-full"><Zap className="w-3 h-3 text-green-400" /><span className="text-xs text-green-400 font-semibold">+50 $SKEYE</span></div>)}
           {!showReward && classified > 0 && (<div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">Classified: <span className="text-green-400 font-bold">{classified}</span></div>)}
         </div>
+        {/* Swipe hint */}
+        <p className="text-center text-[10px] text-gray-400 mt-2">← Swipe to navigate →</p>
       </div>
 
       {/* Nav Arrows */}
@@ -643,7 +732,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
           <p className="text-xs text-gray-300 flex items-center gap-1 mt-0.5 drop-shadow"><MapPin className="w-3 h-3" />{currentClip.location}</p>
         </div>
 
-        {/* Classify Bar - Emoji only on mobile */}
+        {/* Classify Bar */}
         <div className="flex items-center gap-1.5">
           {classificationOptions.map(opt => (
             <button key={opt.id} onClick={() => handleClassify(opt.id)} className="flex-1 py-3 rounded-lg text-xl active:scale-95 transition-transform backdrop-blur" style={{ backgroundColor: `${opt.color}30` }}>{opt.icon}</button>
