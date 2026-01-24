@@ -748,6 +748,7 @@ function CommunityView() {
 function DevicesView({ devices }) {
   const [activeModal, setActiveModal] = useState(null);
   const [selectedDevice, setSelectedDevice] = useState(null);
+  const [showAddDevice, setShowAddDevice] = useState(false);
   const openModal = (type, device) => { setSelectedDevice(device); setActiveModal(type); };
   const closeModal = () => { setActiveModal(null); setSelectedDevice(null); };
 
@@ -755,7 +756,7 @@ function DevicesView({ devices }) {
     <div className="h-full p-5 overflow-y-auto">
       <div className="flex items-center justify-between mb-5">
         <div><h2 className="text-2xl font-bold text-white">My Devices</h2><p className="text-sm text-gray-400 mt-1">Manage your Skeye camera network</p></div>
-        <button className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 rounded-lg text-sm font-semibold hover:shadow-lg hover:shadow-green-500/30">+ Add Device</button>
+        <button onClick={() => setShowAddDevice(true)} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 rounded-lg text-sm font-semibold hover:shadow-lg hover:shadow-green-500/30"><Plus className="w-4 h-4" />Add Device</button>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {devices.map(device => (
@@ -779,32 +780,122 @@ function DevicesView({ devices }) {
             <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-800/50">
               <button onClick={() => openModal('feed', device)} disabled={device.status !== 'online'} className={`flex-1 py-2.5 text-xs font-medium rounded-lg ${device.status === 'online' ? 'bg-green-500/10 text-green-400 hover:bg-green-500/20' : 'bg-gray-800/50 text-gray-500 cursor-not-allowed'}`}>View Feed</button>
               <button onClick={() => openModal('settings', device)} className="flex-1 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-lg">Settings</button>
+              <button onClick={() => openModal('history', device)} className="flex-1 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-lg">History</button>
             </div>
           </div>
         ))}
       </div>
+
       {activeModal === 'feed' && selectedDevice && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeModal}>
           <div className="bg-[#141414] rounded-2xl border border-green-500/20 w-full max-w-4xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-gray-800">
-              <div><h3 className="font-semibold text-white">{selectedDevice.name}</h3><p className="text-xs text-gray-400">{selectedDevice.location}</p></div>
-              <button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button>
+              <div><h3 className="font-semibold text-white">{selectedDevice.name} - Live Feed</h3><p className="text-xs text-gray-400">{selectedDevice.location}</p></div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 px-3 py-1 bg-red-500/20 rounded-full"><div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" /><span className="text-xs text-red-400">REC</span></div>
+                <button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button>
+              </div>
             </div>
-            <div className="aspect-video bg-black flex items-center justify-center"><Camera className="w-16 h-16 text-gray-700" /></div>
+            <div className="aspect-video bg-black relative">
+              <div className="absolute inset-0 flex items-center justify-center"><Camera className="w-16 h-16 text-gray-700" /><p className="text-gray-500 ml-4">Live feed streaming...</p></div>
+              <div className="absolute top-4 left-4 bg-black/60 px-2 py-1 rounded text-xs text-white font-mono">{new Date().toLocaleTimeString()}</div>
+              <div className="absolute top-4 right-4 bg-black/60 px-2 py-1 rounded text-xs text-green-400">1080p • 30fps</div>
+            </div>
+            <div className="p-4">
+              <p className="text-xs text-gray-400 text-center mb-3">Pan / Tilt / Zoom Controls</p>
+              <div className="flex items-center justify-center gap-4">
+                <button className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors"><ChevronLeft className="w-5 h-5" /></button>
+                <div className="flex flex-col gap-2">
+                  <button className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors"><ChevronUp className="w-5 h-5" /></button>
+                  <button className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors"><ChevronDown className="w-5 h-5" /></button>
+                </div>
+                <button className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors"><ChevronRight className="w-5 h-5" /></button>
+                <div className="w-px h-12 bg-gray-700 mx-4" />
+                <div className="flex items-center gap-2">
+                  <button className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors text-lg font-bold">−</button>
+                  <span className="text-xs text-gray-400 w-12 text-center">Zoom</span>
+                  <button className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors"><Plus className="w-5 h-5" /></button>
+                </div>
+                <div className="w-px h-12 bg-gray-700 mx-4" />
+                <button className="p-3 bg-white/5 rounded-full hover:bg-white/10 transition-colors"><Volume2 className="w-5 h-5" /></button>
+              </div>
+            </div>
           </div>
         </div>
       )}
+
       {activeModal === 'settings' && selectedDevice && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeModal}>
           <div className="bg-[#141414] rounded-2xl border border-green-500/20 w-full max-w-lg overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-4 border-b border-gray-800"><h3 className="font-semibold text-white">Device Settings</h3><button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button></div>
-            <div className="p-4 space-y-4">
+            <div className="flex items-center justify-between p-4 border-b border-gray-800"><h3 className="font-semibold text-white flex items-center gap-2"><Settings className="w-5 h-5 text-green-400" />Device Settings</h3><button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button></div>
+            <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
               <div><label className="block text-xs text-gray-400 mb-2">Device Name</label><input type="text" defaultValue={selectedDevice.name} className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" /></div>
-              <div><label className="block text-xs text-gray-400 mb-2">Location</label><input type="text" defaultValue={selectedDevice.location} className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" /></div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-2">Location</label>
+                <div className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-gray-400">{selectedDevice.location}</div>
+                <p className="text-xs text-gray-500 mt-1">Coordinates: {selectedDevice.id === 1 || selectedDevice.id === 2 ? '38.7223° N, 9.1393° W' : selectedDevice.id === 3 ? '30.2672° N, 97.7431° W' : '32.7157° N, 117.1611° W'}</p>
+              </div>
+              <div className="border-t border-gray-800 pt-4">
+                <h4 className="text-sm font-semibold text-white mb-3">WiFi Settings</h4>
+                <div className="space-y-3">
+                  <div><label className="block text-xs text-gray-400 mb-2">WiFi Network</label><input type="text" defaultValue="Home_Network_5G" className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" /></div>
+                  <div><label className="block text-xs text-gray-400 mb-2">WiFi Password</label><input type="password" defaultValue="password123" className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" /></div>
+                </div>
+              </div>
+              <div className="border-t border-gray-800 pt-4">
+                <h4 className="text-sm font-semibold text-white mb-3">Detection Settings</h4>
+                <div><label className="block text-xs text-gray-400 mb-2">Detection Sensitivity</label><input type="range" defaultValue="70" className="w-full" /><div className="flex justify-between text-xs text-gray-500 mt-1"><span>Low</span><span>High</span></div></div>
+              </div>
+              <div className="border-t border-gray-800 pt-4 space-y-3">
+                <h4 className="text-sm font-semibold text-white mb-3">Features</h4>
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Motion Detection</p><p className="text-xs text-gray-400">Trigger recording on movement</p></div><div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Starlight Vision</p><p className="text-xs text-gray-400">Enhanced low-light capture</p></div><div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Audio Recording</p><p className="text-xs text-gray-400">Capture sound with video</p></div><div className="w-12 h-6 bg-gray-600 rounded-full relative cursor-pointer"><div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Auto-Upload Clips</p><p className="text-xs text-gray-400">Upload detections to cloud</p></div><div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
+              </div>
+              <div className="border-t border-gray-800 pt-4">
+                <button className="w-full py-3 bg-red-500/10 text-red-400 rounded-xl font-medium hover:bg-red-500/20 transition-colors">Delete This Device</button>
+                <p className="text-xs text-gray-500 text-center mt-2">This will remove the device from your account</p>
+              </div>
             </div>
             <div className="p-4 border-t border-gray-800 flex justify-end gap-2">
               <button onClick={closeModal} className="px-4 py-2 text-gray-400 hover:bg-white/5 rounded-lg text-sm">Cancel</button>
-              <button className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600">Save</button>
+              <button className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600">Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeModal === 'history' && selectedDevice && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeModal}>
+          <div className="bg-[#141414] rounded-2xl border border-green-500/20 w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-800"><h3 className="font-semibold text-white">{selectedDevice.name} - Detection History</h3><button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button></div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {[{ time: 'Today, 9:34 PM', type: 'Unknown', duration: '0:32', confidence: 87 }, { time: 'Today, 8:12 PM', type: 'Aircraft', duration: '0:18', confidence: 94 }, { time: 'Today, 6:45 PM', type: 'Drone', duration: '1:24', confidence: 91 }, { time: 'Yesterday, 11:23 PM', type: 'Unknown', duration: '0:45', confidence: 76 }, { time: 'Yesterday, 9:15 PM', type: 'Bird', duration: '0:12', confidence: 89 }].map((clip, i) => (
+                <div key={i} className="flex items-center gap-4 p-3 bg-white/5 rounded-xl hover:bg-white/10 cursor-pointer">
+                  <div className="w-20 h-14 bg-gray-800 rounded-lg flex items-center justify-center relative"><Play className="w-5 h-5 text-gray-500" /><span className="absolute bottom-1 right-1 text-[10px] bg-black/60 px-1 rounded">{clip.duration}</span></div>
+                  <div className="flex-1"><span className={`px-2 py-0.5 rounded text-[10px] font-bold ${clip.type === 'Unknown' ? 'bg-purple-500/20 text-purple-400' : clip.type === 'Drone' ? 'bg-blue-500/20 text-blue-400' : clip.type === 'Bird' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}`}>{clip.type}</span><p className="text-xs text-gray-400 mt-1">{clip.time}</p></div>
+                  <span className="text-xs text-green-400 font-medium">{clip.confidence}%</span>
+                  <div className="flex gap-1"><button className="p-2 hover:bg-white/10 rounded-lg"><Download className="w-4 h-4 text-gray-400" /></button><button className="p-2 hover:bg-white/10 rounded-lg"><Share2 className="w-4 h-4 text-gray-400" /></button></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAddDevice && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowAddDevice(false)}>
+          <div className="bg-[#141414] rounded-2xl border border-green-500/20 w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-gray-800"><h3 className="font-semibold text-white">Add New Device</h3><button onClick={() => setShowAddDevice(false)} className="text-gray-400 hover:text-white text-xl">&times;</button></div>
+            <div className="p-6 text-center">
+              <div className="w-20 h-20 mx-auto bg-green-500/10 rounded-full flex items-center justify-center mb-4"><Camera className="w-10 h-10 text-green-400" /></div>
+              <h4 className="text-lg font-semibold text-white">Connect Your Skeye Camera</h4>
+              <p className="text-sm text-gray-400 mt-2">Make sure your camera is powered on and in pairing mode (blue LED blinking)</p>
+              <div className="mt-6 space-y-3">
+                <button className="w-full py-3 bg-green-500/10 text-green-400 rounded-xl font-medium hover:bg-green-500/20 transition-colors">Scan QR Code</button>
+                <button className="w-full py-3 bg-white/5 text-gray-300 rounded-xl font-medium hover:bg-white/10 transition-colors">Enter Serial Number Manually</button>
+              </div>
             </div>
           </div>
         </div>
