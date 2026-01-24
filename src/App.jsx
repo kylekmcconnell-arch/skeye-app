@@ -12,18 +12,18 @@ const mockDevices = [
 ];
 
 const myClips = [
-  { id: 1, device: 'Home (Rooftop)', time: 'Today, 9:34 PM', type: 'Unknown', confidence: 87, duration: '0:32', videoId: 'QKHg-vnTFsM' },
+  { id: 1, device: 'Home (Rooftop)', time: 'Today, 9:34 PM', type: 'UAP', confidence: 87, duration: '0:32', videoId: 'QKHg-vnTFsM' },
   { id: 2, device: 'Home (Rooftop)', time: 'Today, 8:12 PM', type: 'Aircraft', confidence: 94, duration: '0:18', videoId: 'u1hNYs55sqs' },
   { id: 3, device: 'Home (Barn)', time: 'Today, 6:45 PM', type: 'Drone', confidence: 91, duration: '1:24', videoId: '2TumprpOwHY' },
-  { id: 4, device: 'Beach House (Roof)', time: 'Yesterday, 11:23 PM', type: 'Unknown', confidence: 76, duration: '0:45', videoId: 'dGOXuuhYoLk' },
+  { id: 4, device: 'Beach House (Roof)', time: 'Yesterday, 11:23 PM', type: 'UAP', confidence: 76, duration: '0:45', videoId: 'dGOXuuhYoLk' },
 ];
 
 const mockClips = [
-  { id: 1, title: 'GIMBAL - Navy F/A-18 Encounter', location: 'East Coast, USA', timestamp: '2 min ago', views: 12400, classification: 'Unknown', confidence: 87, verified: true, likes: 892, comments: [{user: 'SkyWatcher_AZ', text: 'Incredible footage!', time: '1h ago'}], videoId: 'QKHg-vnTFsM' },
-  { id: 2, title: 'GO FAST - High Speed Object', location: 'Atlantic Ocean', timestamp: '15 min ago', views: 8900, classification: 'Unknown', confidence: 91, verified: true, likes: 456, comments: [{user: 'DataAnalyst99', text: 'Speed suggests 400+ mph', time: '2h ago'}], videoId: 'u1hNYs55sqs' },
-  { id: 3, title: 'FLIR1 Tic Tac - USS Nimitz', location: 'San Diego, CA', timestamp: '1 hour ago', views: 25600, classification: 'Unknown', confidence: 96, verified: true, likes: 1834, comments: [], videoId: '2TumprpOwHY' },
-  { id: 4, title: 'Jellyfish UAP - Iraq 2018', location: 'Iraq', timestamp: '3 hours ago', views: 21000, classification: 'Unknown', confidence: 72, verified: true, likes: 1567, comments: [], videoId: 'dGOXuuhYoLk' },
-  { id: 5, title: 'Chilean Navy UFO', location: 'Chile', timestamp: '5 hours ago', views: 18700, classification: 'Unknown', confidence: 84, verified: true, likes: 1245, comments: [], videoId: 'iEK3YC_BKTI' },
+  { id: 1, title: 'GIMBAL - Navy F/A-18 Encounter', location: 'East Coast, USA', timestamp: '2 min ago', views: 12400, classification: 'UAP', confidence: 87, verified: true, likes: 892, comments: [{user: 'SkyWatcher_AZ', text: 'Incredible footage!', time: '1h ago'}], videoId: 'QKHg-vnTFsM' },
+  { id: 2, title: 'GO FAST - High Speed Object', location: 'Atlantic Ocean', timestamp: '15 min ago', views: 8900, classification: 'UAP', confidence: 91, verified: true, likes: 456, comments: [{user: 'DataAnalyst99', text: 'Speed suggests 400+ mph', time: '2h ago'}], videoId: 'u1hNYs55sqs' },
+  { id: 3, title: 'FLIR1 Tic Tac - USS Nimitz', location: 'San Diego, CA', timestamp: '1 hour ago', views: 25600, classification: 'UAP', confidence: 96, verified: true, likes: 1834, comments: [], videoId: '2TumprpOwHY' },
+  { id: 4, title: 'Jellyfish UAP - Iraq 2018', location: 'Iraq', timestamp: '3 hours ago', views: 21000, classification: 'UAP', confidence: 72, verified: true, likes: 1567, comments: [], videoId: 'dGOXuuhYoLk' },
+  { id: 5, title: 'Chilean Navy UFO', location: 'Chile', timestamp: '5 hours ago', views: 18700, classification: 'UAP', confidence: 84, verified: true, likes: 1245, comments: [], videoId: 'iEK3YC_BKTI' },
 ];
 
 const classifyClips = [
@@ -35,11 +35,11 @@ const classifyClips = [
 ];
 
 const classificationOptions = [
-  { id: 'Unknown', label: 'Unknown', color: '#a855f7', short: '?' },
-  { id: 'Drone', label: 'Drone', color: '#3b82f6', short: 'D' },
-  { id: 'Aircraft', label: 'Aircraft', color: '#22c55e', short: 'A' },
-  { id: 'Bird', label: 'Bird', color: '#eab308', short: 'B' },
-  { id: 'Weather', label: 'Weather', color: '#06b6d4', short: 'W' },
+  { id: 'UAP', label: '🛸 UAP', color: '#a855f7', short: '🛸' },
+  { id: 'Drone', label: '🤖 Drone', color: '#3b82f6', short: '🤖' },
+  { id: 'Aircraft', label: '✈️ Aircraft', color: '#22c55e', short: '✈️' },
+  { id: 'Bird', label: '🦅 Bird', color: '#eab308', short: '🦅' },
+  { id: 'Weather', label: '🌦️ Weather', color: '#06b6d4', short: '🌦️' },
 ];
 
 const timeRanges = [
@@ -76,7 +76,7 @@ const generateSightings = () => {
     { city: 'Phoenix', lat: 33.4484, lng: -112.0740 }, { city: 'London', lat: 51.5074, lng: -0.1278 },
     { city: 'Tokyo', lat: 35.6762, lng: 139.6503 }, { city: 'Sydney', lat: -33.8688, lng: 151.2093 },
   ];
-  const types = ['Unknown', 'Drone', 'Aircraft', 'Bird', 'Weather'];
+  const types = ['UAP', 'Drone', 'Aircraft', 'Bird', 'Weather'];
   const videoIds = ['QKHg-vnTFsM', 'u1hNYs55sqs', '2TumprpOwHY', 'dGOXuuhYoLk'];
   const sightings = [];
   const now = Date.now();
@@ -290,7 +290,7 @@ function GlobalMapView({ isMobile }) {
   );
 }
 
-function VideoFeedView({ clips, showReward = false, title = "Trending" }) {
+function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile = true }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedClips, setLikedClips] = useState({});
   const [classified, setClassified] = useState(0);
@@ -304,6 +304,104 @@ function VideoFeedView({ clips, showReward = false, title = "Trending" }) {
     setTimeout(() => handleNext(), 300);
   };
 
+  // Desktop Layout
+  if (!isMobile) {
+    return (
+      <div className="h-full flex">
+        {/* Main Video Area */}
+        <div className="flex-1 relative bg-black">
+          <iframe 
+            key={currentClip.id} 
+            src={`https://www.youtube.com/embed/${currentClip.videoId}?autoplay=1&mute=0&rel=0&modestbranding=1`} 
+            className="absolute inset-0 w-full h-full" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowFullScreen 
+            title={currentClip.title} 
+          />
+          
+          {/* Nav Arrows */}
+          <button onClick={handlePrev} disabled={currentIndex === 0} className={`absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center z-10 transition-all ${currentIndex === 0 ? 'opacity-30' : ''}`}>
+            <ChevronLeft className="w-8 h-8" />
+          </button>
+          <button onClick={handleNext} className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center z-10">
+            <ChevronRight className="w-8 h-8" />
+          </button>
+        </div>
+
+        {/* Right Sidebar */}
+        <div className="w-80 bg-[#0a0a0a] border-l border-gray-800 flex flex-col">
+          {/* Progress */}
+          <div className="p-4 border-b border-gray-800">
+            <div className="flex gap-1 mb-3">
+              {clips.map((_, i) => (<div key={i} className={`flex-1 h-1.5 rounded-full transition-all ${i === currentIndex ? 'bg-green-400' : i < currentIndex ? 'bg-green-400/50' : 'bg-gray-700'}`} />))}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-400">{currentIndex + 1} of {clips.length}</span>
+              {showReward && (
+                <div className="flex items-center gap-1 bg-green-500/20 px-3 py-1 rounded-full">
+                  <Zap className="w-4 h-4 text-green-400" />
+                  <span className="text-sm text-green-400 font-semibold">+50 $SKEYE</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Clip Info */}
+          <div className="p-4 border-b border-gray-800">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color + '30', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color }}>
+                {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.short} {currentClip.classification || currentClip.type || 'UAP'}
+              </span>
+              {currentClip.confidence && <span className="text-xs text-gray-400">{currentClip.confidence}%</span>}
+            </div>
+            <h3 className="font-semibold text-lg">{currentClip.title}</h3>
+            <p className="text-sm text-gray-400 flex items-center gap-1 mt-1"><MapPin className="w-4 h-4" />{currentClip.location}</p>
+          </div>
+
+          {/* Actions */}
+          <div className="p-4 border-b border-gray-800 flex items-center gap-3">
+            <button onClick={handleLike} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${likedClips[currentClip.id] ? 'bg-green-500 text-white' : 'bg-white/5 hover:bg-white/10'}`}>
+              <ThumbsUp className="w-5 h-5" />
+              <span>{(currentClip.likes || 0) + (likedClips[currentClip.id] ? 1 : 0)}</span>
+            </button>
+            <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10">
+              <MessageCircle className="w-5 h-5" />
+              <span>{currentClip.comments?.length || 0}</span>
+            </button>
+            <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10">
+              <Share2 className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Classify Section */}
+          <div className="flex-1 p-4">
+            <h4 className="text-sm font-semibold text-gray-400 mb-3">CLASSIFY THIS SIGHTING</h4>
+            <div className="space-y-2">
+              {classificationOptions.map(opt => (
+                <button 
+                  key={opt.id} 
+                  onClick={() => handleClassify(opt.id)} 
+                  className="w-full py-3 rounded-xl font-semibold hover:scale-[1.02] active:scale-[0.98] transition-transform flex items-center justify-center gap-2" 
+                  style={{ backgroundColor: `${opt.color}20`, color: opt.color }}
+                >
+                  <span className="text-xl">{opt.short}</span>
+                  <span>{opt.label.split(' ')[1]}</span>
+                </button>
+              ))}
+            </div>
+            <button onClick={handleNext} className="w-full mt-3 py-3 rounded-xl text-gray-400 bg-white/5 hover:bg-white/10">
+              Skip
+            </button>
+            {classified > 0 && (
+              <p className="text-center text-sm text-gray-500 mt-4">Classified today: <span className="text-green-400 font-bold">{classified}</span></p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Mobile Layout
   return (
     <div className="h-full relative bg-black">
       {/* Full Screen Video */}
@@ -376,8 +474,9 @@ function VideoFeedView({ clips, showReward = false, title = "Trending" }) {
         {/* Clip Info */}
         <div className="mb-3 pr-16">
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2 py-0.5 rounded text-[10px] font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'Unknown'))?.color + '40', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'Unknown'))?.color }}>
-              {currentClip.classification || currentClip.type || 'Unknown'}
+            <span className="px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color + '40', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color }}>
+              {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.short}
+              {currentClip.classification || currentClip.type || 'UAP'}
             </span>
             {currentClip.confidence && <span className="text-[10px] text-gray-400">{currentClip.confidence}%</span>}
           </div>
@@ -391,7 +490,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending" }) {
             <button 
               key={opt.id} 
               onClick={() => handleClassify(opt.id)} 
-              className="flex-1 py-2.5 rounded-lg text-xs font-bold active:scale-95 transition-transform backdrop-blur" 
+              className="flex-1 py-2.5 rounded-lg text-lg active:scale-95 transition-transform backdrop-blur" 
               style={{ backgroundColor: `${opt.color}30`, color: opt.color }}
             >
               {opt.short}
@@ -407,7 +506,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending" }) {
 }
 
 function TrendingView({ isMobile, clips }) {
-  return <VideoFeedView clips={clips} showReward={false} title="Trending" />;
+  return <VideoFeedView clips={clips} showReward={false} title="Trending" isMobile={isMobile} />;
 }
 
 function ClassifyView({ isMobile }) {
@@ -416,10 +515,10 @@ function ClassifyView({ isMobile }) {
     ...c,
     likes: Math.floor(Math.random() * 500),
     comments: [],
-    classification: 'Unknown',
+    classification: 'UAP',
     confidence: Math.floor(70 + Math.random() * 25)
   }));
-  return <VideoFeedView clips={clipsWithInfo} showReward={true} title="Classify" />;
+  return <VideoFeedView clips={clipsWithInfo} showReward={true} title="Classify" isMobile={isMobile} />;
 }
 
 function CommunityView({ isMobile }) {
