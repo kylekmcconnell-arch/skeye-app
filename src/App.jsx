@@ -115,6 +115,28 @@ export default function App() {
 
   // Prevent zoom on mobile
   useEffect(() => {
+    // Fix viewport zoom issues on mobile
+    const metaViewport = document.querySelector('meta[name="viewport"]');
+    if (metaViewport) {
+      metaViewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
+    } else {
+      const meta = document.createElement('meta');
+      meta.name = 'viewport';
+      meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+      document.head.appendChild(meta);
+    }
+    
+    // Prevent iOS text size adjustment
+    document.documentElement.style.webkitTextSizeAdjust = '100%';
+    document.documentElement.style.textSizeAdjust = '100%';
+    
+    // Reset any existing zoom
+    document.body.style.zoom = '1';
+    document.body.style.transform = 'scale(1)';
+    document.body.style.transformOrigin = '0 0';
+  }, []);
+
+  useEffect(() => {
     const preventZoom = (e) => {
       if (e.touches && e.touches.length > 1) e.preventDefault();
     };
@@ -142,7 +164,7 @@ export default function App() {
   const utcTime = currentTime.toISOString().slice(11, 19) + ' UTC';
 
   return (
-    <div className="fixed inset-0 bg-[#0a0a0a] text-white flex flex-col overflow-hidden" style={{ touchAction: 'pan-x pan-y' }}>
+    <div className="fixed inset-0 bg-[#0a0a0a] text-white flex flex-col overflow-hidden" style={{ touchAction: 'manipulation', WebkitOverflowScrolling: 'touch', width: '100vw', height: '100vh', maxWidth: '100%', maxHeight: '100%' }}>
       {/* Header */}
       <header className="relative z-50 border-b border-green-500/20 bg-[#0a0a0a] flex-shrink-0">
         <div className={`flex items-center justify-between ${isMobile ? 'px-3 py-2' : 'px-4 py-3 ml-16'}`}>
@@ -265,14 +287,16 @@ function GlobalMapView({ isMobile }) {
       if (!window.L) {
         await new Promise(r => { const s = document.createElement('script'); s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; s.onload = r; document.head.appendChild(s); });
       }
-      const map = window.L.map(mapRef.current, { center: [30, 0], zoom: 2, minZoom: 2, maxZoom: 18, zoomControl: false, attributionControl: false, worldCopyJump: true, tap: false });
+      // Mobile: zoom 1 to show full world, Desktop: zoom 2
+      const defaultZoom = isMobile ? 1 : 2;
+      const map = window.L.map(mapRef.current, { center: [20, 0], zoom: defaultZoom, minZoom: 1, maxZoom: 18, zoomControl: false, attributionControl: false, worldCopyJump: true, tap: false });
       window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd' }).addTo(map);
       mapInstanceRef.current = map;
       setMapReady(true);
     };
     loadMap();
     return () => { if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; } };
-  }, []);
+  }, [isMobile]);
 
   useEffect(() => {
     if (!mapInstanceRef.current || !mapReady) return;
