@@ -19,11 +19,11 @@ const myClips = [
 ];
 
 const mockClips = [
-  { id: 1, title: 'GIMBAL - Navy F/A-18 Encounter', location: 'East Coast, USA', timestamp: '2 min ago', views: 12400, classification: 'UAP', confidence: 87, verified: true, likes: 892, comments: [{user: 'SkyWatcher_AZ', text: 'Incredible footage!', time: '1h ago'}], videoId: 'QKHg-vnTFsM' },
-  { id: 2, title: 'GO FAST - High Speed Object', location: 'Atlantic Ocean', timestamp: '15 min ago', views: 8900, classification: 'UAP', confidence: 91, verified: true, likes: 456, comments: [{user: 'DataAnalyst99', text: 'Speed suggests 400+ mph', time: '2h ago'}], videoId: 'u1hNYs55sqs' },
-  { id: 3, title: 'FLIR1 Tic Tac - USS Nimitz', location: 'San Diego, CA', timestamp: '1 hour ago', views: 25600, classification: 'UAP', confidence: 96, verified: true, likes: 1834, comments: [], videoId: '2TumprpOwHY' },
-  { id: 4, title: 'Jellyfish UAP - Iraq 2018', location: 'Iraq', timestamp: '3 hours ago', views: 21000, classification: 'UAP', confidence: 72, verified: true, likes: 1567, comments: [], videoId: 'dGOXuuhYoLk' },
-  { id: 5, title: 'Chilean Navy UFO', location: 'Chile', timestamp: '5 hours ago', views: 18700, classification: 'UAP', confidence: 84, verified: true, likes: 1245, comments: [], videoId: 'iEK3YC_BKTI' },
+  { id: 1, title: 'GIMBAL - Navy F/A-18 Encounter', location: 'East Coast, USA', timestamp: '2 min ago', views: 12400, classification: 'UAP', confidence: 87, verified: true, siteLikes: 234, siteComments: [{user: 'SkyWatcher_AZ', text: 'Incredible footage! The rotation is unmistakable.', time: '1h ago', avatar: 'S'}, {user: 'DataAnalyst99', text: 'I ran this through my tracking software - no conventional aircraft moves like this.', time: '45m ago', avatar: 'D'}], videoId: 'QKHg-vnTFsM' },
+  { id: 2, title: 'GO FAST - High Speed Object', location: 'Atlantic Ocean', timestamp: '15 min ago', views: 8900, classification: 'UAP', confidence: 91, verified: true, siteLikes: 156, siteComments: [{user: 'PilotMike', text: 'As a commercial pilot, I can confirm this is not normal.', time: '2h ago', avatar: 'P'}], videoId: 'u1hNYs55sqs' },
+  { id: 3, title: 'FLIR1 Tic Tac - USS Nimitz', location: 'San Diego, CA', timestamp: '1 hour ago', views: 25600, classification: 'UAP', confidence: 96, verified: true, siteLikes: 445, siteComments: [{user: 'NavyVet2020', text: 'I was stationed on the Nimitz. This is real.', time: '3h ago', avatar: 'N'}, {user: 'SkepticalSam', text: 'Could this be a weather balloon?', time: '2h ago', avatar: 'S'}, {user: 'TruthSeeker', text: '@SkepticalSam No way, look at the movement patterns', time: '1h ago', avatar: 'T'}], videoId: '2TumprpOwHY' },
+  { id: 4, title: 'Jellyfish UAP - Iraq 2018', location: 'Iraq', timestamp: '3 hours ago', views: 21000, classification: 'UAP', confidence: 72, verified: true, siteLikes: 312, siteComments: [], videoId: 'dGOXuuhYoLk' },
+  { id: 5, title: 'Chilean Navy UFO', location: 'Chile', timestamp: '5 hours ago', views: 18700, classification: 'UAP', confidence: 84, verified: true, siteLikes: 189, siteComments: [{user: 'ChileanObserver', text: 'Finally getting international attention!', time: '4h ago', avatar: 'C'}], videoId: 'iEK3YC_BKTI' },
 ];
 
 const classifyClips = [
@@ -35,11 +35,11 @@ const classifyClips = [
 ];
 
 const classificationOptions = [
-  { id: 'UAP', label: '🛸 UAP', color: '#a855f7', short: '🛸' },
-  { id: 'Drone', label: '🤖 Drone', color: '#3b82f6', short: '🤖' },
-  { id: 'Aircraft', label: '✈️ Aircraft', color: '#22c55e', short: '✈️' },
-  { id: 'Bird', label: '🦅 Bird', color: '#eab308', short: '🦅' },
-  { id: 'Weather', label: '🌦️ Weather', color: '#06b6d4', short: '🌦️' },
+  { id: 'UAP', label: 'UAP', color: '#a855f7', emoji: '🛸' },
+  { id: 'Drone', label: 'Drone', color: '#3b82f6', emoji: '◼️' },
+  { id: 'Aircraft', label: 'Aircraft', color: '#22c55e', emoji: '✈️' },
+  { id: 'Bird', label: 'Bird', color: '#eab308', emoji: '🦅' },
+  { id: 'Weather', label: 'Weather', color: '#06b6d4', emoji: '☁️' },
 ];
 
 const timeRanges = [
@@ -313,15 +313,20 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedClips, setLikedClips] = useState({});
   const [classified, setClassified] = useState(0);
+  const [showComments, setShowComments] = useState(false);
+  const [newComment, setNewComment] = useState('');
   const currentClip = clips[currentIndex];
 
-  const handlePrev = () => { if (currentIndex > 0) setCurrentIndex(currentIndex - 1); };
-  const handleNext = () => { if (currentIndex < clips.length - 1) setCurrentIndex(currentIndex + 1); else setCurrentIndex(0); };
+  const handlePrev = () => { if (currentIndex > 0) setCurrentIndex(currentIndex - 1); setShowComments(false); };
+  const handleNext = () => { if (currentIndex < clips.length - 1) setCurrentIndex(currentIndex + 1); else setCurrentIndex(0); setShowComments(false); };
   const handleLike = () => setLikedClips(prev => ({ ...prev, [currentClip.id]: !prev[currentClip.id] }));
   const handleClassify = (type) => { 
     setClassified(prev => prev + 1);
     setTimeout(() => handleNext(), 300);
   };
+
+  const siteLikes = (currentClip.siteLikes || 0) + (likedClips[currentClip.id] ? 1 : 0);
+  const siteComments = currentClip.siteComments || [];
 
   // Desktop Layout
   if (!isMobile) {
@@ -368,8 +373,8 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
           {/* Clip Info */}
           <div className="p-4 border-b border-gray-800">
             <div className="flex items-center gap-2 mb-2">
-              <span className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color + '30', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color }}>
-                {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.short} {currentClip.classification || currentClip.type || 'UAP'}
+              <span className="px-2 py-1 rounded text-xs font-bold flex items-center gap-1" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color + '30', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color }}>
+                {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.emoji} {currentClip.classification || currentClip.type || 'UAP'}
               </span>
               {currentClip.confidence && <span className="text-xs text-gray-400">{currentClip.confidence}%</span>}
             </div>
@@ -381,11 +386,11 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
           <div className="p-4 border-b border-gray-800 flex items-center gap-3">
             <button onClick={handleLike} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${likedClips[currentClip.id] ? 'bg-green-500 text-white' : 'bg-white/5 hover:bg-white/10'}`}>
               <ThumbsUp className="w-5 h-5" />
-              <span>{(currentClip.likes || 0) + (likedClips[currentClip.id] ? 1 : 0)}</span>
+              <span>{siteLikes}</span>
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10">
+            <button onClick={() => setShowComments(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10">
               <MessageCircle className="w-5 h-5" />
-              <span>{currentClip.comments?.length || 0}</span>
+              <span>{siteComments.length}</span>
             </button>
             <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10">
               <Share2 className="w-5 h-5" />
@@ -393,7 +398,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
           </div>
 
           {/* Classify Section */}
-          <div className="flex-1 p-4">
+          <div className="flex-1 p-4 overflow-y-auto">
             <h4 className="text-sm font-semibold text-gray-400 mb-3">CLASSIFY THIS SIGHTING</h4>
             <div className="space-y-2">
               {classificationOptions.map(opt => (
@@ -403,8 +408,8 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                   className="w-full py-3 rounded-xl font-semibold hover:scale-[1.02] active:scale-[0.98] transition-transform flex items-center justify-center gap-2" 
                   style={{ backgroundColor: `${opt.color}20`, color: opt.color }}
                 >
-                  <span className="text-xl">{opt.short}</span>
-                  <span>{opt.label.split(' ')[1]}</span>
+                  <span className="text-xl">{opt.emoji}</span>
+                  <span>{opt.label}</span>
                 </button>
               ))}
             </div>
@@ -416,6 +421,42 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
             )}
           </div>
         </div>
+
+        {/* Comments Panel - Desktop */}
+        {showComments && (
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center" onClick={() => setShowComments(false)}>
+            <div className="bg-[#141414] rounded-2xl w-full max-w-lg max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+              <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+                <h3 className="font-semibold">Comments ({siteComments.length})</h3>
+                <button onClick={() => setShowComments(false)}><X className="w-5 h-5 text-gray-400" /></button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {siteComments.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">No comments yet. Be the first!</p>
+                ) : (
+                  siteComments.map((c, i) => (
+                    <div key={i} className="flex gap-3">
+                      <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center text-sm font-bold text-green-400 flex-shrink-0">{c.avatar}</div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm">{c.user}</span>
+                          <span className="text-xs text-gray-500">{c.time}</span>
+                        </div>
+                        <p className="text-sm text-gray-300 mt-1">{c.text}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="p-4 border-t border-gray-800">
+                <div className="flex gap-2">
+                  <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Add a comment..." className="flex-1 px-4 py-2 bg-white/5 border border-gray-700 rounded-xl text-white text-sm focus:outline-none focus:border-green-500/50" />
+                  <button className="px-4 py-2 bg-green-500 rounded-xl text-sm font-medium">Post</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -435,67 +476,41 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
       
       {/* Top Bar - Progress & Info */}
       <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-3 pb-12">
-        {/* Progress Dots */}
         <div className="flex gap-1 mb-3">
           {clips.map((_, i) => (<div key={i} className={`flex-1 h-1 rounded-full transition-all ${i === currentIndex ? 'bg-white' : i < currentIndex ? 'bg-white/50' : 'bg-white/20'}`} />))}
         </div>
-        
-        {/* Counter & Reward */}
         <div className="flex items-center justify-between">
-          <div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">
-            {currentIndex + 1} / {clips.length}
-          </div>
-          {showReward && (
-            <div className="flex items-center gap-1 bg-green-500/20 backdrop-blur px-3 py-1.5 rounded-full">
-              <Zap className="w-3 h-3 text-green-400" />
-              <span className="text-xs text-green-400 font-semibold">+50 $SKEYE</span>
-            </div>
-          )}
-          {!showReward && classified > 0 && (
-            <div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">
-              Classified: <span className="text-green-400 font-bold">{classified}</span>
-            </div>
-          )}
+          <div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">{currentIndex + 1} / {clips.length}</div>
+          {showReward && (<div className="flex items-center gap-1 bg-green-500/20 backdrop-blur px-3 py-1.5 rounded-full"><Zap className="w-3 h-3 text-green-400" /><span className="text-xs text-green-400 font-semibold">+50 $SKEYE</span></div>)}
+          {!showReward && classified > 0 && (<div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">Classified: <span className="text-green-400 font-bold">{classified}</span></div>)}
         </div>
       </div>
 
       {/* Nav Arrows */}
-      <button onClick={handlePrev} disabled={currentIndex === 0} className={`absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center z-10 transition-opacity ${currentIndex === 0 ? 'opacity-30' : 'hover:bg-black/60 active:scale-95'}`}>
-        <ChevronLeft className="w-6 h-6" />
-      </button>
-      <button onClick={handleNext} className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center z-10 hover:bg-black/60 active:scale-95">
-        <ChevronRight className="w-6 h-6" />
-      </button>
+      <button onClick={handlePrev} disabled={currentIndex === 0} className={`absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center z-10 transition-opacity ${currentIndex === 0 ? 'opacity-30' : 'active:scale-95'}`}><ChevronLeft className="w-6 h-6" /></button>
+      <button onClick={handleNext} className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center z-10 active:scale-95"><ChevronRight className="w-6 h-6" /></button>
 
       {/* Right Side Actions */}
-      <div className="absolute right-3 bottom-36 flex flex-col items-center gap-4 z-10">
+      <div className="absolute right-3 bottom-44 flex flex-col items-center gap-4 z-10">
         <button onClick={handleLike} className="flex flex-col items-center">
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center backdrop-blur transition-colors ${likedClips[currentClip.id] ? 'bg-green-500' : 'bg-black/40 hover:bg-black/60'}`}>
-            <ThumbsUp className="w-5 h-5" />
-          </div>
-          <span className="text-xs mt-1 drop-shadow">{(currentClip.likes || 0) + (likedClips[currentClip.id] ? 1 : 0)}</span>
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center backdrop-blur transition-colors ${likedClips[currentClip.id] ? 'bg-green-500' : 'bg-black/40'}`}><ThumbsUp className="w-5 h-5" /></div>
+          <span className="text-xs mt-1 drop-shadow">{siteLikes}</span>
+        </button>
+        <button onClick={() => setShowComments(true)} className="flex flex-col items-center">
+          <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center"><MessageCircle className="w-5 h-5" /></div>
+          <span className="text-xs mt-1 drop-shadow">{siteComments.length}</span>
         </button>
         <button className="flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur hover:bg-black/60 flex items-center justify-center">
-            <MessageCircle className="w-5 h-5" />
-          </div>
-          <span className="text-xs mt-1 drop-shadow">{(currentClip.comments?.length || 0)}</span>
-        </button>
-        <button className="flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur hover:bg-black/60 flex items-center justify-center">
-            <Share2 className="w-5 h-5" />
-          </div>
+          <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center"><Share2 className="w-5 h-5" /></div>
         </button>
       </div>
 
       {/* Bottom Bar - Info & Classify */}
       <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-16 pb-3 px-3">
-        {/* Clip Info */}
         <div className="mb-3 pr-16">
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color + '40', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color }}>
-              {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.short}
-              {currentClip.classification || currentClip.type || 'UAP'}
+              {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.emoji} {currentClip.classification || currentClip.type || 'UAP'}
             </span>
             {currentClip.confidence && <span className="text-[10px] text-gray-400">{currentClip.confidence}%</span>}
           </div>
@@ -503,23 +518,43 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
           <p className="text-xs text-gray-300 flex items-center gap-1 mt-0.5 drop-shadow"><MapPin className="w-3 h-3" />{currentClip.location}</p>
         </div>
 
-        {/* Classify Bar */}
+        {/* Classify Bar - Emoji only on mobile */}
         <div className="flex items-center gap-1.5">
           {classificationOptions.map(opt => (
-            <button 
-              key={opt.id} 
-              onClick={() => handleClassify(opt.id)} 
-              className="flex-1 py-2.5 rounded-lg text-lg active:scale-95 transition-transform backdrop-blur" 
-              style={{ backgroundColor: `${opt.color}30`, color: opt.color }}
-            >
-              {opt.short}
-            </button>
+            <button key={opt.id} onClick={() => handleClassify(opt.id)} className="flex-1 py-3 rounded-lg text-xl active:scale-95 transition-transform backdrop-blur" style={{ backgroundColor: `${opt.color}30` }}>{opt.emoji}</button>
           ))}
-          <button onClick={handleNext} className="px-3 py-2.5 rounded-lg text-xs text-gray-400 bg-white/10 backdrop-blur active:scale-95">
-            Skip
-          </button>
+          <button onClick={handleNext} className="px-3 py-3 rounded-lg text-xs text-gray-400 bg-white/10 backdrop-blur active:scale-95">Skip</button>
         </div>
       </div>
+
+      {/* Comments Panel - Mobile Bottom Sheet */}
+      {showComments && (
+        <div className="absolute inset-0 z-50 bg-black/60" onClick={() => setShowComments(false)}>
+          <div className="absolute inset-x-0 bottom-0 bg-[#141414] rounded-t-3xl max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mt-3" />
+            <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+              <h3 className="font-semibold">Comments ({siteComments.length})</h3>
+              <button onClick={() => setShowComments(false)}><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[200px]">
+              {siteComments.length === 0 ? (<p className="text-center text-gray-500 py-8">No comments yet. Be the first!</p>) : (
+                siteComments.map((c, i) => (
+                  <div key={i} className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-bold text-green-400 flex-shrink-0">{c.avatar}</div>
+                    <div className="flex-1"><div className="flex items-center gap-2"><span className="font-semibold text-sm">{c.user}</span><span className="text-[10px] text-gray-500">{c.time}</span></div><p className="text-sm text-gray-300 mt-1">{c.text}</p></div>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="p-4 border-t border-gray-800">
+              <div className="flex gap-2">
+                <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Add a comment..." className="flex-1 px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white text-sm focus:outline-none focus:border-green-500/50" />
+                <button className="px-4 py-3 bg-green-500 rounded-xl text-sm font-medium">Post</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -530,10 +565,10 @@ function TrendingView({ isMobile, clips }) {
 
 function ClassifyView({ isMobile }) {
   // Convert classifyClips to have same structure as trending clips
-  const clipsWithInfo = classifyClips.map(c => ({
+  const clipsWithInfo = classifyClips.map((c, i) => ({
     ...c,
-    likes: Math.floor(Math.random() * 500),
-    comments: [],
+    siteLikes: Math.floor(50 + Math.random() * 200),
+    siteComments: i === 0 ? [{user: 'Observer1', text: 'What do you all think?', time: '30m ago', avatar: 'O'}] : [],
     classification: 'UAP',
     confidence: Math.floor(70 + Math.random() * 25)
   }));
@@ -769,7 +804,7 @@ function DevicesSubView({ isMobile, devices }) {
               {[{ time: 'Today, 9:34 PM', type: 'UAP', duration: '0:32', confidence: 87 }, { time: 'Today, 8:12 PM', type: 'Aircraft', duration: '0:18', confidence: 94 }, { time: 'Today, 6:45 PM', type: 'Drone', duration: '1:24', confidence: 91 }, { time: 'Yesterday, 11:23 PM', type: 'UAP', duration: '0:45', confidence: 76 }, { time: 'Yesterday, 9:15 PM', type: 'Bird', duration: '0:12', confidence: 89 }].map((clip, i) => (
                 <div key={i} className="flex items-center gap-4 p-3 bg-white/5 rounded-xl hover:bg-white/10 cursor-pointer">
                   <div className="w-20 h-14 bg-gray-800 rounded-lg flex items-center justify-center relative"><Play className="w-5 h-5 text-gray-500" /><span className="absolute bottom-1 right-1 text-[10px] bg-black/60 px-1 rounded">{clip.duration}</span></div>
-                  <div className="flex-1"><span className={`px-2 py-0.5 rounded text-[10px] font-bold`} style={{ backgroundColor: classificationOptions.find(o => o.id === clip.type)?.color + '30', color: classificationOptions.find(o => o.id === clip.type)?.color }}>{classificationOptions.find(o => o.id === clip.type)?.short} {clip.type}</span><p className="text-xs text-gray-400 mt-1">{clip.time}</p></div>
+                  <div className="flex-1"><span className={`px-2 py-0.5 rounded text-[10px] font-bold`} style={{ backgroundColor: classificationOptions.find(o => o.id === clip.type)?.color + '30', color: classificationOptions.find(o => o.id === clip.type)?.color }}>{classificationOptions.find(o => o.id === clip.type)?.emoji} {clip.type}</span><p className="text-xs text-gray-400 mt-1">{clip.time}</p></div>
                   <span className="text-xs text-green-400 font-medium">{clip.confidence}%</span>
                   <div className="flex gap-1"><button className="p-2 hover:bg-white/10 rounded-lg"><Download className="w-4 h-4 text-gray-400" /></button><button className="p-2 hover:bg-white/10 rounded-lg"><Share2 className="w-4 h-4 text-gray-400" /></button></div>
                 </div>
@@ -840,7 +875,7 @@ function ClipsSubView({ isMobile, clips, devices }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`px-2 py-0.5 rounded font-bold ${isMobile ? 'text-[10px]' : 'text-xs'}`} style={{ backgroundColor: classificationOptions.find(o => o.id === clip.type)?.color + '30', color: classificationOptions.find(o => o.id === clip.type)?.color }}>
-                    {classificationOptions.find(o => o.id === clip.type)?.short} {clip.type}
+                    {classificationOptions.find(o => o.id === clip.type)?.emoji} {clip.type}
                   </span>
                   <span className={`text-green-400 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>{clip.confidence}%</span>
                 </div>
@@ -868,7 +903,7 @@ function ClipsSubView({ isMobile, clips, devices }) {
               <div className="aspect-video bg-black relative">
                 <img src={`https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`} alt="Clip" className="w-full h-full object-cover" />
                 <Play className="absolute inset-0 m-auto w-10 h-10 text-white/80" />
-                <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === clip.type)?.color, color: 'white' }}>{classificationOptions.find(o => o.id === clip.type)?.short} {clip.type}</span>
+                <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === clip.type)?.color, color: 'white' }}>{classificationOptions.find(o => o.id === clip.type)?.emoji} {clip.type}</span>
                 <span className="absolute bottom-2 right-2 text-xs bg-black/70 px-1.5 py-0.5 rounded">{clip.duration}</span>
               </div>
               <div className="p-3">
@@ -898,7 +933,7 @@ function ClipsSubView({ isMobile, clips, devices }) {
                   <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Clip" />
                 </div>
                 <div className="p-4 flex justify-between items-center">
-                  <span className="px-3 py-1 rounded-lg text-sm font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === selectedClip.type)?.color + '33', color: classificationOptions.find(o => o.id === selectedClip.type)?.color }}>{classificationOptions.find(o => o.id === selectedClip.type)?.short} {selectedClip.type}</span>
+                  <span className="px-3 py-1 rounded-lg text-sm font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === selectedClip.type)?.color + '33', color: classificationOptions.find(o => o.id === selectedClip.type)?.color }}>{classificationOptions.find(o => o.id === selectedClip.type)?.emoji} {selectedClip.type}</span>
                   <div className="flex gap-2">
                     <button className="p-3 bg-white/5 rounded-full"><Download className="w-5 h-5" /></button>
                     <button className="p-3 bg-white/5 rounded-full"><Share2 className="w-5 h-5" /></button>
@@ -913,7 +948,7 @@ function ClipsSubView({ isMobile, clips, devices }) {
                 <div className="w-80 border-l border-gray-800 flex flex-col">
                   <div className="p-4 border-b border-gray-800 flex justify-between items-start">
                     <div>
-                      <span className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === selectedClip.type)?.color + '30', color: classificationOptions.find(o => o.id === selectedClip.type)?.color }}>{classificationOptions.find(o => o.id === selectedClip.type)?.short} {selectedClip.type}</span>
+                      <span className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === selectedClip.type)?.color + '30', color: classificationOptions.find(o => o.id === selectedClip.type)?.color }}>{classificationOptions.find(o => o.id === selectedClip.type)?.emoji} {selectedClip.type}</span>
                       <h3 className="font-semibold mt-2">{selectedClip.device}</h3>
                       <p className="text-sm text-gray-400">{selectedClip.time}</p>
                     </div>
