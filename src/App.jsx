@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Camera, TrendingUp, Users, Bell, Search, Play, Eye, Zap, Globe, Shield, Radio, Wifi, AlertTriangle, MapPin, Grid, List, ThumbsUp, ThumbsDown, MessageCircle, Share2, Download, X, Settings, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw, Volume2, Save, Trash2, Circle, Target, Crosshair, Clock, Heart, Lock, CreditCard, HardDrive, User, LogOut, ChevronDown, ChevronUp, Send, Film, SkipForward, SkipBack } from 'lucide-react';
+import { Camera, TrendingUp, Users, Bell, Search, Play, Eye, Zap, Globe, Radio, Wifi, MapPin, Grid, List, ThumbsUp, MessageCircle, Share2, Download, X, Settings, ChevronLeft, ChevronRight, Volume2, CreditCard, HardDrive, User, LogOut, ChevronDown, ChevronUp, Send, Film, SkipBack, Plus, Filter } from 'lucide-react';
 import logo from './logo.png';
 import cameraImg from './camera.png';
 import profileImg from './profile.jpg';
