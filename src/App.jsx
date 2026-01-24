@@ -1070,9 +1070,6 @@ function CommunityView({ isMobile }) {
     setSwipeStartY(null);
   };
 
-  const handleVote = (id, e) => { e.stopPropagation(); setVotedPosts(prev => ({ ...prev, [id]: !prev[id] })); };
-  const handleLikeComment = (commentId) => setLikedComments(prev => ({ ...prev, [commentId]: !prev[commentId] }));
-
   const filteredPosts = activeTopic === 'all' ? communityPostsData : communityPostsData.filter(p => p.topic === activeTopic);
   const sortedPosts = [...filteredPosts].sort((a, b) => {
     if (sortBy === 'hot') return (b.upvotes + b.comments) - (a.upvotes + a.comments);
