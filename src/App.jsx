@@ -85,6 +85,11 @@ const generateSightings = () => {
     { username: 'CosmicEye', avatar: 'C' },
     { username: 'StarGazer99', avatar: 'S' },
   ];
+  const sampleComments = [
+    { id: 1, user: 'Observer1', avatar: 'O', text: 'Incredible footage! Never seen anything like it.', time: '2h ago', likes: 23 },
+    { id: 2, user: 'SkepticalSam', avatar: 'S', text: 'Could be a satellite or plane. Need more analysis.', time: '1h ago', likes: 8 },
+    { id: 3, user: 'TruthSeeker', avatar: 'T', text: 'This is definitely not conventional aircraft.', time: '45m ago', likes: 15 },
+  ];
   const sightings = [];
   const now = Date.now();
   for (let i = 0; i < 100; i++) {
@@ -92,6 +97,7 @@ const generateSightings = () => {
     const hoursAgo = Math.random() * 24 * 7;
     const timestamp = now - hoursAgo * 60 * 60 * 1000;
     const owner = owners[Math.floor(Math.random() * owners.length)];
+    const numComments = Math.floor(Math.random() * 4);
     sightings.push({ 
       id: i + 1, 
       lat: city.lat + (Math.random() - 0.5) * 0.5, 
@@ -105,7 +111,8 @@ const generateSightings = () => {
       videoId: videoIds[Math.floor(Math.random() * videoIds.length)],
       owner: owner,
       likes: Math.floor(Math.random() * 500),
-      commentsCount: Math.floor(Math.random() * 50),
+      commentsCount: numComments,
+      siteComments: sampleComments.slice(0, numComments),
     });
   }
   return sightings.sort((a, b) => b.timestamp - a.timestamp);
@@ -201,15 +208,17 @@ export default function App() {
             </div>
           </div>
           
-          <button onClick={(e) => { e.stopPropagation(); setShowNotifications(!showNotifications); }} className="relative p-2 hover:bg-white/5 rounded-lg">
+          <button onClick={(e) => { e.stopPropagation(); setShowNotifications(!showNotifications); }} className="relative p-2 hover:bg-white/5 rounded-lg z-[10001]">
             <Bell className={`${isMobile ? 'w-5 h-5' : 'w-5 h-5'} text-gray-400`} />
             {unreadCount > 0 && <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-[10px] flex items-center justify-center font-bold">{unreadCount}</span>}
           </button>
         </div>
+      </header>
 
-        {/* Notifications Dropdown */}
-        {showNotifications && (
-          <div className={`fixed ${isMobile ? 'left-2 right-2 top-14' : 'right-4 top-14 w-80'} bg-[#141414] border border-gray-700 rounded-xl shadow-2xl overflow-hidden z-[9999]`} onClick={e => e.stopPropagation()}>
+      {/* Notifications Dropdown - At root level with highest z-index */}
+      {showNotifications && (
+        <div className="fixed inset-0 z-[10000]" onClick={() => setShowNotifications(false)}>
+          <div className={`absolute ${isMobile ? 'left-2 right-2 top-14' : 'right-4 top-14 w-80'} bg-[#141414] border border-gray-700 rounded-xl shadow-2xl overflow-hidden`} onClick={e => e.stopPropagation()}>
             <div className="p-3 border-b border-gray-800 flex justify-between items-center">
               <h3 className="font-semibold">Notifications</h3>
               <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-white/10 rounded"><X className="w-5 h-5 text-gray-400" /></button>
@@ -224,11 +233,11 @@ export default function App() {
               ))}
             </div>
           </div>
-        )}
-      </header>
+        </div>
+      )}
 
       {/* Main Content */}
-      <main className={`flex-1 overflow-hidden relative ${!isMobile ? 'ml-16' : ''}`} onClick={() => setShowNotifications(false)}>
+      <main className={`flex-1 overflow-hidden relative ${!isMobile ? 'ml-16' : ''}`}>
         {activeTab === 'map' && <GlobalMapView isMobile={isMobile} onViewProfile={(username) => { setViewingProfile(username); setActiveTab('profile'); }} />}
         {activeTab === 'trending' && <TrendingView isMobile={isMobile} clips={mockClips} onViewProfile={(username) => { setViewingProfile(username); setActiveTab('profile'); }} />}
         {activeTab === 'classify' && <ClassifyView isMobile={isMobile} onViewProfile={(username) => { setViewingProfile(username); setActiveTab('profile'); }} />}
@@ -326,6 +335,8 @@ function GlobalMapView({ isMobile, onViewProfile }) {
   const [sightingLikes, setSightingLikes] = useState({});
   const [swipeY, setSwipeY] = useState(0);
   const [swipeStartY, setSwipeStartY] = useState(null);
+  const [showSightingComments, setShowSightingComments] = useState(false);
+  const [newSightingComment, setNewSightingComment] = useState('');
 
   const toggleTypeFilter = (type) => setTypeFilters(prev => ({ ...prev, [type]: !prev[type] }));
   const handleLikeSighting = (id) => setSightingLikes(prev => ({ ...prev, [id]: !prev[id] }));
@@ -338,7 +349,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
     if (diff > 0) setSwipeY(diff);
   };
   const handleTouchEnd = () => {
-    if (swipeY > 100) setSelectedSighting(null);
+    if (swipeY > 100) { setSelectedSighting(null); setShowSightingComments(false); }
     setSwipeY(0);
     setSwipeStartY(null);
   };
@@ -384,9 +395,9 @@ function GlobalMapView({ isMobile, onViewProfile }) {
       const icon = opt?.icon || '◆';
       const customIcon = window.L.divIcon({
         className: 'custom-marker',
-        html: `<div style="background-color: ${color}33; border: 2px solid ${color}; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: ${color}; font-size: 14px; font-weight: bold;">${icon}</div>`,
-        iconSize: [28, 28],
-        iconAnchor: [14, 14]
+        html: `<div style="color: ${color}; font-size: 24px; text-shadow: 0 0 8px ${color}, 0 0 12px ${color}80; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">${icon}</div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
       });
       window.L.marker([item.lat, item.lng], { icon: customIcon }).addTo(mapInstanceRef.current).on('click', () => handleSelectSighting(item));
     });
@@ -427,7 +438,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 <div className="space-y-1">
                   {classificationOptions.map(opt => (
                     <button key={opt.id} onClick={() => toggleTypeFilter(opt.id)} className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors ${typeFilters[opt.id] ? 'bg-white/5' : 'opacity-40'}`}>
-                      <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: opt.color }} />
+                      <span className="text-base" style={{ color: opt.color }}>{opt.icon}</span>
                       <span className="flex-1 text-left text-sm">{opt.label}</span>
                       {typeFilters[opt.id] && <span className="text-green-400 text-xs">✓</span>}
                     </button>
@@ -470,7 +481,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                     <ThumbsUp className="w-4 h-4" />
                     <span className="text-xs font-medium">{selectedSighting.likes + (sightingLikes[selectedSighting.id] ? 1 : 0)}</span>
                   </button>
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10">
+                  <button onClick={() => setShowSightingComments(!showSightingComments)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${showSightingComments ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
                     <MessageCircle className="w-4 h-4" />
                     <span className="text-xs font-medium">{selectedSighting.commentsCount}</span>
                   </button>
@@ -478,13 +489,41 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                     <Share2 className="w-4 h-4" />
                   </button>
                 </div>
+                {/* Comments Section */}
+                {showSightingComments && (
+                  <div className="mb-3 border-t border-gray-700 pt-3">
+                    <h4 className="text-xs font-semibold text-gray-400 mb-2">COMMENTS ({selectedSighting.siteComments?.length || 0})</h4>
+                    <div className="space-y-2 max-h-32 overflow-y-auto mb-2">
+                      {selectedSighting.siteComments && selectedSighting.siteComments.length > 0 ? (
+                        selectedSighting.siteComments.map(c => (
+                          <div key={c.id} className="flex gap-2">
+                            <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-[10px] font-bold text-green-400 flex-shrink-0">{c.avatar}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] font-semibold">{c.user}</span>
+                                <span className="text-[9px] text-gray-500">{c.time}</span>
+                              </div>
+                              <p className="text-[10px] text-gray-300">{c.text}</p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-[10px] text-gray-500 text-center py-2">No comments yet</p>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      <input type="text" value={newSightingComment} onChange={(e) => setNewSightingComment(e.target.value)} placeholder="Add comment..." className="flex-1 px-2 py-1 bg-white/5 border border-gray-700 rounded text-[10px] text-white focus:outline-none focus:border-green-500/50" />
+                      <button className="px-2 py-1 bg-green-500 rounded text-[10px] font-medium">Post</button>
+                    </div>
+                  </div>
+                )}
                 <p className="text-xs text-gray-400 mb-2">Classify this sighting:</p>
                 <div className="flex gap-1">
                   {classificationOptions.map(opt => (<button key={opt.id} className="flex-1 py-2 rounded-lg text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-transform flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}20`, color: opt.color }}><span>{opt.icon}</span><span className="text-[8px]">{opt.label}</span></button>))}
                 </div>
                 {/* Skip + Reward */}
                 <div className="flex items-center gap-2 mt-3">
-                  <button onClick={() => setSelectedSighting(null)} className="flex-1 py-2 rounded-lg text-sm text-gray-400 bg-white/5 hover:bg-white/10">Skip</button>
+                  <button onClick={() => { setSelectedSighting(null); setShowSightingComments(false); }} className="flex-1 py-2 rounded-lg text-sm text-gray-400 bg-white/5 hover:bg-white/10">Skip</button>
                   <div className="flex items-center gap-1 bg-green-500/20 px-3 py-2 rounded-lg">
                     <Zap className="w-4 h-4 text-green-400" />
                     <span className="text-sm text-green-400 font-semibold">+50 $SKEYE</span>
