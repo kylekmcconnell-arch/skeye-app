@@ -157,28 +157,29 @@ export default function App() {
   return (
     <div className="fixed inset-0 bg-[#0a0a0a] text-white flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="relative z-50 border-b border-green-500/20 bg-[#0a0a0a] flex-shrink-0">
-        <div className={`flex items-center justify-between ${isMobile ? 'px-3 py-2' : 'px-4 py-3 ml-16'}`}>
-          <div className="flex items-center gap-4">
-            <img src={logo} alt="SKEYE.AI" className={`${isMobile ? 'h-6' : 'h-7'} w-auto`} />
-            {/* UTC Time & Live Devices */}
-            <div className={`flex items-center gap-3 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-              <span className="text-gray-400 font-mono">{utcTime}</span>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-green-400 font-medium">{liveDevices} devices live</span>
-              </div>
+      <header className="relative z-[60] border-b border-green-500/20 bg-[#0a0a0a] flex-shrink-0">
+        <div className={`flex items-center justify-between ${isMobile ? 'px-3 py-2' : 'px-4 py-2 ml-16'}`}>
+          <img src={logo} alt="SKEYE.AI" className={`${isMobile ? 'h-5' : 'h-6'} w-auto`} />
+          
+          {/* UTC Time & Live Devices - Centered */}
+          <div className={`flex items-center gap-2 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+            <span className="text-gray-400 font-mono">{utcTime}</span>
+            <span className="text-gray-600">•</span>
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-green-400">{liveDevices} devices live</span>
             </div>
           </div>
+          
           <button onClick={(e) => { e.stopPropagation(); setShowNotifications(!showNotifications); }} className="relative p-2 hover:bg-white/5 rounded-lg">
-            <Bell className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-gray-400`} />
+            <Bell className={`${isMobile ? 'w-5 h-5' : 'w-5 h-5'} text-gray-400`} />
             {unreadCount > 0 && <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-[10px] flex items-center justify-center font-bold">{unreadCount}</span>}
           </button>
         </div>
 
         {/* Notifications Dropdown */}
         {showNotifications && (
-          <div className={`absolute ${isMobile ? 'left-2 right-2' : 'right-4 w-80'} top-full mt-2 bg-[#141414] border border-gray-700 rounded-xl shadow-2xl overflow-hidden z-[100]`} onClick={e => e.stopPropagation()}>
+          <div className={`absolute ${isMobile ? 'left-2 right-2' : 'right-4 w-80'} top-full mt-1 bg-[#141414] border border-gray-700 rounded-xl shadow-2xl overflow-hidden z-[200]`} onClick={e => e.stopPropagation()}>
             <div className="p-3 border-b border-gray-800 flex justify-between items-center">
               <h3 className="font-semibold">Notifications</h3>
               <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-white/10 rounded"><X className="w-5 h-5 text-gray-400" /></button>
@@ -207,8 +208,7 @@ export default function App() {
 
       {/* Side Navigation - Desktop */}
       {!isMobile && (
-        <nav className="fixed left-0 top-0 bottom-0 w-16 border-r border-green-500/10 bg-[#0a0a0a] flex flex-col items-center pt-4 z-40">
-          <div className="mb-8" />
+        <nav className="fixed left-0 top-12 bottom-0 w-16 border-r border-green-500/10 bg-[#0a0a0a] flex flex-col items-center pt-4 z-40">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -361,8 +361,8 @@ function GlobalMapView({ isMobile }) {
 
         {/* Sighting Detail Modal */}
         {selectedSighting && (
-          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-8" onClick={() => setSelectedSighting(null)}>
-            <div className="bg-[#141414] rounded-2xl w-full max-w-4xl overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-8" onClick={() => setSelectedSighting(null)}>
+            <div className="bg-[#141414] rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <div className="aspect-video bg-black">
                 <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=0&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Sighting" />
               </div>
@@ -703,17 +703,14 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
       )}
       
       {/* Top Bar - Progress & Info */}
-      <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-3 pb-12">
-        <div className="flex gap-1 mb-3">
+      <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-3 pb-8">
+        <div className="flex gap-1 mb-2">
           {clips.map((_, i) => (<div key={i} className={`flex-1 h-1 rounded-full transition-all ${i === currentIndex ? 'bg-white' : i < currentIndex ? 'bg-white/50' : 'bg-white/20'}`} />))}
         </div>
         <div className="flex items-center justify-between">
           <div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">{currentIndex + 1} / {clips.length}</div>
-          {showReward && (<div className="flex items-center gap-1 bg-green-500/20 backdrop-blur px-3 py-1.5 rounded-full"><Zap className="w-3 h-3 text-green-400" /><span className="text-xs text-green-400 font-semibold">+50 $SKEYE</span></div>)}
-          {!showReward && classified > 0 && (<div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">Classified: <span className="text-green-400 font-bold">{classified}</span></div>)}
+          {classified > 0 && (<div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">Classified: <span className="text-green-400 font-bold">{classified}</span></div>)}
         </div>
-        {/* Swipe hint */}
-        <p className="text-center text-[10px] text-gray-400 mt-2">← Swipe to navigate →</p>
       </div>
 
       {/* Nav Arrows */}
@@ -736,8 +733,8 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
       </div>
 
       {/* Bottom Bar - Info & Classify */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-16 pb-3 px-3">
-        <div className="mb-3 pr-16">
+      <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-12 pb-3 px-3">
+        <div className="mb-2 pr-16">
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color + '40', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color }}>
               {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.icon} {currentClip.classification || currentClip.type || 'UAP'}
@@ -748,12 +745,23 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
           <p className="text-xs text-gray-300 flex items-center gap-1 mt-0.5 drop-shadow"><MapPin className="w-3 h-3" />{currentClip.location}</p>
         </div>
 
-        {/* Classify Bar */}
-        <div className="flex items-center gap-1.5">
+        {/* Classify Bar with Labels */}
+        <div className="flex items-stretch gap-1">
           {classificationOptions.map(opt => (
-            <button key={opt.id} onClick={() => handleClassify(opt.id)} className="flex-1 py-3 rounded-lg text-xl active:scale-95 transition-transform backdrop-blur" style={{ backgroundColor: `${opt.color}30` }}>{opt.icon}</button>
+            <button key={opt.id} onClick={() => handleClassify(opt.id)} className="flex-1 py-2 rounded-lg active:scale-95 transition-transform backdrop-blur flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}30` }}>
+              <span className="text-base">{opt.icon}</span>
+              <span className="text-[8px] font-medium" style={{ color: opt.color }}>{opt.label}</span>
+            </button>
           ))}
-          <button onClick={handleNext} className="px-3 py-3 rounded-lg text-xs text-gray-400 bg-white/10 backdrop-blur active:scale-95">Skip</button>
+          <div className="flex flex-col gap-1">
+            <button onClick={handleNext} className="px-2 py-1.5 rounded-lg text-[10px] text-gray-400 bg-white/10 backdrop-blur active:scale-95">Skip</button>
+            {showReward && (
+              <div className="flex items-center justify-center gap-0.5 bg-green-500/20 backdrop-blur px-2 py-1 rounded-lg">
+                <Zap className="w-3 h-3 text-green-400" />
+                <span className="text-[9px] text-green-400 font-semibold">+50</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
