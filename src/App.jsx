@@ -1,8 +1,198 @@
-import { useState, useEffect, useRef } from 'react';
-import { Camera, TrendingUp, Users, Bell, Play, Eye, Zap, Globe, Radio, Wifi, MapPin, ThumbsUp, MessageCircle, Share2, Download, X, Settings, ChevronLeft, ChevronRight, Volume2, CreditCard, HardDrive, User, LogOut, ChevronDown, ChevronUp, Send, Film, SkipBack, Plus, Filter, List, Grid } from 'lucide-react';
+import { useState, useEffect, useRef, createContext, useContext } from 'react';
+import { Camera, TrendingUp, Users, Bell, Play, Eye, Zap, Globe, Radio, Wifi, MapPin, ThumbsUp, MessageCircle, Share2, Download, X, Settings, ChevronLeft, ChevronRight, Volume2, CreditCard, HardDrive, User, LogOut, ChevronDown, ChevronUp, Send, Film, SkipBack, Plus, Filter, List, Grid, Mail, Lock, EyeOff, Loader } from 'lucide-react';
 import logo from './logo.png';
 import cameraImg from './camera.png';
 import profileImg from './profile.jpg';
+
+// API Configuration
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+// Auth Context
+const AuthContext = createContext(null);
+
+function useAuth() {
+  return useContext(AuthContext);
+}
+
+function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(localStorage.getItem('skeye_token'));
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (token) {
+      fetchUser();
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchUser = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data);
+      } else {
+        logout();
+      }
+    } catch (error) {
+      console.error('Failed to fetch user:', error);
+      logout();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signup = async (username, email, password) => {
+    const res = await fetch(`${API_URL}/api/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Signup failed');
+    localStorage.setItem('skeye_token', data.token);
+    setToken(data.token);
+    setUser(data.user);
+    return data;
+  };
+
+  const signin = async (email, password) => {
+    const res = await fetch(`${API_URL}/api/auth/signin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Signin failed');
+    localStorage.setItem('skeye_token', data.token);
+    setToken(data.token);
+    setUser(data.user);
+    return data;
+  };
+
+  const logout = () => {
+    localStorage.removeItem('skeye_token');
+    setToken(null);
+    setUser(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, token, loading, isAuthenticated: !!user, signup, signin, logout, API_URL }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+// Auth Modal Component
+function AuthModal({ isOpen, onClose, canClose = true }) {
+  const [mode, setMode] = useState('signin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const { signin, signup } = useAuth();
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      if (mode === 'signin') {
+        await signin(email, password);
+      } else {
+        await signup(username, email, password);
+      }
+      if (canClose) onClose();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/90 z-[20000] flex items-center justify-center p-4">
+      <div className="bg-[#141414] rounded-2xl w-full max-w-md overflow-hidden border border-gray-700" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="p-6 border-b border-gray-800 text-center">
+          <img src={logo} alt="SKEYE.AI" className="h-8 mx-auto mb-4" />
+          <h2 className="text-xl font-bold">{mode === 'signin' ? 'Welcome Back' : 'Join SKEYE.AI'}</h2>
+          <p className="text-sm text-gray-400 mt-1">
+            {mode === 'signin' ? 'Sign in to access the global sky-watching network' : 'Create an account to start tracking the skies'}
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">{error}</div>
+          )}
+
+          {mode === 'signup' && (
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Username</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Choose a username" required minLength={3} className="w-full pl-10 pr-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500/50" />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Email</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email" required className="w-full pl-10 pr-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500/50" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-400 mb-1">Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === 'signup' ? 'Create a password (min 6 chars)' : 'Enter your password'} required minLength={6} className="w-full pl-10 pr-12 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500/50" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-300">
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" disabled={loading} className="w-full py-3 bg-green-500 hover:bg-green-600 disabled:bg-green-500/50 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition-colors">
+            {loading ? (<><Loader className="w-5 h-5 animate-spin" />{mode === 'signin' ? 'Signing in...' : 'Creating account...'}</>) : (mode === 'signin' ? 'Sign In' : 'Create Account')}
+          </button>
+        </form>
+
+        {/* Footer */}
+        <div className="px-6 pb-6">
+          <div className="relative flex items-center justify-center py-4">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-800"></div></div>
+            <span className="relative px-4 bg-[#141414] text-sm text-gray-500">or</span>
+          </div>
+          <button onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); }} className="w-full py-3 bg-white/5 hover:bg-white/10 border border-gray-700 rounded-xl font-medium text-white transition-colors">
+            {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
+          </button>
+        </div>
+
+        {mode === 'signup' && (
+          <div className="px-6 pb-6">
+            <div className="flex items-center justify-center gap-2 py-3 bg-green-500/10 rounded-xl border border-green-500/20">
+              <Zap className="w-4 h-4 text-green-400" />
+              <span className="text-sm text-green-400">Get 100 $SKEYE tokens free when you sign up!</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 const mockDevices = [
   { id: 1, name: 'Home (Rooftop)', location: 'Lisbon, Portugal', lat: 38.7223, lng: -9.1393, status: 'online', detections: 127, signal: 98, serial: 'SKY-2024-0847-A1' },
@@ -120,7 +310,8 @@ const generateSightings = () => {
 
 const allSightings = generateSightings();
 
-export default function App() {
+function AppContent() {
+  const { user, isAuthenticated, loading, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('map');
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificationsList, setNotificationsList] = useState(notifications);
@@ -191,8 +382,25 @@ export default function App() {
 
   const utcTime = currentTime.toISOString().slice(11, 19) + ' UTC';
 
+  // Show loading spinner while checking auth
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-[#0a0a0a] flex items-center justify-center">
+        <div className="text-center">
+          <img src={logo} alt="SKEYE.AI" className="h-10 mx-auto mb-4" />
+          <Loader className="w-8 h-8 text-green-400 animate-spin mx-auto" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-[#0a0a0a] text-white flex flex-col overflow-hidden">
+      {/* Auth Modal - shown when not authenticated */}
+      <AuthModal isOpen={!isAuthenticated} onClose={() => {}} canClose={false} />
+      
+      {/* Main App - blurred when not authenticated */}
+      <div className={`flex flex-col h-full ${!isAuthenticated ? 'blur-sm pointer-events-none' : ''}`}>
       {/* Header */}
       <header className="relative z-[60] border-b border-green-500/20 bg-[#0a0a0a] flex-shrink-0">
         <div className={`flex items-center justify-between ${isMobile ? 'px-3 py-2' : 'px-4 py-2 ml-16'}`}>
@@ -321,7 +529,17 @@ export default function App() {
           </div>
         </nav>
       )}
+      </div>{/* End of blur wrapper */}
     </div>
+  );
+}
+
+// Main App component with AuthProvider wrapper
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 
