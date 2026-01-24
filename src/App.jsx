@@ -181,7 +181,7 @@ export default function App() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-hidden" onClick={() => setShowNotifications(false)}>
+      <main className={`flex-1 overflow-hidden ${isMobile ? 'pb-20' : ''}`} onClick={() => setShowNotifications(false)}>
         {activeTab === 'map' && <GlobalMapView isMobile={isMobile} />}
         {activeTab === 'trending' && <TrendingView isMobile={isMobile} clips={mockClips} />}
         {activeTab === 'classify' && <ClassifyView isMobile={isMobile} />}
@@ -191,8 +191,8 @@ export default function App() {
 
       {/* Bottom Navigation - Mobile */}
       {isMobile ? (
-        <nav className="flex-shrink-0 border-t border-green-500/20 bg-[#0a0a0a]/95 backdrop-blur-xl safe-area-bottom">
-          <div className="flex items-center justify-around py-2 pb-safe">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-green-500/20 bg-[#0a0a0a] backdrop-blur-xl">
+          <div className="flex items-center justify-around py-2" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -228,8 +228,18 @@ export default function App() {
         @media (min-width: 768px) {
           main { margin-left: 64px; }
         }
-        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 8px); }
-        .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom, 0); }
+        .leaflet-container {
+          background: #1a1a2e !important;
+        }
+        .leaflet-tile-pane {
+          background: #1a1a2e !important;
+        }
+        .leaflet-tile {
+          background: #1a1a2e !important;
+        }
+        .leaflet-tile-container {
+          background: #1a1a2e !important;
+        }
       `}</style>
     </div>
   );
@@ -300,8 +310,8 @@ function GlobalMapView({ isMobile }) {
   const toggleFilter = (id) => setActiveFilters(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
 
   return (
-    <div className="h-full relative">
-      <div ref={mapRef} className="absolute inset-0 bg-[#0a0a0a]" />
+    <div className="h-full relative bg-[#1a1a2e]">
+      <div ref={mapRef} className="absolute inset-0 bg-[#1a1a2e]" style={{ background: '#1a1a2e' }} />
       
       {/* Time Range - Top */}
       <div className={`absolute ${isMobile ? 'top-2 left-2 right-2' : 'top-4 right-20'} z-[1000]`}>
