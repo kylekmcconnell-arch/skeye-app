@@ -125,15 +125,6 @@ export default function App() {
       meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
       document.head.appendChild(meta);
     }
-    
-    // Prevent iOS text size adjustment
-    document.documentElement.style.webkitTextSizeAdjust = '100%';
-    document.documentElement.style.textSizeAdjust = '100%';
-    
-    // Reset any existing zoom
-    document.body.style.zoom = '1';
-    document.body.style.transform = 'scale(1)';
-    document.body.style.transformOrigin = '0 0';
   }, []);
 
   useEffect(() => {
@@ -164,7 +155,7 @@ export default function App() {
   const utcTime = currentTime.toISOString().slice(11, 19) + ' UTC';
 
   return (
-    <div className="fixed inset-0 bg-[#0a0a0a] text-white flex flex-col overflow-hidden" style={{ touchAction: 'manipulation', WebkitOverflowScrolling: 'touch', width: '100vw', height: '100vh', maxWidth: '100%', maxHeight: '100%' }}>
+    <div className="fixed inset-0 bg-[#0a0a0a] text-white flex flex-col overflow-hidden">
       {/* Header */}
       <header className="relative z-50 border-b border-green-500/20 bg-[#0a0a0a] flex-shrink-0">
         <div className={`flex items-center justify-between ${isMobile ? 'px-3 py-2' : 'px-4 py-3 ml-16'}`}>
