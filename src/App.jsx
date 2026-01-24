@@ -56,8 +56,8 @@ const communityPosts = [
 ];
 
 const notifications = [
-  { id: 1, type: 'detection', device: 'Home (Rooftop)', message: 'Unknown object detected', time: '2 min ago', read: false },
-  { id: 2, type: 'detection', device: 'Beach House', message: 'Drone detected', time: '15 min ago', read: false },
+  { id: 1, type: 'detection', device: 'Home (Rooftop)', message: 'Unknown object detected', time: '2 min ago', read: false, videoId: 'QKHg-vnTFsM', classification: 'UAP', confidence: 87, location: 'Lisbon, Portugal', lat: 38.7223, lng: -9.1393 },
+  { id: 2, type: 'detection', device: 'Beach House', message: 'Drone detected', time: '15 min ago', read: false, videoId: 'u1hNYs55sqs', classification: 'Drone', confidence: 92, location: 'San Diego, CA', lat: 32.7157, lng: -117.1611 },
 ];
 
 const getTimeAgo = (timestamp) => {
@@ -120,10 +120,17 @@ export default function App() {
   const [profileSubTab, setProfileSubTab] = useState('devices');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [viewingProfile, setViewingProfile] = useState(null);
+  const [selectedNotification, setSelectedNotification] = useState(null);
 
   const unreadCount = notificationsList.filter(n => !n.read).length;
   const [currentTime, setCurrentTime] = useState(new Date());
   const liveDevices = mockDevices.filter(d => d.status === 'online').length;
+
+  const handleNotificationClick = (notification) => {
+    setNotificationsList(prev => prev.map(n => n.id === notification.id ? {...n, read: true} : n));
+    setSelectedNotification(notification);
+    setShowNotifications(false);
+  };
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -209,7 +216,7 @@ export default function App() {
             </div>
             <div className="max-h-80 overflow-y-auto">
               {notificationsList.map((n) => (
-                <div key={n.id} className={`p-3 border-b border-gray-800/50 hover:bg-white/5 cursor-pointer ${!n.read ? 'bg-green-500/5' : ''}`}>
+                <div key={n.id} onClick={() => handleNotificationClick(n)} className={`p-3 border-b border-gray-800/50 hover:bg-white/5 cursor-pointer ${!n.read ? 'bg-green-500/5' : ''}`}>
                   <p className="text-sm text-white font-medium">{n.device}</p>
                   <p className="text-sm text-gray-400">{n.message}</p>
                   <p className="text-xs text-gray-500 mt-1">{n.time}</p>
@@ -228,6 +235,45 @@ export default function App() {
         {activeTab === 'community' && <CommunityView isMobile={isMobile} />}
         {activeTab === 'profile' && <ProfileView isMobile={isMobile} profileSubTab={profileSubTab} setProfileSubTab={setProfileSubTab} devices={mockDevices} clips={myClips} viewingProfile={viewingProfile} setViewingProfile={setViewingProfile} />}
       </main>
+
+      {/* Notification Detail Modal */}
+      {selectedNotification && (
+        <div className="fixed inset-0 bg-black/80 z-[10000] flex items-center justify-center p-4" onClick={() => setSelectedNotification(null)}>
+          <div className={`bg-[#141414] rounded-2xl ${isMobile ? 'w-full max-h-[85vh]' : 'w-full max-w-lg'} overflow-hidden`} onClick={e => e.stopPropagation()}>
+            <div className="aspect-video bg-black relative">
+              <iframe src={`https://www.youtube.com/embed/${selectedNotification.videoId}?autoplay=1&mute=0&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Detection" />
+              <button onClick={() => setSelectedNotification(null)} className="absolute top-2 right-2 p-2 bg-black/60 hover:bg-black/80 rounded-full"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <h3 className="font-semibold text-lg">{selectedNotification.device}</h3>
+                  <p className="text-sm text-gray-400">{selectedNotification.location}</p>
+                  <p className="text-xs text-gray-500">{selectedNotification.time}</p>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-1 px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: `${classificationOptions.find(o => o.id === selectedNotification.classification)?.color}33`, color: classificationOptions.find(o => o.id === selectedNotification.classification)?.color }}>
+                    <span>{classificationOptions.find(o => o.id === selectedNotification.classification)?.icon}</span>
+                    <span>{selectedNotification.classification}</span>
+                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1">{isMobile ? 'AI:' : 'AI Confidence:'} <span className="text-green-400 font-bold">{selectedNotification.confidence}%</span></p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 mb-2">Classify this detection:</p>
+              <div className="flex gap-1">
+                {classificationOptions.map(opt => (<button key={opt.id} onClick={() => setSelectedNotification(null)} className="flex-1 py-2 rounded-lg text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-transform flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}20`, color: opt.color }}><span>{opt.icon}</span><span className="text-[8px]">{opt.label}</span></button>))}
+              </div>
+              <div className="flex items-center gap-2 mt-3">
+                <button onClick={() => setSelectedNotification(null)} className="flex-1 py-2 rounded-lg text-sm text-gray-400 bg-white/5 hover:bg-white/10">Skip</button>
+                <div className="flex items-center gap-1 bg-green-500/20 px-3 py-2 rounded-lg">
+                  <Zap className="w-4 h-4 text-green-400" />
+                  <span className="text-sm text-green-400 font-semibold">+50 $SKEYE</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Side Navigation - Desktop */}
       {!isMobile && (
@@ -331,10 +377,18 @@ function GlobalMapView({ isMobile, onViewProfile }) {
 
   useEffect(() => {
     if (!mapInstanceRef.current || !mapReady) return;
-    mapInstanceRef.current.eachLayer(layer => { if (layer instanceof window.L.CircleMarker) mapInstanceRef.current.removeLayer(layer); });
+    mapInstanceRef.current.eachLayer(layer => { if (layer instanceof window.L.Marker || layer instanceof window.L.CircleMarker) mapInstanceRef.current.removeLayer(layer); });
     filteredSightings.slice(0, 30).forEach(item => {
-      const color = classificationOptions.find(o => o.id === item.type)?.color || '#a855f7';
-      window.L.circleMarker([item.lat, item.lng], { radius: 8, fillColor: color, fillOpacity: 0.8, color: color, weight: 2, opacity: 1 }).addTo(mapInstanceRef.current).on('click', () => handleSelectSighting(item));
+      const opt = classificationOptions.find(o => o.id === item.type);
+      const color = opt?.color || '#a855f7';
+      const icon = opt?.icon || '◆';
+      const customIcon = window.L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="background-color: ${color}33; border: 2px solid ${color}; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: ${color}; font-size: 14px; font-weight: bold;">${icon}</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+      window.L.marker([item.lat, item.lng], { icon: customIcon }).addTo(mapInstanceRef.current).on('click', () => handleSelectSighting(item));
     });
   }, [filteredSightings, mapReady]);
 
@@ -402,7 +456,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                       <span>{classificationOptions.find(o => o.id === selectedSighting.type)?.icon}</span>
                       <span>{selectedSighting.type}</span>
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-1">AI: <span className="text-green-400 font-bold">{selectedSighting.confidence}%</span></p>
+                    <p className="text-[10px] text-gray-400 mt-1">AI Confidence: <span className="text-green-400 font-bold">{selectedSighting.confidence}%</span></p>
                   </div>
                 </div>
                 {/* Owner link */}
@@ -428,6 +482,14 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 <div className="flex gap-1">
                   {classificationOptions.map(opt => (<button key={opt.id} className="flex-1 py-2 rounded-lg text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-transform flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}20`, color: opt.color }}><span>{opt.icon}</span><span className="text-[8px]">{opt.label}</span></button>))}
                 </div>
+                {/* Skip + Reward */}
+                <div className="flex items-center gap-2 mt-3">
+                  <button onClick={() => setSelectedSighting(null)} className="flex-1 py-2 rounded-lg text-sm text-gray-400 bg-white/5 hover:bg-white/10">Skip</button>
+                  <div className="flex items-center gap-1 bg-green-500/20 px-3 py-2 rounded-lg">
+                    <Zap className="w-4 h-4 text-green-400" />
+                    <span className="text-sm text-green-400 font-semibold">+50 $SKEYE</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -445,11 +507,14 @@ function GlobalMapView({ isMobile, onViewProfile }) {
           <div className="flex-1 overflow-y-auto">
             {filteredSightings.slice(0, 30).map(s => (
               <div key={s.id} onClick={() => handleSelectSighting(s)} className={`flex items-center gap-3 p-3 border-b border-gray-800/50 cursor-pointer hover:bg-white/5 ${selectedSighting?.id === s.id ? 'bg-green-500/10' : ''}`}>
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: classificationOptions.find(o => o.id === s.type)?.color }} />
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-sm" style={{ backgroundColor: `${classificationOptions.find(o => o.id === s.type)?.color}33`, color: classificationOptions.find(o => o.id === s.type)?.color }}>
+                  {classificationOptions.find(o => o.id === s.type)?.icon}
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-white truncate">{s.city}</p>
                   <p className="text-xs text-gray-500">{s.type} • {s.time}</p>
                 </div>
+                <span className="text-[10px] text-green-400 font-bold">{s.confidence}%</span>
               </div>
             ))}
           </div>
@@ -658,7 +723,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                   {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.icon} {currentClip.classification || currentClip.type || 'UAP'}
                 </span>
               </div>
-              {currentClip.confidence && <span className="text-xs text-gray-400">AI: <span className="text-green-400 font-bold">{currentClip.confidence}%</span></span>}
+              {currentClip.confidence && <span className="text-xs text-gray-400">AI Confidence: <span className="text-green-400 font-bold">{currentClip.confidence}%</span></span>}
             </div>
             <h3 className="font-semibold text-lg">{currentClip.title}</h3>
             <p className="text-sm text-gray-400 flex items-center gap-1 mt-1"><MapPin className="w-4 h-4" />{currentClip.location}</p>
@@ -986,6 +1051,24 @@ function CommunityView({ isMobile }) {
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [newComment, setNewComment] = useState('');
+  const [swipeY, setSwipeY] = useState(0);
+  const [swipeStartY, setSwipeStartY] = useState(null);
+
+  const handleVote = (id, e) => { e.stopPropagation(); setVotedPosts(prev => ({ ...prev, [id]: !prev[id] })); };
+  const handleLikeComment = (commentId) => setLikedComments(prev => ({ ...prev, [commentId]: !prev[commentId] }));
+
+  // Swipe to dismiss handlers
+  const handleTouchStart = (e) => setSwipeStartY(e.touches[0].clientY);
+  const handleTouchMove = (e) => {
+    if (swipeStartY === null) return;
+    const diff = e.touches[0].clientY - swipeStartY;
+    if (diff > 0) setSwipeY(diff);
+  };
+  const handleTouchEnd = () => {
+    if (swipeY > 100) setSelectedPost(null);
+    setSwipeY(0);
+    setSwipeStartY(null);
+  };
 
   const handleVote = (id, e) => { e.stopPropagation(); setVotedPosts(prev => ({ ...prev, [id]: !prev[id] })); };
   const handleLikeComment = (commentId) => setLikedComments(prev => ({ ...prev, [commentId]: !prev[commentId] }));
@@ -1247,8 +1330,20 @@ function CommunityView({ isMobile }) {
       {/* Post Detail - Bottom Sheet */}
       {selectedPost && (
         <div className="fixed inset-0 z-50 bg-black/60" onClick={() => setSelectedPost(null)}>
-          <div className="absolute inset-x-0 bottom-0 bg-[#141414] rounded-t-3xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-            <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mt-3" />
+          <div 
+            className="absolute inset-x-0 bottom-0 bg-[#141414] rounded-t-3xl max-h-[85vh] flex flex-col transition-transform" 
+            style={{ transform: `translateY(${swipeY}px)` }}
+            onClick={e => e.stopPropagation()}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            {/* Header with swipe handle and X button */}
+            <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-gray-800">
+              <div className="w-8" /> {/* Spacer */}
+              <div className="w-12 h-1 bg-gray-600 rounded-full" />
+              <button onClick={() => setSelectedPost(null)} className="p-1"><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
             <div className="flex-1 overflow-y-auto p-4">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-gray-400">{communityTopics.find(t => t.id === selectedPost.topic)?.label}</span>
