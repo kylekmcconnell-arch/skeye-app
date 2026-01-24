@@ -5,10 +5,10 @@ import cameraImg from './camera.png';
 import profileImg from './profile.jpg';
 
 const mockDevices = [
-  { id: 1, name: 'Home (Rooftop)', location: 'Lisbon, Portugal', status: 'online', detections: 127, signal: 98, serial: 'SKY-2024-0847-A1' },
-  { id: 2, name: 'Home (Barn)', location: 'Lisbon, Portugal', status: 'online', detections: 89, signal: 92, serial: 'SKY-2024-1293-B2' },
-  { id: 3, name: 'Lake House (Roof)', location: 'Austin, TX', status: 'offline', detections: 203, signal: 0, serial: 'SKY-2024-0156-C3' },
-  { id: 4, name: 'Beach House (Roof)', location: 'San Diego, CA', status: 'online', detections: 56, signal: 87, serial: 'SKY-2024-2048-D4' },
+  { id: 1, name: 'Home (Rooftop)', location: 'Lisbon, Portugal', lat: 38.7223, lng: -9.1393, status: 'online', detections: 127, signal: 98, serial: 'SKY-2024-0847-A1' },
+  { id: 2, name: 'Home (Barn)', location: 'Lisbon, Portugal', lat: 38.7220, lng: -9.1390, status: 'online', detections: 89, signal: 92, serial: 'SKY-2024-1293-B2' },
+  { id: 3, name: 'Lake House (Roof)', location: 'Austin, TX', lat: 30.2672, lng: -97.7431, status: 'offline', detections: 203, signal: 0, serial: 'SKY-2024-0156-C3' },
+  { id: 4, name: 'Beach House (Roof)', location: 'San Diego, CA', lat: 32.7157, lng: -117.1611, status: 'online', detections: 56, signal: 87, serial: 'SKY-2024-2048-D4' },
 ];
 
 const myClips = [
@@ -19,19 +19,19 @@ const myClips = [
 ];
 
 const mockClips = [
-  { id: 1, title: 'GIMBAL - Navy F/A-18 Encounter', location: 'East Coast, USA', timestamp: '2 min ago', views: 12400, classification: 'UAP', confidence: 87, verified: true, siteLikes: 234, siteComments: [{user: 'SkyWatcher_AZ', text: 'Incredible footage! The rotation is unmistakable.', time: '1h ago', avatar: 'S'}, {user: 'DataAnalyst99', text: 'I ran this through my tracking software - no conventional aircraft moves like this.', time: '45m ago', avatar: 'D'}], videoId: 'QKHg-vnTFsM' },
-  { id: 2, title: 'GO FAST - High Speed Object', location: 'Atlantic Ocean', timestamp: '15 min ago', views: 8900, classification: 'UAP', confidence: 91, verified: true, siteLikes: 156, siteComments: [{user: 'PilotMike', text: 'As a commercial pilot, I can confirm this is not normal.', time: '2h ago', avatar: 'P'}], videoId: 'u1hNYs55sqs' },
-  { id: 3, title: 'FLIR1 Tic Tac - USS Nimitz', location: 'San Diego, CA', timestamp: '1 hour ago', views: 25600, classification: 'UAP', confidence: 96, verified: true, siteLikes: 445, siteComments: [{user: 'NavyVet2020', text: 'I was stationed on the Nimitz. This is real.', time: '3h ago', avatar: 'N'}, {user: 'SkepticalSam', text: 'Could this be a weather balloon?', time: '2h ago', avatar: 'S'}, {user: 'TruthSeeker', text: '@SkepticalSam No way, look at the movement patterns', time: '1h ago', avatar: 'T'}], videoId: '2TumprpOwHY' },
-  { id: 4, title: 'Jellyfish UAP - Iraq 2018', location: 'Iraq', timestamp: '3 hours ago', views: 21000, classification: 'UAP', confidence: 72, verified: true, siteLikes: 312, siteComments: [], videoId: 'dGOXuuhYoLk' },
-  { id: 5, title: 'Chilean Navy UFO', location: 'Chile', timestamp: '5 hours ago', views: 18700, classification: 'UAP', confidence: 84, verified: true, siteLikes: 189, siteComments: [{user: 'ChileanObserver', text: 'Finally getting international attention!', time: '4h ago', avatar: 'C'}], videoId: 'iEK3YC_BKTI' },
+  { id: 1, title: 'GIMBAL - Navy F/A-18 Encounter', location: 'East Coast, USA', timestamp: '2 min ago', views: 12400, classification: 'UAP', confidence: 87, verified: true, siteLikes: 234, siteComments: [{user: 'SkyWatcher_AZ', text: 'Incredible footage! The rotation is unmistakable.', time: '1h ago', avatar: 'S'}, {user: 'DataAnalyst99', text: 'I ran this through my tracking software - no conventional aircraft moves like this.', time: '45m ago', avatar: 'D'}], videoId: 'QKHg-vnTFsM', owner: { username: 'NavyLeak2024', avatar: 'N' } },
+  { id: 2, title: 'GO FAST - High Speed Object', location: 'Atlantic Ocean', timestamp: '15 min ago', views: 8900, classification: 'UAP', confidence: 91, verified: true, siteLikes: 156, siteComments: [{user: 'PilotMike', text: 'As a commercial pilot, I can confirm this is not normal.', time: '2h ago', avatar: 'P'}], videoId: 'u1hNYs55sqs', owner: { username: 'PentagonFiles', avatar: 'P' } },
+  { id: 3, title: 'FLIR1 Tic Tac - USS Nimitz', location: 'San Diego, CA', timestamp: '1 hour ago', views: 25600, classification: 'UAP', confidence: 96, verified: true, siteLikes: 445, siteComments: [{user: 'NavyVet2020', text: 'I was stationed on the Nimitz. This is real.', time: '3h ago', avatar: 'N'}, {user: 'SkepticalSam', text: 'Could this be a weather balloon?', time: '2h ago', avatar: 'S'}, {user: 'TruthSeeker', text: '@SkepticalSam No way, look at the movement patterns', time: '1h ago', avatar: 'T'}], videoId: '2TumprpOwHY', owner: { username: 'NimitzWitness', avatar: 'N' } },
+  { id: 4, title: 'Jellyfish UAP - Iraq 2018', location: 'Iraq', timestamp: '3 hours ago', views: 21000, classification: 'UAP', confidence: 72, verified: true, siteLikes: 312, siteComments: [], videoId: 'dGOXuuhYoLk', owner: { username: 'MilitaryLeaks', avatar: 'M' } },
+  { id: 5, title: 'Chilean Navy UFO', location: 'Chile', timestamp: '5 hours ago', views: 18700, classification: 'UAP', confidence: 84, verified: true, siteLikes: 189, siteComments: [{user: 'ChileanObserver', text: 'Finally getting international attention!', time: '4h ago', avatar: 'C'}], videoId: 'iEK3YC_BKTI', owner: { username: 'ChileNavy', avatar: 'C' } },
 ];
 
 const classifyClips = [
-  { id: 1, videoId: 'QKHg-vnTFsM', title: 'Rotating Object - East Coast', location: 'Virginia, USA' },
-  { id: 2, videoId: 'u1hNYs55sqs', title: 'High Speed Target - Atlantic', location: 'Atlantic Ocean' },
-  { id: 3, videoId: '2TumprpOwHY', title: 'Tic Tac Shape - Pacific', location: 'San Diego, CA' },
-  { id: 4, videoId: 'dGOXuuhYoLk', title: 'Unknown Object - Middle East', location: 'Iraq' },
-  { id: 5, videoId: 'iEK3YC_BKTI', title: 'Navy Thermal Imaging', location: 'Chile' },
+  { id: 1, videoId: 'QKHg-vnTFsM', title: 'Rotating Object - East Coast', location: 'Virginia, USA', confidence: 78, owner: { username: 'SkyWatcher_AZ', avatar: 'S' } },
+  { id: 2, videoId: 'u1hNYs55sqs', title: 'High Speed Target - Atlantic', location: 'Atlantic Ocean', confidence: 82, owner: { username: 'DroneHunter', avatar: 'D' } },
+  { id: 3, videoId: '2TumprpOwHY', title: 'Tic Tac Shape - Pacific', location: 'San Diego, CA', confidence: 91, owner: { username: 'CosmicEye', avatar: 'C' } },
+  { id: 4, videoId: 'dGOXuuhYoLk', title: 'Unknown Object - Middle East', location: 'Iraq', confidence: 67, owner: { username: 'NightOwl42', avatar: 'N' } },
+  { id: 5, videoId: 'iEK3YC_BKTI', title: 'Navy Thermal Imaging', location: 'Chile', confidence: 85, owner: { username: 'StarGazer99', avatar: 'S' } },
 ];
 
 const classificationOptions = [
@@ -78,13 +78,35 @@ const generateSightings = () => {
   ];
   const types = ['UAP', 'Drone', 'Aircraft', 'Bird', 'Weather'];
   const videoIds = ['QKHg-vnTFsM', 'u1hNYs55sqs', '2TumprpOwHY', 'dGOXuuhYoLk'];
+  const owners = [
+    { username: 'SkyWatcher_AZ', avatar: 'S' },
+    { username: 'NightOwl42', avatar: 'N' },
+    { username: 'DroneHunter', avatar: 'D' },
+    { username: 'CosmicEye', avatar: 'C' },
+    { username: 'StarGazer99', avatar: 'S' },
+  ];
   const sightings = [];
   const now = Date.now();
   for (let i = 0; i < 100; i++) {
     const city = cities[Math.floor(Math.random() * cities.length)];
     const hoursAgo = Math.random() * 24 * 7;
     const timestamp = now - hoursAgo * 60 * 60 * 1000;
-    sightings.push({ id: i + 1, lat: city.lat + (Math.random() - 0.5) * 0.5, lng: city.lng + (Math.random() - 0.5) * 0.5, type: types[Math.floor(Math.random() * types.length)], intensity: 0.5 + Math.random() * 0.5, city: city.city, timestamp, time: getTimeAgo(timestamp), videoId: videoIds[Math.floor(Math.random() * videoIds.length)] });
+    const owner = owners[Math.floor(Math.random() * owners.length)];
+    sightings.push({ 
+      id: i + 1, 
+      lat: city.lat + (Math.random() - 0.5) * 0.5, 
+      lng: city.lng + (Math.random() - 0.5) * 0.5, 
+      type: types[Math.floor(Math.random() * types.length)], 
+      confidence: Math.floor(65 + Math.random() * 30),
+      intensity: 0.5 + Math.random() * 0.5, 
+      city: city.city, 
+      timestamp, 
+      time: getTimeAgo(timestamp), 
+      videoId: videoIds[Math.floor(Math.random() * videoIds.length)],
+      owner: owner,
+      likes: Math.floor(Math.random() * 500),
+      commentsCount: Math.floor(Math.random() * 50),
+    });
   }
   return sightings.sort((a, b) => b.timestamp - a.timestamp);
 };
@@ -97,6 +119,7 @@ export default function App() {
   const [notificationsList, setNotificationsList] = useState(notifications);
   const [profileSubTab, setProfileSubTab] = useState('devices');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [viewingProfile, setViewingProfile] = useState(null);
 
   const unreadCount = notificationsList.filter(n => !n.read).length;
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -179,7 +202,7 @@ export default function App() {
 
         {/* Notifications Dropdown */}
         {showNotifications && (
-          <div className={`absolute ${isMobile ? 'left-2 right-2' : 'right-4 w-80'} top-full mt-1 bg-[#141414] border border-gray-700 rounded-xl shadow-2xl overflow-hidden z-[200]`} onClick={e => e.stopPropagation()}>
+          <div className={`fixed ${isMobile ? 'left-2 right-2 top-14' : 'right-4 top-14 w-80'} bg-[#141414] border border-gray-700 rounded-xl shadow-2xl overflow-hidden z-[9999]`} onClick={e => e.stopPropagation()}>
             <div className="p-3 border-b border-gray-800 flex justify-between items-center">
               <h3 className="font-semibold">Notifications</h3>
               <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-white/10 rounded"><X className="w-5 h-5 text-gray-400" /></button>
@@ -199,11 +222,11 @@ export default function App() {
 
       {/* Main Content */}
       <main className={`flex-1 overflow-hidden relative ${!isMobile ? 'ml-16' : ''}`} onClick={() => setShowNotifications(false)}>
-        {activeTab === 'map' && <GlobalMapView isMobile={isMobile} />}
-        {activeTab === 'trending' && <TrendingView isMobile={isMobile} clips={mockClips} />}
-        {activeTab === 'classify' && <ClassifyView isMobile={isMobile} />}
+        {activeTab === 'map' && <GlobalMapView isMobile={isMobile} onViewProfile={(username) => { setViewingProfile(username); setActiveTab('profile'); }} />}
+        {activeTab === 'trending' && <TrendingView isMobile={isMobile} clips={mockClips} onViewProfile={(username) => { setViewingProfile(username); setActiveTab('profile'); }} />}
+        {activeTab === 'classify' && <ClassifyView isMobile={isMobile} onViewProfile={(username) => { setViewingProfile(username); setActiveTab('profile'); }} />}
         {activeTab === 'community' && <CommunityView isMobile={isMobile} />}
-        {activeTab === 'profile' && <ProfileView isMobile={isMobile} profileSubTab={profileSubTab} setProfileSubTab={setProfileSubTab} devices={mockDevices} clips={myClips} />}
+        {activeTab === 'profile' && <ProfileView isMobile={isMobile} profileSubTab={profileSubTab} setProfileSubTab={setProfileSubTab} devices={mockDevices} clips={myClips} viewingProfile={viewingProfile} setViewingProfile={setViewingProfile} />}
       </main>
 
       {/* Side Navigation - Desktop */}
@@ -244,7 +267,7 @@ export default function App() {
   );
 }
 
-function GlobalMapView({ isMobile }) {
+function GlobalMapView({ isMobile, onViewProfile }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const [selectedSighting, setSelectedSighting] = useState(null);
@@ -254,8 +277,25 @@ function GlobalMapView({ isMobile }) {
   const [showFilters, setShowFilters] = useState(!isMobile);
   const [typeFilters, setTypeFilters] = useState({ UAP: true, Drone: true, Aircraft: true, Bird: true, Weather: true });
   const [mapReady, setMapReady] = useState(false);
+  const [sightingLikes, setSightingLikes] = useState({});
+  const [swipeY, setSwipeY] = useState(0);
+  const [swipeStartY, setSwipeStartY] = useState(null);
 
   const toggleTypeFilter = (type) => setTypeFilters(prev => ({ ...prev, [type]: !prev[type] }));
+  const handleLikeSighting = (id) => setSightingLikes(prev => ({ ...prev, [id]: !prev[id] }));
+
+  // Swipe to dismiss handlers
+  const handleTouchStart = (e) => setSwipeStartY(e.touches[0].clientY);
+  const handleTouchMove = (e) => {
+    if (swipeStartY === null) return;
+    const diff = e.touches[0].clientY - swipeStartY;
+    if (diff > 0) setSwipeY(diff);
+  };
+  const handleTouchEnd = () => {
+    if (swipeY > 100) setSelectedSighting(null);
+    setSwipeY(0);
+    setSwipeStartY(null);
+  };
 
   const getFiltered = () => {
     const range = timeRanges.find(r => r.id === timeRange);
@@ -294,9 +334,16 @@ function GlobalMapView({ isMobile }) {
     mapInstanceRef.current.eachLayer(layer => { if (layer instanceof window.L.CircleMarker) mapInstanceRef.current.removeLayer(layer); });
     filteredSightings.slice(0, 30).forEach(item => {
       const color = classificationOptions.find(o => o.id === item.type)?.color || '#a855f7';
-      window.L.circleMarker([item.lat, item.lng], { radius: 8, fillColor: color, fillOpacity: 0.8, color: color, weight: 2, opacity: 1 }).addTo(mapInstanceRef.current).on('click', () => setSelectedSighting(item));
+      window.L.circleMarker([item.lat, item.lng], { radius: 8, fillColor: color, fillOpacity: 0.8, color: color, weight: 2, opacity: 1 }).addTo(mapInstanceRef.current).on('click', () => handleSelectSighting(item));
     });
   }, [filteredSightings, mapReady]);
+
+  const handleSelectSighting = (sighting) => {
+    setSelectedSighting(sighting);
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo([sighting.lat, sighting.lng], 8, { duration: 1.5 });
+    }
+  };
 
   // Desktop Layout
   if (!isMobile) {
@@ -335,6 +382,55 @@ function GlobalMapView({ isMobile }) {
               </div>
             )}
           </div>
+
+          {/* Sighting Detail Panel - On Map */}
+          {selectedSighting && (
+            <div className="absolute bottom-4 right-4 z-[1001] w-96 bg-[#141414] rounded-2xl border border-gray-700 shadow-2xl overflow-hidden max-h-[calc(100vh-120px)] overflow-y-auto">
+              <div className="aspect-video bg-black relative">
+                <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=0&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Sighting" />
+                <button onClick={() => setSelectedSighting(null)} className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-full"><X className="w-4 h-4" /></button>
+              </div>
+              <div className="p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <h3 className="font-semibold">{selectedSighting.city}</h3>
+                    <p className="text-xs text-gray-400">{selectedSighting.time}</p>
+                    <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat.toFixed(4)}°, {selectedSighting.lng.toFixed(4)}°</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-1 px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: `${classificationOptions.find(o => o.id === selectedSighting.type)?.color}33`, color: classificationOptions.find(o => o.id === selectedSighting.type)?.color }}>
+                      <span>{classificationOptions.find(o => o.id === selectedSighting.type)?.icon}</span>
+                      <span>{selectedSighting.type}</span>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1">AI: <span className="text-green-400 font-bold">{selectedSighting.confidence}%</span></p>
+                  </div>
+                </div>
+                {/* Owner link */}
+                <button onClick={() => onViewProfile && onViewProfile(selectedSighting.owner.username)} className="flex items-center gap-2 mb-3 hover:bg-white/5 px-2 py-1 rounded-lg -ml-2">
+                  <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center text-[10px] font-bold text-green-400">{selectedSighting.owner.avatar}</div>
+                  <span className="text-xs text-green-400">@{selectedSighting.owner.username}</span>
+                </button>
+                {/* Likes & Comments */}
+                <div className="flex items-center gap-3 mb-3">
+                  <button onClick={() => handleLikeSighting(selectedSighting.id)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${sightingLikes[selectedSighting.id] ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+                    <ThumbsUp className="w-4 h-4" />
+                    <span className="text-xs font-medium">{selectedSighting.likes + (sightingLikes[selectedSighting.id] ? 1 : 0)}</span>
+                  </button>
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10">
+                    <MessageCircle className="w-4 h-4" />
+                    <span className="text-xs font-medium">{selectedSighting.commentsCount}</span>
+                  </button>
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10">
+                    <Share2 className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mb-2">Classify this sighting:</p>
+                <div className="flex gap-1">
+                  {classificationOptions.map(opt => (<button key={opt.id} className="flex-1 py-2 rounded-lg text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-transform flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}20`, color: opt.color }}><span>{opt.icon}</span><span className="text-[8px]">{opt.label}</span></button>))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Sidebar - Live Sightings Only */}
@@ -348,7 +444,7 @@ function GlobalMapView({ isMobile }) {
           {/* Sightings List */}
           <div className="flex-1 overflow-y-auto">
             {filteredSightings.slice(0, 30).map(s => (
-              <div key={s.id} onClick={() => setSelectedSighting(s)} className={`flex items-center gap-3 p-3 border-b border-gray-800/50 cursor-pointer hover:bg-white/5 ${selectedSighting?.id === s.id ? 'bg-green-500/10' : ''}`}>
+              <div key={s.id} onClick={() => handleSelectSighting(s)} className={`flex items-center gap-3 p-3 border-b border-gray-800/50 cursor-pointer hover:bg-white/5 ${selectedSighting?.id === s.id ? 'bg-green-500/10' : ''}`}>
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: classificationOptions.find(o => o.id === s.type)?.color }} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-white truncate">{s.city}</p>
@@ -358,34 +454,6 @@ function GlobalMapView({ isMobile }) {
             ))}
           </div>
         </div>
-
-        {/* Sighting Detail Modal */}
-        {selectedSighting && (
-          <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-8" onClick={() => setSelectedSighting(null)}>
-            <div className="bg-[#141414] rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-              <div className="aspect-video bg-black">
-                <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=0&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Sighting" />
-              </div>
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-semibold text-xl">{selectedSighting.city}</h3>
-                    <p className="text-gray-400">{selectedSighting.time}</p>
-                  </div>
-                  <button onClick={() => setSelectedSighting(null)} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-6 h-6 text-gray-400" /></button>
-                </div>
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold mb-4" style={{ backgroundColor: `${classificationOptions.find(o => o.id === selectedSighting.type)?.color}33`, color: classificationOptions.find(o => o.id === selectedSighting.type)?.color }}>
-                  <span>{classificationOptions.find(o => o.id === selectedSighting.type)?.icon}</span>
-                  <span>{selectedSighting.type}</span>
-                </div>
-                <p className="text-sm text-gray-400 mb-3">Classify this sighting:</p>
-                <div className="flex gap-2">
-                  {classificationOptions.map(opt => (<button key={opt.id} className="flex-1 py-3 rounded-xl text-sm font-bold hover:scale-[1.02] active:scale-[0.98] transition-transform flex items-center justify-center gap-2" style={{ backgroundColor: `${opt.color}20`, color: opt.color }}><span>{opt.icon}</span><span>{opt.label}</span></button>))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         <style>{`.leaflet-container { background: #262626 !important; }`}</style>
       </div>
@@ -449,7 +517,7 @@ function GlobalMapView({ isMobile }) {
           </div>
           <div className="flex-1 overflow-y-auto">
             {filteredSightings.slice(0, 20).map(s => (
-              <div key={s.id} onClick={() => { setSelectedSighting(s); setShowSightingsList(false); }} className="flex items-center gap-3 p-3 border-b border-gray-800/50 active:bg-white/5">
+              <div key={s.id} onClick={() => { handleSelectSighting(s); setShowSightingsList(false); }} className="flex items-center gap-3 p-3 border-b border-gray-800/50 active:bg-white/5">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: classificationOptions.find(o => o.id === s.type)?.color }} />
                 <div className="flex-1">
                   <p className="text-sm text-white">{s.city}</p>
@@ -464,26 +532,53 @@ function GlobalMapView({ isMobile }) {
 
       {/* Sighting Detail */}
       {selectedSighting && (
-        <div className="absolute inset-x-0 bottom-0 z-[1001] bg-[#141414] rounded-t-3xl max-h-[80vh] flex flex-col">
-          <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mt-3" />
-          <div className="aspect-video bg-black">
+        <div 
+          className="absolute inset-x-0 bottom-0 z-[1001] bg-[#141414] rounded-t-3xl max-h-[80vh] flex flex-col transition-transform"
+          style={{ transform: `translateY(${swipeY}px)` }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mt-3 mb-1" />
+          <p className="text-center text-[10px] text-gray-500 mb-2">Swipe down to close</p>
+          <div className="aspect-video bg-black relative">
             <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=0&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Sighting" />
+            {/* Right side actions */}
+            <div className="absolute right-2 bottom-2 flex flex-col gap-2">
+              <button onClick={() => handleLikeSighting(selectedSighting.id)} className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur ${sightingLikes[selectedSighting.id] ? 'bg-green-500' : 'bg-black/50'}`}>
+                <ThumbsUp className="w-4 h-4" />
+              </button>
+              <span className="text-[10px] text-center">{selectedSighting.likes + (sightingLikes[selectedSighting.id] ? 1 : 0)}</span>
+              <button className="w-10 h-10 rounded-full bg-black/50 backdrop-blur flex items-center justify-center">
+                <MessageCircle className="w-4 h-4" />
+              </button>
+              <span className="text-[10px] text-center">{selectedSighting.commentsCount}</span>
+            </div>
           </div>
           <div className="p-4">
-            <div className="flex justify-between items-start mb-3">
+            <div className="flex justify-between items-start mb-2">
               <div>
                 <h3 className="font-semibold text-lg">{selectedSighting.city}</h3>
                 <p className="text-sm text-gray-400">{selectedSighting.time}</p>
+                <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat.toFixed(4)}°, {selectedSighting.lng.toFixed(4)}°</p>
               </div>
               <button onClick={() => setSelectedSighting(null)} className="p-2"><X className="w-5 h-5 text-gray-400" /></button>
             </div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold mb-4" style={{ backgroundColor: `${classificationOptions.find(o => o.id === selectedSighting.type)?.color}33`, color: classificationOptions.find(o => o.id === selectedSighting.type)?.color }}>
-              <span>{classificationOptions.find(o => o.id === selectedSighting.type)?.icon}</span>
-              <span>{selectedSighting.type}</span>
+            {/* Owner link */}
+            <button onClick={() => onViewProfile && onViewProfile(selectedSighting.owner.username)} className="flex items-center gap-2 mb-3 hover:bg-white/5 px-2 py-1 rounded-lg -ml-2">
+              <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-bold text-green-400">{selectedSighting.owner.avatar}</div>
+              <span className="text-sm text-green-400">@{selectedSighting.owner.username}</span>
+            </button>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold" style={{ backgroundColor: `${classificationOptions.find(o => o.id === selectedSighting.type)?.color}33`, color: classificationOptions.find(o => o.id === selectedSighting.type)?.color }}>
+                <span>{classificationOptions.find(o => o.id === selectedSighting.type)?.icon}</span>
+                <span>{selectedSighting.type}</span>
+              </div>
+              <span className="text-xs text-gray-400">AI Confidence: <span className="text-green-400 font-bold">{selectedSighting.confidence}%</span></span>
             </div>
             <p className="text-xs text-gray-400 mb-2">Classify this sighting:</p>
-            <div className="grid grid-cols-5 gap-2">
-              {classificationOptions.map(opt => (<button key={opt.id} className="py-3 rounded-xl text-sm font-bold active:scale-95 flex flex-col items-center gap-1" style={{ backgroundColor: `${opt.color}20`, color: opt.color }}><span>{opt.icon}</span></button>))}
+            <div className="flex gap-1">
+              {classificationOptions.map(opt => (<button key={opt.id} className="flex-1 py-2 rounded-xl active:scale-95 flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}20`, color: opt.color }}><span className="text-base">{opt.icon}</span><span className="text-[8px] font-medium">{opt.label}</span></button>))}
             </div>
           </div>
         </div>
@@ -494,7 +589,7 @@ function GlobalMapView({ isMobile }) {
   );
 }
 
-function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile = true }) {
+function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile = true, onViewProfile }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedClips, setLikedClips] = useState({});
   const [classified, setClassified] = useState(0);
@@ -557,14 +652,23 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
 
           {/* Clip Info */}
           <div className="flex-shrink-0 p-4 border-b border-gray-800">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="px-2 py-1 rounded text-xs font-bold flex items-center gap-1" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color + '30', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color }}>
-                {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.icon} {currentClip.classification || currentClip.type || 'UAP'}
-              </span>
-              {currentClip.confidence && <span className="text-xs text-gray-400">{currentClip.confidence}%</span>}
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-1 rounded text-xs font-bold flex items-center gap-1" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color + '30', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color }}>
+                  {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.icon} {currentClip.classification || currentClip.type || 'UAP'}
+                </span>
+              </div>
+              {currentClip.confidence && <span className="text-xs text-gray-400">AI: <span className="text-green-400 font-bold">{currentClip.confidence}%</span></span>}
             </div>
             <h3 className="font-semibold text-lg">{currentClip.title}</h3>
             <p className="text-sm text-gray-400 flex items-center gap-1 mt-1"><MapPin className="w-4 h-4" />{currentClip.location}</p>
+            {/* Owner link */}
+            {currentClip.owner && (
+              <button onClick={() => onViewProfile && onViewProfile(currentClip.owner.username)} className="flex items-center gap-2 mt-2 hover:bg-white/5 px-2 py-1 rounded-lg -ml-2">
+                <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center text-[10px] font-bold text-green-400">{currentClip.owner.avatar}</div>
+                <span className="text-sm text-green-400">@{currentClip.owner.username}</span>
+              </button>
+            )}
           </div>
 
           {/* Actions */}
@@ -739,10 +843,17 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
             <span className="px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color + '40', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color }}>
               {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.icon} {currentClip.classification || currentClip.type || 'UAP'}
             </span>
-            {currentClip.confidence && <span className="text-[10px] text-gray-400">{currentClip.confidence}%</span>}
+            {currentClip.confidence && <span className="text-[10px] text-gray-400">AI: <span className="text-green-400 font-bold">{currentClip.confidence}%</span></span>}
           </div>
           <h3 className="font-semibold text-sm line-clamp-1 drop-shadow">{currentClip.title}</h3>
           <p className="text-xs text-gray-300 flex items-center gap-1 mt-0.5 drop-shadow"><MapPin className="w-3 h-3" />{currentClip.location}</p>
+          {/* Owner link */}
+          {currentClip.owner && (
+            <button onClick={() => onViewProfile && onViewProfile(currentClip.owner.username)} className="flex items-center gap-1.5 mt-1">
+              <div className="w-4 h-4 rounded-full bg-green-500/30 flex items-center justify-center text-[8px] font-bold text-green-400">{currentClip.owner.avatar}</div>
+              <span className="text-xs text-green-400">@{currentClip.owner.username}</span>
+            </button>
+          )}
         </div>
 
         {/* Classify Bar with Labels */}
@@ -797,20 +908,19 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
   );
 }
 
-function TrendingView({ isMobile, clips }) {
-  return <VideoFeedView clips={clips} showReward={false} title="Trending" isMobile={isMobile} />;
+function TrendingView({ isMobile, clips, onViewProfile }) {
+  return <VideoFeedView clips={clips} showReward={true} title="Trending" isMobile={isMobile} onViewProfile={onViewProfile} />;
 }
 
-function ClassifyView({ isMobile }) {
+function ClassifyView({ isMobile, onViewProfile }) {
   // Convert classifyClips to have same structure as trending clips
   const clipsWithInfo = classifyClips.map((c, i) => ({
     ...c,
     siteLikes: Math.floor(50 + Math.random() * 200),
     siteComments: i === 0 ? [{user: 'Observer1', text: 'What do you all think?', time: '30m ago', avatar: 'O'}] : [],
     classification: 'UAP',
-    confidence: Math.floor(70 + Math.random() * 25)
   }));
-  return <VideoFeedView clips={clipsWithInfo} showReward={true} title="Classify" isMobile={isMobile} />;
+  return <VideoFeedView clips={clipsWithInfo} showReward={true} title="Classify" isMobile={isMobile} onViewProfile={onViewProfile} />;
 }
 
 const communityTopics = [
@@ -823,14 +933,44 @@ const communityTopics = [
 ];
 
 const communityPostsData = [
-  { id: 1, topic: 'sightings', title: 'Multiple sightings over Phoenix', content: 'Around 9:30 PM I captured a formation of 5 objects moving in perfect synchronization. Has anyone else seen this?', author: 'SkyWatcher_AZ', time: '2h ago', upvotes: 234, comments: 89, hasVideo: true },
-  { id: 2, topic: 'sightings', title: 'Need help identifying this', content: 'Object hovered for 2 minutes before accelerating at impossible speeds. Captured on my Skeye cam.', author: 'NewObserver22', time: '4h ago', upvotes: 156, comments: 67, hasVideo: true },
-  { id: 3, topic: 'equipment', title: 'Best camera settings?', content: 'What ISO settings work best for night captures? Getting a lot of noise in my footage.', author: 'TechExplorer', time: '6h ago', upvotes: 89, comments: 45, hasVideo: false },
-  { id: 4, topic: 'analysis', title: 'Speed analysis of recent Chile sighting', content: 'I ran frame-by-frame analysis and calculated the object was moving at approximately 4,500 mph based on reference points.', author: 'DataScientist_UAP', time: '8h ago', upvotes: 312, comments: 124, hasVideo: false },
-  { id: 5, topic: 'news', title: 'Congressional hearing scheduled for next month', content: 'New whistleblower testimony expected. This could be huge for disclosure.', author: 'NewsWatcher', time: '12h ago', upvotes: 567, comments: 234, hasVideo: false },
-  { id: 6, topic: 'questions', title: 'How do I calibrate my Skeye camera?', content: 'Just got my camera and want to make sure the motion detection is set up correctly.', author: 'NewUser2024', time: '1d ago', upvotes: 45, comments: 23, hasVideo: false },
-  { id: 7, topic: 'sightings', title: 'Triangular craft over Texas', content: 'Silent, massive, three lights at each corner. My whole neighborhood saw it.', author: 'TexasSkies', time: '1d ago', upvotes: 445, comments: 189, hasVideo: true },
-  { id: 8, topic: 'analysis', title: 'Debunked: Recent viral video was a drone', content: 'After careful analysis, the movement pattern and light signature clearly indicate a DJI drone.', author: 'SkepticalAnalyst', time: '2d ago', upvotes: 123, comments: 98, hasVideo: false },
+  { id: 1, topic: 'sightings', title: 'Multiple sightings over Phoenix', content: 'Around 9:30 PM I captured a formation of 5 objects moving in perfect synchronization. Has anyone else seen this?', author: 'SkyWatcher_AZ', time: '2h ago', upvotes: 234, comments: 3, hasVideo: true, siteComments: [
+    { id: 1, user: 'DesertWatcher', avatar: 'D', text: 'I saw the same thing from Scottsdale! Absolutely incredible.', time: '1h ago', likes: 45, replies: [
+      { id: 11, user: 'SkyWatcher_AZ', avatar: 'S', text: 'What time exactly? Want to cross-reference our footage.', time: '45m ago', likes: 12 }
+    ]},
+    { id: 2, user: 'SkepticalSam', avatar: 'S', text: 'Could be Starlink satellites in formation.', time: '1h ago', likes: 8, replies: [] },
+    { id: 3, user: 'PhoenixNights', avatar: 'P', text: 'Starlink doesnt move like that. This was completely different.', time: '30m ago', likes: 23, replies: [] },
+  ]},
+  { id: 2, topic: 'sightings', title: 'Need help identifying this', content: 'Object hovered for 2 minutes before accelerating at impossible speeds. Captured on my Skeye cam.', author: 'NewObserver22', time: '4h ago', upvotes: 156, comments: 2, hasVideo: true, siteComments: [
+    { id: 1, user: 'TechAnalyst', avatar: 'T', text: 'Can you share the raw footage? Would love to run it through my analysis software.', time: '3h ago', likes: 34, replies: [] },
+    { id: 2, user: 'DroneExpert', avatar: 'D', text: 'The acceleration pattern rules out any known drone technology.', time: '2h ago', likes: 56, replies: [] },
+  ]},
+  { id: 3, topic: 'equipment', title: 'Best camera settings?', content: 'What ISO settings work best for night captures? Getting a lot of noise in my footage.', author: 'TechExplorer', time: '6h ago', upvotes: 89, comments: 2, hasVideo: false, siteComments: [
+    { id: 1, user: 'ProPhotographer', avatar: 'P', text: 'Try ISO 3200 with a 2-second exposure. Works great for me.', time: '5h ago', likes: 67, replies: [
+      { id: 11, user: 'TechExplorer', avatar: 'T', text: 'Thanks! Will try this tonight.', time: '4h ago', likes: 5 }
+    ]},
+    { id: 2, user: 'NightOwl', avatar: 'N', text: 'Also make sure your lens is clean - dust shows up bad at night.', time: '4h ago', likes: 23, replies: [] },
+  ]},
+  { id: 4, topic: 'analysis', title: 'Speed analysis of recent Chile sighting', content: 'I ran frame-by-frame analysis and calculated the object was moving at approximately 4,500 mph based on reference points.', author: 'DataScientist_UAP', time: '8h ago', upvotes: 312, comments: 1, hasVideo: false, siteComments: [
+    { id: 1, user: 'PhysicsProf', avatar: 'P', text: 'Your methodology is solid. Published similar findings in my analysis.', time: '6h ago', likes: 89, replies: [] },
+  ]},
+  { id: 5, topic: 'news', title: 'Congressional hearing scheduled for next month', content: 'New whistleblower testimony expected. This could be huge for disclosure.', author: 'NewsWatcher', time: '12h ago', upvotes: 567, comments: 4, hasVideo: false, siteComments: [
+    { id: 1, user: 'DCInsider', avatar: 'D', text: 'Hearing from sources this will be bigger than Grusch testimony.', time: '10h ago', likes: 234, replies: [] },
+    { id: 2, user: 'SkepticalVoice', avatar: 'S', text: 'Ill believe it when I see it. Been burned before.', time: '9h ago', likes: 45, replies: [] },
+    { id: 3, user: 'TruthSeeker', avatar: 'T', text: 'Finally! The truth is coming out.', time: '8h ago', likes: 123, replies: [] },
+    { id: 4, user: 'PoliticalWatcher', avatar: 'P', text: 'Mark your calendars folks!', time: '6h ago', likes: 67, replies: [] },
+  ]},
+  { id: 6, topic: 'questions', title: 'How do I calibrate my Skeye camera?', content: 'Just got my camera and want to make sure the motion detection is set up correctly.', author: 'NewUser2024', time: '1d ago', upvotes: 45, comments: 1, hasVideo: false, siteComments: [
+    { id: 1, user: 'SkeyeSupport', avatar: 'S', text: 'Check out the setup guide in the app Settings > Calibration. Happy to help if you have questions!', time: '20h ago', likes: 12, replies: [] },
+  ]},
+  { id: 7, topic: 'sightings', title: 'Triangular craft over Texas', content: 'Silent, massive, three lights at each corner. My whole neighborhood saw it.', author: 'TexasSkies', time: '1d ago', upvotes: 445, comments: 3, hasVideo: true, siteComments: [
+    { id: 1, user: 'TR3BExpert', avatar: 'T', text: 'Classic TR-3B description. Government craft or something else?', time: '20h ago', likes: 156, replies: [] },
+    { id: 2, user: 'AustinWatcher', avatar: 'A', text: 'Saw the same thing! We need to compare notes.', time: '18h ago', likes: 78, replies: [] },
+    { id: 3, user: 'MilitaryVet', avatar: 'M', text: 'Ive worked on classified projects. This isnt ours.', time: '12h ago', likes: 234, replies: [] },
+  ]},
+  { id: 8, topic: 'analysis', title: 'Debunked: Recent viral video was a drone', content: 'After careful analysis, the movement pattern and light signature clearly indicate a DJI drone.', author: 'SkepticalAnalyst', time: '2d ago', upvotes: 123, comments: 2, hasVideo: false, siteComments: [
+    { id: 1, user: 'OpenMinded', avatar: 'O', text: 'Good analysis. We need more critical thinking in this community.', time: '1d ago', likes: 67, replies: [] },
+    { id: 2, user: 'Believer99', avatar: 'B', text: 'Not everything is a drone...', time: '1d ago', likes: 12, replies: [] },
+  ]},
 ];
 
 function CommunityView({ isMobile }) {
@@ -838,8 +978,17 @@ function CommunityView({ isMobile }) {
   const [sortBy, setSortBy] = useState('hot');
   const [votedPosts, setVotedPosts] = useState({});
   const [selectedPost, setSelectedPost] = useState(null);
+  const [showNewPost, setShowNewPost] = useState(false);
+  const [newPostTitle, setNewPostTitle] = useState('');
+  const [newPostContent, setNewPostContent] = useState('');
+  const [newPostTopic, setNewPostTopic] = useState('sightings');
+  const [likedComments, setLikedComments] = useState({});
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [newComment, setNewComment] = useState('');
 
   const handleVote = (id, e) => { e.stopPropagation(); setVotedPosts(prev => ({ ...prev, [id]: !prev[id] })); };
+  const handleLikeComment = (commentId) => setLikedComments(prev => ({ ...prev, [commentId]: !prev[commentId] }));
 
   const filteredPosts = activeTopic === 'all' ? communityPostsData : communityPostsData.filter(p => p.topic === activeTopic);
   const sortedPosts = [...filteredPosts].sort((a, b) => {
@@ -848,6 +997,37 @@ function CommunityView({ isMobile }) {
     if (sortBy === 'top') return b.upvotes - a.upvotes;
     return 0;
   });
+
+  const CommentComponent = ({ comment, depth = 0 }) => (
+    <div className={`${depth > 0 ? 'ml-8 border-l-2 border-gray-700 pl-4' : ''}`}>
+      <div className="flex gap-3 py-3">
+        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-bold text-green-400 flex-shrink-0">{comment.avatar}</div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-semibold text-sm">{comment.user}</span>
+            <span className="text-xs text-gray-500">{comment.time}</span>
+          </div>
+          <p className="text-sm text-gray-300 mb-2">{comment.text}</p>
+          <div className="flex items-center gap-4">
+            <button onClick={() => handleLikeComment(comment.id)} className={`flex items-center gap-1 text-xs ${likedComments[comment.id] ? 'text-green-400' : 'text-gray-500 hover:text-white'}`}>
+              <ThumbsUp className="w-3 h-3" />
+              <span>{comment.likes + (likedComments[comment.id] ? 1 : 0)}</span>
+            </button>
+            <button onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)} className="text-xs text-gray-500 hover:text-white">Reply</button>
+          </div>
+          {replyingTo === comment.id && (
+            <div className="mt-2 flex gap-2">
+              <input type="text" value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Write a reply..." className="flex-1 px-3 py-2 bg-white/5 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-green-500/50" />
+              <button onClick={() => { setReplyingTo(null); setReplyText(''); }} className="px-3 py-2 bg-green-500 rounded-lg text-sm font-medium">Reply</button>
+            </div>
+          )}
+        </div>
+      </div>
+      {comment.replies && comment.replies.map(reply => (
+        <CommentComponent key={reply.id} comment={reply} depth={depth + 1} />
+      ))}
+    </div>
+  );
 
   // Desktop Layout
   if (!isMobile) {
@@ -867,7 +1047,7 @@ function CommunityView({ isMobile }) {
             ))}
           </div>
           <div className="mt-auto p-3 border-t border-gray-800">
-            <button className="w-full py-3 bg-green-500 rounded-xl font-semibold hover:bg-green-600 flex items-center justify-center gap-2">
+            <button onClick={() => setShowNewPost(true)} className="w-full py-3 bg-green-500 rounded-xl font-semibold hover:bg-green-600 flex items-center justify-center gap-2">
               <Plus className="w-5 h-5" />
               New Post
             </button>
@@ -940,7 +1120,7 @@ function CommunityView({ isMobile }) {
                   </button>
                   <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10">
                     <MessageCircle className="w-5 h-5" />
-                    <span>{selectedPost.comments} Comments</span>
+                    <span>{selectedPost.siteComments?.length || 0} Comments</span>
                   </button>
                   <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10">
                     <Share2 className="w-5 h-5" />
@@ -949,10 +1129,57 @@ function CommunityView({ isMobile }) {
                 </div>
                 <div className="pt-4">
                   <div className="flex gap-3 mb-4">
-                    <input type="text" placeholder="Add a comment..." className="flex-1 px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" />
+                    <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Add a comment..." className="flex-1 px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" />
                     <button className="px-6 py-3 bg-green-500 rounded-xl font-medium">Post</button>
                   </div>
-                  <p className="text-center text-gray-500 text-sm">Comments would appear here</p>
+                  {/* Comments */}
+                  <div className="space-y-1">
+                    {selectedPost.siteComments && selectedPost.siteComments.length > 0 ? (
+                      selectedPost.siteComments.map(comment => (
+                        <CommentComponent key={comment.id} comment={comment} />
+                      ))
+                    ) : (
+                      <p className="text-center text-gray-500 text-sm py-4">No comments yet. Be the first!</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* New Post Modal */}
+        {showNewPost && (
+          <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-8" onClick={() => setShowNewPost(false)}>
+            <div className="bg-[#141414] rounded-2xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold">Create New Post</h2>
+                  <button onClick={() => setShowNewPost(false)}><X className="w-5 h-5 text-gray-400" /></button>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Topic</label>
+                    <div className="flex flex-wrap gap-2">
+                      {communityTopics.filter(t => t.id !== 'all').map(topic => (
+                        <button key={topic.id} onClick={() => setNewPostTopic(topic.id)} className={`px-3 py-1.5 rounded-full text-sm ${newPostTopic === topic.id ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+                          {topic.icon} {topic.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Title</label>
+                    <input type="text" value={newPostTitle} onChange={(e) => setNewPostTitle(e.target.value)} placeholder="Enter a descriptive title..." className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Content</label>
+                    <textarea value={newPostContent} onChange={(e) => setNewPostContent(e.target.value)} placeholder="Share your sighting, question, or analysis..." rows={5} className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50 resize-none" />
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <button onClick={() => setShowNewPost(false)} className="flex-1 py-3 bg-white/5 rounded-xl font-medium hover:bg-white/10">Cancel</button>
+                    <button onClick={() => { setShowNewPost(false); setNewPostTitle(''); setNewPostContent(''); }} className="flex-1 py-3 bg-green-500 rounded-xl font-medium hover:bg-green-600">Post</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1013,7 +1240,7 @@ function CommunityView({ isMobile }) {
       </div>
 
       {/* FAB */}
-      <button className="fixed bottom-20 right-4 w-14 h-14 bg-green-500 rounded-full shadow-lg flex items-center justify-center active:scale-95 z-40">
+      <button onClick={() => setShowNewPost(true)} className="fixed bottom-20 right-4 w-14 h-14 bg-green-500 rounded-full shadow-lg flex items-center justify-center active:scale-95 z-40">
         <Plus className="w-6 h-6" />
       </button>
 
@@ -1039,20 +1266,57 @@ function CommunityView({ isMobile }) {
                 </button>
                 <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5">
                   <MessageCircle className="w-4 h-4" />
-                  <span className="text-sm">{selectedPost.comments}</span>
+                  <span className="text-sm">{selectedPost.siteComments?.length || 0}</span>
                 </button>
                 <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5">
                   <Share2 className="w-4 h-4" />
                 </button>
               </div>
-              <div className="pt-4">
-                <p className="text-center text-gray-500 text-sm">Comments would appear here</p>
+              {/* Comments */}
+              <div className="pt-4 space-y-1">
+                {selectedPost.siteComments && selectedPost.siteComments.length > 0 ? (
+                  selectedPost.siteComments.map(comment => (
+                    <CommentComponent key={comment.id} comment={comment} />
+                  ))
+                ) : (
+                  <p className="text-center text-gray-500 text-sm py-4">No comments yet. Be the first!</p>
+                )}
               </div>
             </div>
             <div className="p-3 border-t border-gray-800">
               <div className="flex gap-2">
-                <input type="text" placeholder="Add a comment..." className="flex-1 px-3 py-2 bg-white/5 border border-gray-700 rounded-xl text-white text-sm" />
+                <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Add a comment..." className="flex-1 px-3 py-2 bg-white/5 border border-gray-700 rounded-xl text-white text-sm" />
                 <button className="px-4 py-2 bg-green-500 rounded-xl text-sm font-medium">Post</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New Post Modal - Mobile */}
+      {showNewPost && (
+        <div className="fixed inset-0 z-50 bg-black/60" onClick={() => setShowNewPost(false)}>
+          <div className="absolute inset-x-0 bottom-0 bg-[#141414] rounded-t-3xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mt-3" />
+            <div className="p-4">
+              <h2 className="text-lg font-bold mb-4">Create New Post</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs text-gray-400 mb-2">Topic</label>
+                  <div className="flex flex-wrap gap-2">
+                    {communityTopics.filter(t => t.id !== 'all').map(topic => (
+                      <button key={topic.id} onClick={() => setNewPostTopic(topic.id)} className={`px-2 py-1 rounded-full text-xs ${newPostTopic === topic.id ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-400'}`}>
+                        {topic.icon} {topic.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <input type="text" value={newPostTitle} onChange={(e) => setNewPostTitle(e.target.value)} placeholder="Title..." className="w-full px-3 py-2 bg-white/5 border border-gray-700 rounded-xl text-white text-sm" />
+                <textarea value={newPostContent} onChange={(e) => setNewPostContent(e.target.value)} placeholder="Share your sighting..." rows={4} className="w-full px-3 py-2 bg-white/5 border border-gray-700 rounded-xl text-white text-sm resize-none" />
+                <div className="flex gap-2">
+                  <button onClick={() => setShowNewPost(false)} className="flex-1 py-3 bg-white/5 rounded-xl font-medium text-sm">Cancel</button>
+                  <button onClick={() => { setShowNewPost(false); setNewPostTitle(''); setNewPostContent(''); }} className="flex-1 py-3 bg-green-500 rounded-xl font-medium text-sm">Post</button>
+                </div>
               </div>
             </div>
           </div>
@@ -1145,6 +1409,7 @@ function DevicesSubView({ isMobile, devices }) {
                   </span>
                 </div>
                 <p className={`text-gray-400 flex items-center gap-1 mt-1 ${isMobile ? 'text-xs' : 'text-sm'}`}><MapPin className="w-3 h-3" />{device.location}</p>
+                <p className={`text-gray-500 font-mono ${isMobile ? 'text-[9px]' : 'text-[11px]'}`}>{device.lat.toFixed(4)}°, {device.lng.toFixed(4)}°</p>
                 <p className={`text-gray-500 font-mono mt-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>S/N: {device.serial}</p>
                 <div className={`flex items-center gap-4 mt-2 ${isMobile ? 'text-[10px]' : 'text-xs'} text-gray-500`}>
                   <span className="flex items-center gap-1"><Wifi className={`w-3 h-3 ${device.signal > 80 ? 'text-green-400' : device.signal > 0 ? 'text-yellow-400' : 'text-red-400'}`} />{device.signal > 0 ? `${device.signal}%` : 'N/A'}</span>
