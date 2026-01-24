@@ -145,7 +145,7 @@ export default function App() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-hidden relative" onClick={() => setShowNotifications(false)}>
+      <main className={`flex-1 overflow-hidden relative ${!isMobile ? 'ml-16' : ''}`} onClick={() => setShowNotifications(false)}>
         {activeTab === 'map' && <GlobalMapView isMobile={isMobile} />}
         {activeTab === 'trending' && <TrendingView isMobile={isMobile} clips={mockClips} />}
         {activeTab === 'classify' && <ClassifyView isMobile={isMobile} />}
@@ -153,21 +153,40 @@ export default function App() {
         {activeTab === 'profile' && <ProfileView isMobile={isMobile} profileSubTab={profileSubTab} setProfileSubTab={setProfileSubTab} devices={mockDevices} clips={myClips} />}
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="flex-shrink-0 border-t border-green-500/20 bg-[#0a0a0a] z-50">
-        <div className="flex items-center justify-around py-1" style={{ paddingBottom: 'max(4px, env(safe-area-inset-bottom))' }}>
+      {/* Side Navigation - Desktop */}
+      {!isMobile && (
+        <nav className="fixed left-0 top-0 bottom-0 w-16 border-r border-green-500/10 bg-[#0a0a0a] flex flex-col items-center py-20 z-40">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex flex-col items-center py-2 px-3 ${isActive ? 'text-green-400' : 'text-gray-500'}`}>
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative w-12 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all mb-1 ${isActive ? 'bg-gradient-to-br from-green-500/20 to-green-600/10 text-green-400' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}>
+                {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-green-400 to-green-600 rounded-r-full" />}
                 <Icon className="w-5 h-5" />
-                <span className="text-[10px] mt-0.5">{tab.label}</span>
+                <span className="text-[8px] font-medium">{tab.label}</span>
               </button>
             );
           })}
-        </div>
-      </nav>
+        </nav>
+      )}
+
+      {/* Bottom Navigation - Mobile */}
+      {isMobile && (
+        <nav className="flex-shrink-0 border-t border-green-500/20 bg-[#0a0a0a] z-50">
+          <div className="flex items-center justify-around py-1" style={{ paddingBottom: 'max(4px, env(safe-area-inset-bottom))' }}>
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex flex-col items-center py-2 px-3 ${isActive ? 'text-green-400' : 'text-gray-500'}`}>
+                  <Icon className="w-5 h-5" />
+                  <span className="text-[10px] mt-0.5">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      )}
     </div>
   );
 }
