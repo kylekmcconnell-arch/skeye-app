@@ -290,142 +290,136 @@ function GlobalMapView({ isMobile }) {
   );
 }
 
-function TrendingView({ isMobile, clips }) {
+function VideoFeedView({ clips, showReward = false, title = "Trending" }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedClips, setLikedClips] = useState({});
+  const [classified, setClassified] = useState(0);
   const currentClip = clips[currentIndex];
 
   const handlePrev = () => { if (currentIndex > 0) setCurrentIndex(currentIndex - 1); };
-  const handleNext = () => { if (currentIndex < clips.length - 1) setCurrentIndex(currentIndex + 1); };
+  const handleNext = () => { if (currentIndex < clips.length - 1) setCurrentIndex(currentIndex + 1); else setCurrentIndex(0); };
   const handleLike = () => setLikedClips(prev => ({ ...prev, [currentClip.id]: !prev[currentClip.id] }));
-  const handleClassify = (type) => { console.log('Classified as:', type); handleNext(); };
+  const handleClassify = (type) => { 
+    setClassified(prev => prev + 1);
+    setTimeout(() => handleNext(), 300);
+  };
 
   return (
-    <div className="h-full flex flex-col bg-black">
-      {/* Video */}
-      <div className="flex-1 relative bg-black">
-        <iframe key={currentClip.id} src={`https://www.youtube.com/embed/${currentClip.videoId}?autoplay=1&mute=0&playsinline=1&rel=0`} className="absolute inset-0 w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={currentClip.title} />
+    <div className="h-full relative bg-black">
+      {/* Full Screen Video */}
+      <iframe 
+        key={currentClip.id} 
+        src={`https://www.youtube.com/embed/${currentClip.videoId}?autoplay=1&mute=0&playsinline=1&rel=0&modestbranding=1`} 
+        className="absolute inset-0 w-full h-full" 
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+        allowFullScreen 
+        title={currentClip.title} 
+      />
+      
+      {/* Top Bar - Progress & Info */}
+      <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-3 pb-12">
+        {/* Progress Dots */}
+        <div className="flex gap-1 mb-3">
+          {clips.map((_, i) => (<div key={i} className={`flex-1 h-1 rounded-full transition-all ${i === currentIndex ? 'bg-white' : i < currentIndex ? 'bg-white/50' : 'bg-white/20'}`} />))}
+        </div>
         
-        {/* Nav Arrows */}
-        <button onClick={handlePrev} disabled={currentIndex === 0} className={`absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center ${currentIndex === 0 ? 'opacity-30' : 'active:scale-95'}`}>
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-        <button onClick={handleNext} disabled={currentIndex === clips.length - 1} className={`absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center ${currentIndex === clips.length - 1 ? 'opacity-30' : 'active:scale-95'}`}>
-          <ChevronRight className="w-6 h-6" />
-        </button>
-
-        {/* Progress */}
-        <div className="absolute top-2 left-2 right-2 flex gap-1">
-          {clips.map((_, i) => (<div key={i} className={`flex-1 h-1 rounded-full ${i === currentIndex ? 'bg-white' : i < currentIndex ? 'bg-white/50' : 'bg-white/20'}`} />))}
-        </div>
-
-        {/* Side Actions */}
-        <div className="absolute right-3 bottom-4 flex flex-col items-center gap-4">
-          <button onClick={handleLike} className="flex flex-col items-center">
-            <div className={`w-11 h-11 rounded-full flex items-center justify-center ${likedClips[currentClip.id] ? 'bg-green-500' : 'bg-black/50'}`}>
-              <ThumbsUp className="w-5 h-5" />
+        {/* Counter & Reward */}
+        <div className="flex items-center justify-between">
+          <div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">
+            {currentIndex + 1} / {clips.length}
+          </div>
+          {showReward && (
+            <div className="flex items-center gap-1 bg-green-500/20 backdrop-blur px-3 py-1.5 rounded-full">
+              <Zap className="w-3 h-3 text-green-400" />
+              <span className="text-xs text-green-400 font-semibold">+50 $SKEYE</span>
             </div>
-            <span className="text-xs mt-1">{currentClip.likes + (likedClips[currentClip.id] ? 1 : 0)}</span>
-          </button>
-          <button className="flex flex-col items-center">
-            <div className="w-11 h-11 rounded-full bg-black/50 flex items-center justify-center"><MessageCircle className="w-5 h-5" /></div>
-            <span className="text-xs mt-1">{currentClip.comments.length}</span>
-          </button>
-          <button className="flex flex-col items-center">
-            <div className="w-11 h-11 rounded-full bg-black/50 flex items-center justify-center"><Share2 className="w-5 h-5" /></div>
-          </button>
+          )}
+          {!showReward && classified > 0 && (
+            <div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">
+              Classified: <span className="text-green-400 font-bold">{classified}</span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Info Bar */}
-      <div className="bg-[#0d0d0d] px-4 py-3 border-t border-gray-800">
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex-1 mr-4">
-            <h3 className="font-semibold text-sm line-clamp-1">{currentClip.title}</h3>
-            <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5"><MapPin className="w-3 h-3" />{currentClip.location}</p>
+      {/* Nav Arrows */}
+      <button onClick={handlePrev} disabled={currentIndex === 0} className={`absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center z-10 transition-opacity ${currentIndex === 0 ? 'opacity-30' : 'hover:bg-black/60 active:scale-95'}`}>
+        <ChevronLeft className="w-6 h-6" />
+      </button>
+      <button onClick={handleNext} className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center z-10 hover:bg-black/60 active:scale-95">
+        <ChevronRight className="w-6 h-6" />
+      </button>
+
+      {/* Right Side Actions */}
+      <div className="absolute right-3 bottom-36 flex flex-col items-center gap-4 z-10">
+        <button onClick={handleLike} className="flex flex-col items-center">
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center backdrop-blur transition-colors ${likedClips[currentClip.id] ? 'bg-green-500' : 'bg-black/40 hover:bg-black/60'}`}>
+            <ThumbsUp className="w-5 h-5" />
           </div>
-          <span className="px-2 py-1 rounded text-[10px] font-bold bg-purple-500/20 text-purple-400">{currentClip.classification}</span>
-        </div>
+          <span className="text-xs mt-1 drop-shadow">{(currentClip.likes || 0) + (likedClips[currentClip.id] ? 1 : 0)}</span>
+        </button>
+        <button className="flex flex-col items-center">
+          <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur hover:bg-black/60 flex items-center justify-center">
+            <MessageCircle className="w-5 h-5" />
+          </div>
+          <span className="text-xs mt-1 drop-shadow">{(currentClip.comments?.length || 0)}</span>
+        </button>
+        <button className="flex flex-col items-center">
+          <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur hover:bg-black/60 flex items-center justify-center">
+            <Share2 className="w-5 h-5" />
+          </div>
+        </button>
       </div>
 
-      {/* Classify Bar */}
-      <div className="bg-[#0a0a0a] px-3 py-2 border-t border-gray-800">
-        <div className="flex items-center gap-1">
-          <span className="text-[10px] text-gray-500 mr-1">Classify:</span>
+      {/* Bottom Bar - Info & Classify */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-16 pb-3 px-3">
+        {/* Clip Info */}
+        <div className="mb-3 pr-16">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'Unknown'))?.color + '40', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'Unknown'))?.color }}>
+              {currentClip.classification || currentClip.type || 'Unknown'}
+            </span>
+            {currentClip.confidence && <span className="text-[10px] text-gray-400">{currentClip.confidence}%</span>}
+          </div>
+          <h3 className="font-semibold text-sm line-clamp-1 drop-shadow">{currentClip.title}</h3>
+          <p className="text-xs text-gray-300 flex items-center gap-1 mt-0.5 drop-shadow"><MapPin className="w-3 h-3" />{currentClip.location}</p>
+        </div>
+
+        {/* Classify Bar */}
+        <div className="flex items-center gap-1.5">
           {classificationOptions.map(opt => (
-            <button key={opt.id} onClick={() => handleClassify(opt.id)} className="flex-1 py-2 rounded-lg text-[10px] font-bold active:scale-95" style={{ backgroundColor: `${opt.color}25`, color: opt.color }}>{opt.short}</button>
+            <button 
+              key={opt.id} 
+              onClick={() => handleClassify(opt.id)} 
+              className="flex-1 py-2.5 rounded-lg text-xs font-bold active:scale-95 transition-transform backdrop-blur" 
+              style={{ backgroundColor: `${opt.color}30`, color: opt.color }}
+            >
+              {opt.short}
+            </button>
           ))}
-          <div className="flex items-center gap-1 ml-2 px-2 py-1 bg-green-500/10 rounded">
-            <Zap className="w-3 h-3 text-green-400" />
-            <span className="text-[10px] text-green-400">+50</span>
-          </div>
+          <button onClick={handleNext} className="px-3 py-2.5 rounded-lg text-xs text-gray-400 bg-white/10 backdrop-blur active:scale-95">
+            Skip
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
+function TrendingView({ isMobile, clips }) {
+  return <VideoFeedView clips={clips} showReward={false} title="Trending" />;
+}
+
 function ClassifyView({ isMobile }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [classified, setClassified] = useState(0);
-  const currentClip = classifyClips[currentIndex];
-
-  const handleClassify = (type) => {
-    setClassified(prev => prev + 1);
-    setTimeout(() => setCurrentIndex(prev => (prev + 1) % classifyClips.length), 200);
-  };
-
-  const handlePrev = () => { if (currentIndex > 0) setCurrentIndex(currentIndex - 1); };
-  const handleNext = () => { setCurrentIndex(prev => (prev + 1) % classifyClips.length); };
-
-  return (
-    <div className="h-full flex flex-col bg-black">
-      {/* Video */}
-      <div className="flex-1 relative bg-black">
-        <iframe key={currentClip.id} src={`https://www.youtube.com/embed/${currentClip.videoId}?autoplay=1&mute=0&playsinline=1&rel=0`} className="absolute inset-0 w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={currentClip.title} />
-        
-        {/* Nav Arrows */}
-        <button onClick={handlePrev} className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center active:scale-95">
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-        <button onClick={handleNext} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 flex items-center justify-center active:scale-95">
-          <ChevronRight className="w-6 h-6" />
-        </button>
-
-        {/* Counter */}
-        <div className="absolute top-3 left-3 bg-black/60 px-3 py-1.5 rounded-full text-xs">
-          {currentIndex + 1} / {classifyClips.length}
-        </div>
-
-        {/* Reward Badge */}
-        <div className="absolute top-3 right-3 flex items-center gap-1 bg-green-500/20 px-3 py-1.5 rounded-full">
-          <Zap className="w-3 h-3 text-green-400" />
-          <span className="text-xs text-green-400 font-semibold">+50 $SKEYE</span>
-        </div>
-      </div>
-
-      {/* Info */}
-      <div className="bg-[#0d0d0d] px-4 py-3 border-t border-gray-800">
-        <h3 className="font-semibold">{currentClip.title}</h3>
-        <p className="text-sm text-gray-400 flex items-center gap-1 mt-1"><MapPin className="w-3 h-3" />{currentClip.location}</p>
-      </div>
-
-      {/* Classify Buttons */}
-      <div className="bg-[#0a0a0a] p-3 border-t border-gray-800">
-        <div className="grid grid-cols-5 gap-2 mb-3">
-          {classificationOptions.map(opt => (
-            <button key={opt.id} onClick={() => handleClassify(opt.id)} className="py-4 rounded-xl font-bold active:scale-95 transition-transform" style={{ backgroundColor: `${opt.color}25`, color: opt.color }}>
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center justify-between">
-          <button onClick={handleNext} className="px-4 py-2 text-gray-400 text-sm">Skip</button>
-          <span className="text-sm text-gray-500">Classified: <span className="text-green-400 font-bold">{classified}</span></span>
-        </div>
-      </div>
-    </div>
-  );
+  // Convert classifyClips to have same structure as trending clips
+  const clipsWithInfo = classifyClips.map(c => ({
+    ...c,
+    likes: Math.floor(Math.random() * 500),
+    comments: [],
+    classification: 'Unknown',
+    confidence: Math.floor(70 + Math.random() * 25)
+  }));
+  return <VideoFeedView clips={clipsWithInfo} showReward={true} title="Classify" />;
 }
 
 function CommunityView({ isMobile }) {
