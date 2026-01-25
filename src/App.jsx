@@ -15,9 +15,8 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const uploadAvatar = async (file, userId) => {
   const fileExt = file.name.split('.').pop();
   const fileName = `${userId}-${Date.now()}.${fileExt}`;
-  const filePath = `avatars/${fileName}`;
 
-  const response = await fetch(`${SUPABASE_URL}/storage/v1/object/${filePath}`, {
+  const response = await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${fileName}`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
@@ -28,11 +27,13 @@ const uploadAvatar = async (file, userId) => {
   });
 
   if (!response.ok) {
+    const error = await response.text();
+    console.error('Upload error:', error);
     throw new Error('Failed to upload avatar');
   }
 
   // Return public URL
-  return `${SUPABASE_URL}/storage/v1/object/public/${filePath}`;
+  return `${SUPABASE_URL}/storage/v1/object/public/avatars/${fileName}`;
 };
 
 // Auth Context
