@@ -421,6 +421,7 @@ function AppContent() {
   const { user, isAuthenticated, loading, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('map');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [notificationsList, setNotificationsList] = useState(notifications);
   const [profileSubTab, setProfileSubTab] = useState('devices');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -528,12 +529,62 @@ function AppContent() {
             </div>
           </div>
           
-          <button onClick={(e) => { e.stopPropagation(); setShowNotifications(!showNotifications); }} className="relative p-2 hover:bg-white/5 rounded-lg z-[10001]">
-            <Bell className={`${isMobile ? 'w-5 h-5' : 'w-5 h-5'} text-gray-400`} />
-            {unreadCount > 0 && <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-[10px] flex items-center justify-center font-bold">{unreadCount}</span>}
-          </button>
+          <div className="flex items-center gap-1">
+            <button onClick={(e) => { e.stopPropagation(); setShowNotifications(!showNotifications); }} className="relative p-2 hover:bg-white/5 rounded-lg z-[10001]">
+              <Bell className={`${isMobile ? 'w-5 h-5' : 'w-5 h-5'} text-gray-400`} />
+              {unreadCount > 0 && <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-[10px] flex items-center justify-center font-bold">{unreadCount}</span>}
+            </button>
+            
+            {/* User Avatar with Dropdown */}
+            <div className="relative">
+              <button 
+                onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }}
+                className="p-1 hover:bg-white/5 rounded-lg"
+              >
+                {user?.avatar_url ? (
+                  <img src={user.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover" />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-bold text-green-400">
+                    {user?.username?.[0]?.toUpperCase() || 'U'}
+                  </div>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       </header>
+
+      {/* User Menu Dropdown */}
+      {showUserMenu && (
+        <div className="fixed inset-0 z-[10000]" onClick={() => setShowUserMenu(false)}>
+          <div className={`absolute ${isMobile ? 'right-2 top-12' : 'right-4 top-12'} w-48 bg-[#141414] border border-gray-700 rounded-xl shadow-2xl overflow-hidden`} onClick={e => e.stopPropagation()}>
+            <div className="p-3 border-b border-gray-800">
+              <p className="text-sm font-semibold text-white">{user?.username}</p>
+              <p className="text-xs text-gray-400">{user?.email}</p>
+            </div>
+            <div className="py-1">
+              <button onClick={() => { setActiveTab('profile'); setShowUserMenu(false); }} className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-white/5 flex items-center gap-2">
+                <User className="w-4 h-4" />
+                My Profile
+              </button>
+              <button onClick={() => { setProfileSubTab('devices'); setActiveTab('profile'); setShowUserMenu(false); }} className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-white/5 flex items-center gap-2">
+                <Camera className="w-4 h-4" />
+                My Devices
+              </button>
+              <button onClick={() => { setProfileSubTab('settings'); setActiveTab('profile'); setShowUserMenu(false); }} className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-white/5 flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                Settings
+              </button>
+            </div>
+            <div className="border-t border-gray-800 py-1">
+              <button onClick={() => { logout(); setShowUserMenu(false); }} className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-white/5 flex items-center gap-2">
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Notifications Dropdown - At root level with highest z-index */}
       {showNotifications && (
@@ -1174,10 +1225,10 @@ function GlobalMapView({ isMobile, onViewProfile }) {
             className="absolute inset-x-2 top-2 bottom-2 z-[1001] bg-[#141414] rounded-2xl flex flex-col overflow-hidden"
             style={{ transform: `translateY(${swipeY}px)` }}
           >
-            {/* Close button - top right */}
+            {/* Close button - top left corner of modal, outside video */}
             <button 
               onClick={() => setSelectedSighting(null)} 
-              className="absolute top-2 right-2 z-20 w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center"
+              className="absolute top-2 left-2 z-50 w-8 h-8 bg-black/70 hover:bg-black/90 rounded-full flex items-center justify-center"
             >
               <X className="w-5 h-5 text-white" />
             </button>
@@ -1216,8 +1267,8 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                   <p className="text-[10px] text-gray-500">{selectedSighting.timestamp ? getPreciseTimeAgo(selectedSighting.timestamp) : selectedSighting.time}</p>
                   <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat?.toFixed(4)}°, {selectedSighting.lng?.toFixed(4)}°</p>
                 </div>
-                {/* Actions */}
-                <div className="flex items-center gap-2 ml-2">
+                {/* Actions - aligned horizontally */}
+                <div className="flex items-start gap-3 ml-2">
                   <button onClick={() => handleLikeSighting(selectedSighting.id)} className="flex flex-col items-center">
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center ${sightingLikes[selectedSighting.id] ? 'bg-green-500' : 'bg-white/10'}`}>
                       <ThumbsUp className="w-4 h-4" />
@@ -1416,9 +1467,9 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
               </div>
               {currentClip.confidence && <span className="text-xs text-gray-400">AI Confidence: <span className="text-green-400 font-bold">{currentClip.confidence}%</span></span>}
             </div>
-            <h3 className="font-semibold text-lg">{currentClip.location || currentClip.title}</h3>
-            <p className="text-sm text-gray-400 flex items-center gap-1 mt-1"><MapPin className="w-4 h-4" />{currentClip.location}</p>
-            {currentClip.time && <p className="text-xs text-gray-500 mt-1">{currentClip.time}</p>}
+            <h3 className="font-semibold text-lg">{currentClip.location}</h3>
+            {currentClip.utcTime && <p className="text-xs text-gray-500 font-mono mt-1">{currentClip.utcTime}</p>}
+            {currentClip.timestamp && <p className="text-xs text-gray-500 mt-0.5">{getPreciseTimeAgo(currentClip.timestamp)}</p>}
             {/* Owner link */}
             {currentClip.owner && (
               <button onClick={() => onViewProfile && onViewProfile(currentClip.owner.username)} className="flex items-center gap-2 mt-2 hover:bg-white/5 px-2 py-1 rounded-lg -ml-2">
@@ -1782,6 +1833,7 @@ function TrendingView({ isMobile, clips, onViewProfile }) {
                 likes: Math.floor(Math.random() * 50)
               });
             }
+            const createdAt = new Date(s.created_at);
             return {
               id: s.id,
               videoUrl: s.video_url,
@@ -1796,8 +1848,9 @@ function TrendingView({ isMobile, clips, onViewProfile }) {
                 avatar: (s.uploader_username || 'A')[0].toUpperCase(),
                 avatarUrl: s.uploader_avatar 
               },
-              timestamp: new Date(s.created_at).getTime(),
-              time: getTimeAgo(new Date(s.created_at).getTime()),
+              timestamp: createdAt.getTime(),
+              utcTime: createdAt.toISOString().slice(0, 19).replace('T', ' ') + ' UTC',
+              time: getTimeAgo(createdAt.getTime()),
             };
           });
           // Shuffle once when loading
@@ -1864,6 +1917,7 @@ function ClassifyView({ isMobile, onViewProfile }) {
                 likes: Math.floor(Math.random() * 50)
               });
             }
+            const createdAt = new Date(s.created_at);
             return {
               id: s.id,
               videoUrl: s.video_url,
@@ -1878,8 +1932,9 @@ function ClassifyView({ isMobile, onViewProfile }) {
                 avatar: (s.uploader_username || 'A')[0].toUpperCase(),
                 avatarUrl: s.uploader_avatar 
               },
-              timestamp: new Date(s.created_at).getTime(),
-              time: getTimeAgo(new Date(s.created_at).getTime()),
+              timestamp: createdAt.getTime(),
+              utcTime: createdAt.toISOString().slice(0, 19).replace('T', ' ') + ' UTC',
+              time: getTimeAgo(createdAt.getTime()),
             };
           });
           // Shuffle for random order
