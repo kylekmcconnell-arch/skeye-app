@@ -1250,10 +1250,11 @@ function GlobalMapView({ isMobile, onViewProfile }) {
   );
 }
 
-function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile = true, onViewProfile }) {
+function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile = true, onViewProfile, onClassified }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedClips, setLikedClips] = useState({});
   const [classified, setClassified] = useState(0);
+  const [classifiedClips, setClassifiedClips] = useState({});
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
   const currentClip = clips[currentIndex];
@@ -1263,11 +1264,14 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
   const handleLike = () => setLikedClips(prev => ({ ...prev, [currentClip.id]: !prev[currentClip.id] }));
   const handleClassify = (type) => { 
     setClassified(prev => prev + 1);
-    setTimeout(() => handleNext(), 300);
+    setClassifiedClips(prev => ({ ...prev, [currentClip.id]: type }));
+    if (onClassified) onClassified(currentClip.id);
+    // Don't auto-advance - let user see "Submitted" state
   };
 
   const siteLikes = (currentClip.siteLikes || 0) + (likedClips[currentClip.id] ? 1 : 0);
   const siteComments = currentClip.siteComments || [];
+  const isClassified = !!classifiedClips[currentClip.id];
 
   // Desktop Layout
   if (!isMobile) {
@@ -1275,14 +1279,29 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
       <div className="h-full flex">
         {/* Main Video Area */}
         <div className="flex-1 relative bg-black">
-          <iframe 
-            key={currentClip.id} 
-            src={`https://www.youtube.com/embed/${currentClip.videoId}?autoplay=1&mute=0&rel=0&modestbranding=1`} 
-            className="absolute inset-0 w-full h-full" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-            allowFullScreen 
-            title={currentClip.title} 
-          />
+          {currentClip.videoUrl ? (
+            <video 
+              key={currentClip.id}
+              src={currentClip.videoUrl} 
+              className="absolute inset-0 w-full h-full object-contain" 
+              controls 
+              autoPlay 
+              playsInline
+            />
+          ) : currentClip.videoId ? (
+            <iframe 
+              key={currentClip.id} 
+              src={`https://www.youtube.com/embed/${currentClip.videoId}?autoplay=1&mute=0&rel=0&modestbranding=1`} 
+              className="absolute inset-0 w-full h-full" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowFullScreen 
+              title={currentClip.title} 
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-gray-500">
+              <Play className="w-16 h-16" />
+            </div>
+          )}
           
           {/* Nav Arrows */}
           <button onClick={handlePrev} disabled={currentIndex === 0} className={`absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center z-10 transition-all ${currentIndex === 0 ? 'opacity-30' : ''}`}>
@@ -1321,12 +1340,17 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
               </div>
               {currentClip.confidence && <span className="text-xs text-gray-400">AI Confidence: <span className="text-green-400 font-bold">{currentClip.confidence}%</span></span>}
             </div>
-            <h3 className="font-semibold text-lg">{currentClip.title}</h3>
+            <h3 className="font-semibold text-lg">{currentClip.location || currentClip.title}</h3>
             <p className="text-sm text-gray-400 flex items-center gap-1 mt-1"><MapPin className="w-4 h-4" />{currentClip.location}</p>
+            {currentClip.time && <p className="text-xs text-gray-500 mt-1">{currentClip.time}</p>}
             {/* Owner link */}
             {currentClip.owner && (
               <button onClick={() => onViewProfile && onViewProfile(currentClip.owner.username)} className="flex items-center gap-2 mt-2 hover:bg-white/5 px-2 py-1 rounded-lg -ml-2">
-                <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center text-[10px] font-bold text-green-400">{currentClip.owner.avatar}</div>
+                {currentClip.owner.avatarUrl ? (
+                  <img src={currentClip.owner.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center text-[10px] font-bold text-green-400">{currentClip.owner.avatar}</div>
+                )}
                 <span className="text-sm text-green-400">@{currentClip.owner.username}</span>
               </button>
             )}
@@ -1385,8 +1409,9 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                 {classificationOptions.map(opt => (
                   <button 
                     key={opt.id} 
-                    onClick={() => handleClassify(opt.id)} 
-                    className="w-full py-3 rounded-xl font-semibold hover:scale-[1.02] active:scale-[0.98] transition-transform flex items-center justify-center gap-2" 
+                    onClick={() => !isClassified && handleClassify(opt.id)} 
+                    disabled={isClassified}
+                    className={`w-full py-3 rounded-xl font-semibold transition-transform flex items-center justify-center gap-2 ${isClassified && classifiedClips[currentClip.id] === opt.id ? 'ring-2 ring-white' : ''} ${isClassified ? 'opacity-60' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
                     style={{ backgroundColor: `${opt.color}20`, color: opt.color }}
                   >
                     <span className="text-xl">{opt.icon}</span>
@@ -1394,8 +1419,11 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                   </button>
                 ))}
               </div>
-              <button onClick={handleNext} className="w-full mt-3 py-3 rounded-xl text-gray-400 bg-white/5 hover:bg-white/10">
-                Skip
+              <button 
+                onClick={handleNext} 
+                className={`w-full mt-3 py-3 rounded-xl font-medium ${isClassified ? 'bg-green-500 text-white' : 'text-gray-400 bg-white/5 hover:bg-white/10'}`}
+              >
+                {isClassified ? '✓ Submitted - Next' : 'Skip'}
               </button>
               {classified > 0 && (
                 <p className="text-center text-sm text-gray-500 mt-4">Classified today: <span className="text-green-400 font-bold">{classified}</span></p>
@@ -1445,14 +1473,29 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
         className="absolute inset-0 transition-transform duration-200"
         style={{ transform: `translateX(${swipeOffset * 0.3}px)` }}
       >
-        <iframe 
-          key={currentClip.id} 
-          src={`https://www.youtube.com/embed/${currentClip.videoId}?autoplay=1&mute=0&playsinline=1&rel=0&modestbranding=1`} 
-          className="absolute inset-0 w-full h-full" 
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-          allowFullScreen 
-          title={currentClip.title} 
-        />
+        {currentClip.videoUrl ? (
+          <video 
+            key={currentClip.id}
+            src={currentClip.videoUrl} 
+            className="absolute inset-0 w-full h-full object-contain" 
+            controls 
+            autoPlay 
+            playsInline
+          />
+        ) : currentClip.videoId ? (
+          <iframe 
+            key={currentClip.id} 
+            src={`https://www.youtube.com/embed/${currentClip.videoId}?autoplay=1&mute=0&playsinline=1&rel=0&modestbranding=1`} 
+            className="absolute inset-0 w-full h-full" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowFullScreen 
+            title={currentClip.title} 
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-gray-500">
+            <Play className="w-16 h-16" />
+          </div>
+        )}
       </div>
 
       {/* Swipe Indicators */}
@@ -1506,12 +1549,17 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
             </span>
             {currentClip.confidence && <span className="text-[10px] text-gray-400">AI: <span className="text-green-400 font-bold">{currentClip.confidence}%</span></span>}
           </div>
-          <h3 className="font-semibold text-sm line-clamp-1 drop-shadow">{currentClip.title}</h3>
+          <h3 className="font-semibold text-sm line-clamp-1 drop-shadow">{currentClip.location || currentClip.title}</h3>
           <p className="text-xs text-gray-300 flex items-center gap-1 mt-0.5 drop-shadow"><MapPin className="w-3 h-3" />{currentClip.location}</p>
+          {currentClip.time && <p className="text-[10px] text-gray-500 mt-0.5">{currentClip.time}</p>}
           {/* Owner link */}
           {currentClip.owner && (
             <button onClick={() => onViewProfile && onViewProfile(currentClip.owner.username)} className="flex items-center gap-1.5 mt-1">
-              <div className="w-4 h-4 rounded-full bg-green-500/30 flex items-center justify-center text-[8px] font-bold text-green-400">{currentClip.owner.avatar}</div>
+              {currentClip.owner.avatarUrl ? (
+                <img src={currentClip.owner.avatarUrl} alt="" className="w-4 h-4 rounded-full object-cover" />
+              ) : (
+                <div className="w-4 h-4 rounded-full bg-green-500/30 flex items-center justify-center text-[8px] font-bold text-green-400">{currentClip.owner.avatar}</div>
+              )}
               <span className="text-xs text-green-400">@{currentClip.owner.username}</span>
             </button>
           )}
@@ -1520,17 +1568,34 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
         {/* Classify Bar with Labels */}
         <div className="flex items-stretch gap-1">
           {classificationOptions.map(opt => (
-            <button key={opt.id} onClick={() => handleClassify(opt.id)} className="flex-1 py-2 rounded-lg active:scale-95 transition-transform backdrop-blur flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}30` }}>
+            <button 
+              key={opt.id} 
+              onClick={() => !isClassified && handleClassify(opt.id)} 
+              disabled={isClassified}
+              className={`flex-1 py-2 rounded-lg transition-transform backdrop-blur flex flex-col items-center gap-0.5 ${isClassified && classifiedClips[currentClip.id] === opt.id ? 'ring-2 ring-white' : ''} ${isClassified ? 'opacity-60' : 'active:scale-95'}`}
+              style={{ backgroundColor: `${opt.color}30` }}
+            >
               <span className="text-base">{opt.icon}</span>
               <span className="text-[8px] font-medium" style={{ color: opt.color }}>{opt.label}</span>
             </button>
           ))}
           <div className="flex flex-col gap-1">
-            <button onClick={handleNext} className="px-2 py-1.5 rounded-lg text-[10px] text-gray-400 bg-white/10 backdrop-blur active:scale-95">Skip</button>
-            {showReward && (
+            <button 
+              onClick={handleNext} 
+              className={`px-2 py-1.5 rounded-lg text-[10px] backdrop-blur active:scale-95 ${isClassified ? 'bg-green-500 text-white font-medium' : 'text-gray-400 bg-white/10'}`}
+            >
+              {isClassified ? '✓ Next' : 'Skip'}
+            </button>
+            {showReward && !isClassified && (
               <div className="flex items-center justify-center gap-0.5 bg-green-500/20 backdrop-blur px-2 py-1 rounded-lg">
                 <Zap className="w-3 h-3 text-green-400" />
                 <span className="text-[9px] text-green-400 font-semibold">+50</span>
+              </div>
+            )}
+            {isClassified && (
+              <div className="flex items-center justify-center gap-0.5 bg-green-500 px-2 py-1 rounded-lg">
+                <Zap className="w-3 h-3 text-white" />
+                <span className="text-[9px] text-white font-semibold">+50</span>
               </div>
             )}
           </div>
@@ -1570,18 +1635,155 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
 }
 
 function TrendingView({ isMobile, clips, onViewProfile }) {
-  return <VideoFeedView clips={clips} showReward={true} title="Trending" isMobile={isMobile} onViewProfile={onViewProfile} />;
+  const { API_URL } = useAuth();
+  const [sightings, setSightings] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Sample comments and usernames for random assignment
+  const sampleComments = [
+    { user: 'SkyWatcher_AZ', text: 'Incredible footage! Never seen anything like this.', avatar: 'S' },
+    { user: 'NightOwl42', text: 'This is definitely not a conventional aircraft.', avatar: 'N' },
+    { user: 'DroneHunter', text: 'Could be military? Hard to tell.', avatar: 'D' },
+    { user: 'CosmicEye', text: 'I saw something similar last week!', avatar: 'C' },
+    { user: 'SkepticalSam', text: 'Need more analysis on this one.', avatar: 'S' },
+    { user: 'TruthSeeker', text: 'The movement pattern is fascinating.', avatar: 'T' },
+    { user: 'Observer1', text: 'What time was this captured?', avatar: 'O' },
+    { user: 'StarGazer99', text: 'Amazing capture! What camera?', avatar: 'S' },
+  ];
+
+  useEffect(() => {
+    const fetchSightings = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/sightings`);
+        if (res.ok) {
+          const data = await res.json();
+          // Transform and add random likes/comments
+          const transformed = data.map((s, i) => {
+            const numComments = Math.floor(Math.random() * 4);
+            const randomComments = [];
+            for (let j = 0; j < numComments; j++) {
+              const comment = sampleComments[Math.floor(Math.random() * sampleComments.length)];
+              randomComments.push({
+                ...comment,
+                id: j,
+                time: `${Math.floor(Math.random() * 12) + 1}h ago`,
+                likes: Math.floor(Math.random() * 50)
+              });
+            }
+            return {
+              id: s.id,
+              videoUrl: s.video_url,
+              location: s.location,
+              title: s.title || s.location,
+              classification: s.classification,
+              confidence: s.ai_confidence,
+              siteLikes: Math.floor(Math.random() * 500) + 50,
+              siteComments: randomComments,
+              owner: { 
+                username: s.uploader_username || 'Admin', 
+                avatar: (s.uploader_username || 'A')[0].toUpperCase(),
+                avatarUrl: s.uploader_avatar 
+              },
+              timestamp: new Date(s.created_at).getTime(),
+              time: getTimeAgo(new Date(s.created_at).getTime()),
+            };
+          });
+          setSightings(transformed);
+        }
+      } catch (err) {
+        console.error('Failed to fetch sightings:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSightings();
+  }, [API_URL]);
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader className="w-8 h-8 text-green-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (sightings.length === 0) {
+    return (
+      <div className="h-full flex items-center justify-center text-gray-500">
+        <p>No sightings yet</p>
+      </div>
+    );
+  }
+
+  return <VideoFeedView clips={sightings} showReward={false} title="Trending" isMobile={isMobile} onViewProfile={onViewProfile} />;
 }
 
 function ClassifyView({ isMobile, onViewProfile }) {
-  // Convert classifyClips to have same structure as trending clips
-  const clipsWithInfo = classifyClips.map((c, i) => ({
-    ...c,
-    siteLikes: Math.floor(50 + Math.random() * 200),
-    siteComments: i === 0 ? [{user: 'Observer1', text: 'What do you all think?', time: '30m ago', avatar: 'O'}] : [],
-    classification: 'UAP',
-  }));
-  return <VideoFeedView clips={clipsWithInfo} showReward={true} title="Classify" isMobile={isMobile} onViewProfile={onViewProfile} />;
+  const { API_URL, user } = useAuth();
+  const [sightings, setSightings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [classifiedIds, setClassifiedIds] = useState(new Set());
+
+  useEffect(() => {
+    const fetchSightings = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/sightings`);
+        if (res.ok) {
+          const data = await res.json();
+          const transformed = data.map((s) => ({
+            id: s.id,
+            videoUrl: s.video_url,
+            location: s.location,
+            title: s.title || s.location,
+            classification: s.classification,
+            confidence: s.ai_confidence,
+            siteLikes: Math.floor(Math.random() * 200) + 20,
+            siteComments: [],
+            owner: { 
+              username: s.uploader_username || 'Admin', 
+              avatar: (s.uploader_username || 'A')[0].toUpperCase(),
+              avatarUrl: s.uploader_avatar 
+            },
+            timestamp: new Date(s.created_at).getTime(),
+            time: getTimeAgo(new Date(s.created_at).getTime()),
+          }));
+          setSightings(transformed);
+        }
+      } catch (err) {
+        console.error('Failed to fetch sightings:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSightings();
+  }, [API_URL]);
+
+  // Filter out already classified sightings
+  const unclassifiedSightings = sightings.filter(s => !classifiedIds.has(s.id));
+
+  const handleClassified = (id) => {
+    setClassifiedIds(prev => new Set([...prev, id]));
+  };
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader className="w-8 h-8 text-green-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (unclassifiedSightings.length === 0) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center text-gray-400 p-4">
+        <Eye className="w-16 h-16 mb-4 text-green-400" />
+        <h2 className="text-xl font-bold text-white mb-2">All Caught Up!</h2>
+        <p className="text-center">You've classified all available sightings. Check back later for more!</p>
+      </div>
+    );
+  }
+
+  return <VideoFeedView clips={unclassifiedSightings} showReward={true} title="Classify" isMobile={isMobile} onViewProfile={onViewProfile} onClassified={handleClassified} />;
 }
 
 const communityTopics = [
