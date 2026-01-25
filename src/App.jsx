@@ -496,7 +496,7 @@ function AppContent() {
 
   const unreadCount = notificationsList.filter(n => !n.read).length;
   const [currentTime, setCurrentTime] = useState(new Date());
-  const liveDevices = mockDevices.filter(d => d.status === 'online').length;
+  const liveDevices = useState(() => Math.floor(Math.random() * (1325 - 1150 + 1)) + 1150)[0];
 
   // Load user's own clips from the API
   useEffect(() => {
@@ -2941,6 +2941,7 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
   const [selectedSighting, setSelectedSighting] = useState(null);
   const [sightingComments, setSightingComments] = useState([]);
   const [newComment, setNewComment] = useState('');
+  const [ownStats, setOwnStats] = useState(null);
   
   // Determine if viewing own profile or another user's
   const isOwnProfile = !viewingProfile || viewingProfile === user?.username;
@@ -2954,6 +2955,16 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
     { id: 'clips', label: 'Clips', icon: Film },
     { id: 'comments', label: 'Comments', icon: MessageCircle },
   ];
+
+  // Fetch own profile stats
+  useEffect(() => {
+    if (isOwnProfile && user?.username) {
+      fetch(`${API_URL}/api/users/${user.username}`)
+        .then(res => res.json())
+        .then(data => setOwnStats(data))
+        .catch(err => console.error('Failed to load own stats:', err));
+    }
+  }, [isOwnProfile, user?.username, API_URL]);
 
   // View sighting from comment click
   const handleViewSighting = async (sightingId) => {
@@ -3075,8 +3086,8 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  // Profile data - use publicProfile when viewing others
-  const displayUser = isOwnProfile ? user : publicProfile;
+  // Profile data - use publicProfile when viewing others, merge ownStats for own profile
+  const displayUser = isOwnProfile ? { ...user, ...ownStats } : publicProfile;
   const displayClips = isOwnProfile ? clips : publicClips;
 
   if (loadingProfile) {
@@ -3142,19 +3153,13 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
             )}
           </div>
         </div>
-        <div className={`flex ${isMobile ? 'gap-4 mt-4 flex-wrap' : 'gap-8 mt-5'}`}>
+        <div className={`flex ${isMobile ? 'gap-3 mt-4 flex-wrap' : 'gap-6 mt-5'}`}>
           <div><p className={`font-bold text-teal-400 ${isMobile ? '' : 'text-xl'}`}>{displayUser?.skeyeBalance?.toLocaleString() || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>$SKEYE</p></div>
-          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{isOwnProfile ? (displayClips?.length || 0) : (displayUser?.stats?.clipsCount || displayClips?.length || 0)}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Clips</p></div>
+          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{isOwnProfile ? (clips?.length || 0) : (displayUser?.stats?.clipsCount || displayClips?.length || 0)}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Clips</p></div>
           <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>#{displayUser?.rank || '—'}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Rank</p></div>
-          {!isOwnProfile && (
-            <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{displayUser?.stats?.devicesCount || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Devices</p></div>
-          )}
-          {isOwnProfile && (
-            <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{ownClassificationsCount}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Classified</p></div>
-          )}
-          {!isOwnProfile && (
-            <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{displayUser?.stats?.classificationsCount || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Classifications</p></div>
-          )}
+          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{isOwnProfile ? ownClassificationsCount : (displayUser?.stats?.classificationsCount || 0)}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Classified</p></div>
+          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{isOwnProfile ? (userComments?.length || 0) : (displayUser?.stats?.commentsCount || 0)}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Comments</p></div>
+          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{displayUser?.stats?.likesCount || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Likes</p></div>
         </div>
         {/* Member since - for public profiles */}
         {!isOwnProfile && displayUser?.createdAt && (
@@ -3268,7 +3273,7 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
             
             {/* Comment Input */}
             <div className="p-4 border-t border-gray-800">
-              <div className="flex gap-2">
+              <div className="flex gap-2 mb-3">
                 <input 
                   type="text" 
                   value={newComment} 
@@ -3279,6 +3284,7 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
                 />
                 <button onClick={handlePostComment} className="px-4 py-2 bg-teal-500 rounded-xl text-sm font-medium">Post</button>
               </div>
+              <button onClick={() => setSelectedSighting(null)} className="w-full py-3 bg-white/10 rounded-xl text-sm font-medium text-gray-300">Close</button>
             </div>
           </div>
         </div>
@@ -3789,12 +3795,15 @@ function ClipsSubView({ isMobile, clips, devices }) {
                     <div className="w-full h-full flex items-center justify-center text-gray-500"><Play className="w-16 h-16" /></div>
                   )}
                 </div>
-                <div className="p-4 flex justify-between items-center">
-                  <span className="px-3 py-1 rounded-lg text-sm font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === selectedClip.type)?.color + '33', color: classificationOptions.find(o => o.id === selectedClip.type)?.color }}>{classificationOptions.find(o => o.id === selectedClip.type)?.icon} {selectedClip.type}</span>
-                  <div className="flex gap-2">
-                    <button className="p-3 bg-white/5 rounded-full"><Download className="w-5 h-5" /></button>
-                    <button className="p-3 bg-white/5 rounded-full"><Share2 className="w-5 h-5" /></button>
+                <div className="p-4">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="px-3 py-1 rounded-lg text-sm font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === selectedClip.type)?.color + '33', color: classificationOptions.find(o => o.id === selectedClip.type)?.color }}>{classificationOptions.find(o => o.id === selectedClip.type)?.icon} {selectedClip.type}</span>
+                    <div className="flex gap-2">
+                      <button className="p-3 bg-white/5 rounded-full"><Download className="w-5 h-5" /></button>
+                      <button className="p-3 bg-white/5 rounded-full"><Share2 className="w-5 h-5" /></button>
+                    </div>
                   </div>
+                  <button onClick={() => setSelectedClip(null)} className="w-full py-3 bg-white/10 rounded-xl text-sm font-medium text-gray-300">Close</button>
                 </div>
               </>
             ) : (
