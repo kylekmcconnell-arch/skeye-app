@@ -1323,8 +1323,8 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                     </div>
                     <span className="text-[9px]">{(selectedSighting.likes || 0) + (sightingLikes[selectedSighting.id] ? 1 : 0)}</span>
                   </button>
-                  <button className="flex flex-col items-center">
-                    <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
+                  <button onClick={() => setShowSightingComments(!showSightingComments)} className="flex flex-col items-center">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center ${showSightingComments ? 'bg-teal-500' : 'bg-white/10'}`}>
                       <MessageCircle className="w-4 h-4" />
                     </div>
                     <span className="text-[9px]">{selectedSighting.commentsCount || 0}</span>
@@ -1336,7 +1336,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                   </button>
                   {/* Close button */}
                   <button 
-                    onClick={() => setSelectedSighting(null)} 
+                    onClick={() => { setSelectedSighting(null); setShowSightingComments(false); }} 
                     className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"
                   >
                     <X className="w-4 h-4" />
@@ -1382,6 +1382,35 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 ))}
               </div>
               
+              {/* Comments Section - Mobile */}
+              {showSightingComments && (
+                <div className="mb-2 border-t border-gray-700 pt-2">
+                  <h4 className="text-[10px] font-semibold text-gray-400 mb-2">COMMENTS ({selectedSighting.siteComments?.length || 0})</h4>
+                  <div className="space-y-2 max-h-24 overflow-y-auto mb-2">
+                    {selectedSighting.siteComments && selectedSighting.siteComments.length > 0 ? (
+                      selectedSighting.siteComments.map((c, i) => (
+                        <div key={i} className="flex gap-2">
+                          <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center text-[8px] font-bold text-teal-400 flex-shrink-0">{c.avatar}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium text-[10px]">{c.user}</span>
+                              <span className="text-[8px] text-gray-500">{c.time}</span>
+                            </div>
+                            <p className="text-[10px] text-gray-300">{c.text}</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-center text-[10px] text-gray-500 py-2">No comments yet</p>
+                    )}
+                  </div>
+                  <div className="flex gap-1">
+                    <input type="text" value={newSightingComment} onChange={(e) => setNewSightingComment(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handlePostSightingComment()} placeholder="Add comment..." className="flex-1 px-2 py-1 bg-white/5 border border-gray-700 rounded text-[10px] text-white focus:outline-none focus:border-teal-500/50" />
+                    <button onClick={handlePostSightingComment} className="px-2 py-1 bg-teal-500 rounded text-[10px] font-medium hover:bg-teal-600">Post</button>
+                  </div>
+                </div>
+              )}
+              
               {/* Close + Submitted indicator + Reward */}
               <div className="flex items-center gap-2">
                 {classifiedSightings[selectedSighting.id] && (
@@ -1391,7 +1420,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                   </div>
                 )}
                 <button 
-                  onClick={() => { setSelectedSighting(null); }}
+                  onClick={() => { setSelectedSighting(null); setShowSightingComments(false); }}
                   className="flex-1 py-2 rounded-lg text-sm font-medium bg-white/10 text-gray-300"
                 >
                   Close
