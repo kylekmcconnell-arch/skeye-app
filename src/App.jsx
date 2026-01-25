@@ -1519,7 +1519,6 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
   const { user, token, API_URL } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedClips, setLikedClips] = useState({});
-  const [classified, setClassified] = useState(0);
   const [classifiedClips, setClassifiedClips] = useState({});
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
@@ -1528,9 +1527,6 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
 
   const isTrending = mode === "trending";
   const isClassifyMode = mode === "classify";
-  
-  // Use totalClassifications from parent if available, otherwise use local session count
-  const displayClassifications = totalClassifications > 0 ? totalClassifications + classified : classified;
 
   const handlePrev = () => { if (currentIndex > 0) setCurrentIndex(currentIndex - 1); setShowComments(false); };
   const handleNext = () => { 
@@ -1566,7 +1562,6 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
   
   // Classification handler - call API
   const handleClassify = async (type) => { 
-    setClassified(prev => prev + 1);
     setClassifiedClips(prev => ({ ...prev, [currentClip.id]: type }));
     if (onClassified) onClassified(currentClip.id);
     // Show reward toast
@@ -1784,8 +1779,8 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                   <span className="text-sm font-bold">+50 $SKEYE</span>
                 </div>
               )}
-              {(displayClassifications > 0) && isClassifyMode && (
-                <p className="text-center text-sm text-gray-500 mt-4">Total classified: <span className="text-teal-400 font-bold">{displayClassifications}</span></p>
+              {(totalClassifications > 0) && isClassifyMode && (
+                <p className="text-center text-sm text-gray-500 mt-4">Total classified: <span className="text-teal-400 font-bold">{totalClassifications}</span></p>
               )}
             </div>
           </div>
@@ -1830,7 +1825,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
           </div>
           <div className="flex items-center justify-between">
             <span className="text-xs text-gray-400">{currentIndex + 1} / {clips.length}</span>
-            {classified > 0 && <span className="text-xs text-gray-400">Classified: <span className="text-teal-400 font-bold">{classified}</span></span>}
+            {totalClassifications > 0 && isClassifyMode && <span className="text-xs text-gray-400">Classified: <span className="text-teal-400 font-bold">{totalClassifications}</span></span>}
           </div>
         </div>
       )}
