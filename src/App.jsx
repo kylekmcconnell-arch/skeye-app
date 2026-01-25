@@ -692,11 +692,7 @@ function AppContent() {
                 {classificationOptions.map(opt => (<button key={opt.id} onClick={() => setSelectedNotification(null)} className="flex-1 py-2 rounded-lg text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-transform flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}20`, color: opt.color }}><span>{opt.icon}</span><span className="text-[8px]">{opt.label}</span></button>))}
               </div>
               <div className="flex items-center gap-2 mt-3">
-                <button onClick={() => setSelectedNotification(null)} className="flex-1 py-2 rounded-lg text-sm text-gray-400 bg-white/5 hover:bg-white/10">Skip</button>
-                <div className="flex items-center gap-1 bg-teal-500/20 px-3 py-2 rounded-lg">
-                  <Zap className="w-4 h-4 text-teal-400" />
-                  <span className="text-sm text-teal-400 font-semibold">+50 $SKEYE</span>
-                </div>
+                <button onClick={() => setSelectedNotification(null)} className="flex-1 py-2 rounded-lg text-sm text-gray-400 bg-white/5 hover:bg-white/10">Close</button>
               </div>
             </div>
           </div>
@@ -752,7 +748,7 @@ export default function App() {
 }
 
 function GlobalMapView({ isMobile, onViewProfile }) {
-  const { token, API_URL } = useAuth();
+  const { user, token, API_URL } = useAuth();
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const [selectedSighting, setSelectedSighting] = useState(null);
@@ -771,10 +767,14 @@ function GlobalMapView({ isMobile, onViewProfile }) {
   const [confidenceSort, setConfidenceSort] = useState('desc');
   const [locationSearch, setLocationSearch] = useState('');
   const [classifiedSightings, setClassifiedSightings] = useState({});
+  const [showRewardToast, setShowRewardToast] = useState(false);
 
   // Handle classification
   const handleClassifySighting = (sightingId, classification) => {
     setClassifiedSightings(prev => ({ ...prev, [sightingId]: classification }));
+    // Show reward toast
+    setShowRewardToast(true);
+    setTimeout(() => setShowRewardToast(false), 2000);
   };
 
   // Fetch real sightings from API
@@ -834,8 +834,9 @@ function GlobalMapView({ isMobile, onViewProfile }) {
     if (!newSightingComment.trim() || !selectedSighting) return;
     const newComment = {
       id: Date.now(),
-      user: 'You',
-      avatar: 'Y',
+      user: user?.username || 'Anonymous',
+      avatar: user?.username?.[0]?.toUpperCase() || 'A',
+      avatarUrl: user?.avatarUrl || null,
       text: newSightingComment,
       time: 'Just now',
       likes: 0
@@ -1032,7 +1033,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                     {/* UTC time on its own line */}
                     {selectedSighting.utcTime && <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.utcTime.split(' ').slice(1).join(' ')}</p>}
                     {/* Precise time ago */}
-                    <p className="text-xs text-gray-400">{selectedSighting.timestamp ? getPreciseTimeAgo(selectedSighting.timestamp) : selectedSighting.time}</p>
+                    <p className="text-[10px] text-gray-500">{selectedSighting.timestamp ? getPreciseTimeAgo(selectedSighting.timestamp) : selectedSighting.time}</p>
                     <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat?.toFixed(4)}°, {selectedSighting.lng?.toFixed(4)}°</p>
                   </div>
                   <div className="text-right">
@@ -1079,7 +1080,11 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                       {selectedSighting.siteComments && selectedSighting.siteComments.length > 0 ? (
                         selectedSighting.siteComments.map(c => (
                           <div key={c.id} className="flex gap-2">
-                            <div className="w-6 h-6 rounded-full bg-teal-500/20 flex items-center justify-center text-[10px] font-bold text-teal-400 flex-shrink-0">{c.avatar}</div>
+                            {c.avatarUrl ? (
+                              <img src={c.avatarUrl} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
+                            ) : (
+                              <div className="w-6 h-6 rounded-full bg-teal-500/20 flex items-center justify-center text-[10px] font-bold text-teal-400 flex-shrink-0">{c.avatar}</div>
+                            )}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1">
                                 <span className="text-[10px] font-semibold">{c.user}</span>
@@ -1123,10 +1128,6 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                     </div>
                   )}
                   <button onClick={() => { setSelectedSighting(null); setShowSightingComments(false); }} className="flex-1 py-2 rounded-lg text-sm text-gray-300 bg-white/5 hover:bg-white/10">Close</button>
-                  <div className={`flex items-center gap-1 px-3 py-2 rounded-lg ${classifiedSightings[selectedSighting.id] ? 'bg-teal-500' : 'bg-teal-500/20'}`}>
-                    <Zap className={`w-4 h-4 ${classifiedSightings[selectedSighting.id] ? 'text-white' : 'text-teal-400'}`} />
-                    <span className={`text-sm font-semibold ${classifiedSightings[selectedSighting.id] ? 'text-white' : 'text-teal-400'}`}>+50 $SKEYE</span>
-                  </div>
                 </div>
               </div>
             </div>
@@ -1390,7 +1391,11 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                     {selectedSighting.siteComments && selectedSighting.siteComments.length > 0 ? (
                       selectedSighting.siteComments.map((c, i) => (
                         <div key={i} className="flex gap-2">
-                          <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center text-[8px] font-bold text-teal-400 flex-shrink-0">{c.avatar}</div>
+                          {c.avatarUrl ? (
+                            <img src={c.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center text-[8px] font-bold text-teal-400 flex-shrink-0">{c.avatar}</div>
+                          )}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1">
                               <span className="font-medium text-[10px]">{c.user}</span>
@@ -1425,14 +1430,20 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 >
                   Close
                 </button>
-                <div className={`flex items-center gap-1 px-3 py-2 rounded-lg ${classifiedSightings[selectedSighting.id] ? 'bg-teal-500' : 'bg-teal-500/20'}`}>
-                  <Zap className={`w-4 h-4 ${classifiedSightings[selectedSighting.id] ? 'text-white' : 'text-teal-400'}`} />
-                  <span className={`text-sm font-semibold ${classifiedSightings[selectedSighting.id] ? 'text-white' : 'text-teal-400'}`}>+50 $SKEYE</span>
-                </div>
               </div>
             </div>
           </div>
         </>
+      )}
+
+      {/* Reward Toast */}
+      {showRewardToast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[2000] animate-bounce">
+          <div className="flex items-center gap-2 px-4 py-2 bg-teal-500/90 backdrop-blur rounded-full shadow-lg">
+            <Zap className="w-5 h-5 text-white" />
+            <span className="text-white font-bold">+50 $SKEYE</span>
+          </div>
+        </div>
       )}
 
       <style>{`
@@ -1447,12 +1458,14 @@ function GlobalMapView({ isMobile, onViewProfile }) {
 }
 
 function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile = true, onViewProfile, onClassified, mode = "trending" }) {
+  const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedClips, setLikedClips] = useState({});
   const [classified, setClassified] = useState(0);
   const [classifiedClips, setClassifiedClips] = useState({});
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
+  const [showRewardToast, setShowRewardToast] = useState(false);
   const currentClip = clips[currentIndex];
 
   const isTrending = mode === "trending";
@@ -1474,6 +1487,9 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
     setClassified(prev => prev + 1);
     setClassifiedClips(prev => ({ ...prev, [currentClip.id]: type }));
     if (onClassified) onClassified(currentClip.id);
+    // Show reward toast
+    setShowRewardToast(true);
+    setTimeout(() => setShowRewardToast(false), 2000);
     // For trending: auto-advance after short delay
     // For classify: show "Submitted" state
     if (isTrending) {
@@ -1667,6 +1683,16 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
             </div>
           </div>
         </div>
+
+        {/* Reward Toast */}
+        {showRewardToast && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[100] animate-bounce">
+            <div className="flex items-center gap-2 px-4 py-2 bg-teal-500/90 backdrop-blur rounded-full shadow-lg">
+              <Zap className="w-5 h-5 text-white" />
+              <span className="text-white font-bold">+50 $SKEYE</span>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1854,21 +1880,19 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                 Next
               </button>
             )}
-            {showReward && !isClassified && isClassifyMode && (
-              <div className="flex items-center justify-center gap-0.5 bg-teal-500/20 px-2 py-1 rounded-lg">
-                <Zap className="w-3 h-3 text-teal-400" />
-                <span className="text-[9px] text-teal-400 font-semibold">+50</span>
-              </div>
-            )}
-            {isClassified && isClassifyMode && (
-              <div className="flex items-center justify-center gap-0.5 bg-teal-500 px-2 py-1 rounded-lg">
-                <Zap className="w-3 h-3 text-white" />
-                <span className="text-[9px] text-white font-semibold">+50</span>
-              </div>
-            )}
           </div>
         </div>
       </div>
+
+      {/* Reward Toast */}
+      {showRewardToast && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[100] animate-bounce">
+          <div className="flex items-center gap-2 px-4 py-2 bg-teal-500/90 backdrop-blur rounded-full shadow-lg">
+            <Zap className="w-5 h-5 text-white" />
+            <span className="text-white font-bold">+50 $SKEYE</span>
+          </div>
+        </div>
+      )}
 
       {/* Comments Panel - Mobile Bottom Sheet */}
       {showComments && (
