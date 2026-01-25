@@ -1119,7 +1119,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                     </button>
                   ))}
                 </div>
-                {/* Close + Submitted indicator + Reward */}
+                {/* Close + Submitted indicator */}
                 <div className="flex items-center gap-2 mt-3">
                   {classifiedSightings[selectedSighting.id] && (
                     <div className="flex items-center gap-1 text-teal-400">
@@ -1129,6 +1129,13 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                   )}
                   <button onClick={() => { setSelectedSighting(null); setShowSightingComments(false); }} className="flex-1 py-2 rounded-lg text-sm text-gray-300 bg-white/5 hover:bg-white/10">Close</button>
                 </div>
+                {/* Reward indicator below button */}
+                {showRewardToast && (
+                  <div className="flex items-center justify-center gap-1.5 mt-2 text-teal-400 animate-pulse">
+                    <Zap className="w-4 h-4" />
+                    <span className="text-sm font-bold">+50 $SKEYE</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1431,19 +1438,16 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                   Close
                 </button>
               </div>
+              {/* Reward indicator below button */}
+              {showRewardToast && (
+                <div className="flex items-center justify-center gap-1 mt-2 text-teal-400 animate-pulse">
+                  <Zap className="w-3 h-3" />
+                  <span className="text-[10px] font-bold">+50 $SKEYE</span>
+                </div>
+              )}
             </div>
           </div>
         </>
-      )}
-
-      {/* Reward Toast */}
-      {showRewardToast && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[2000] animate-bounce">
-          <div className="flex items-center gap-2 px-4 py-2 bg-teal-500/90 backdrop-blur rounded-full shadow-lg">
-            <Zap className="w-5 h-5 text-white" />
-            <span className="text-white font-bold">+50 $SKEYE</span>
-          </div>
-        </div>
       )}
 
       <style>{`
@@ -1677,22 +1681,19 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                   Next
                 </button>
               )}
+              {/* Reward indicator below button */}
+              {showRewardToast && (
+                <div className="flex items-center justify-center gap-1.5 mt-3 text-teal-400 animate-pulse">
+                  <Zap className="w-4 h-4" />
+                  <span className="text-sm font-bold">+50 $SKEYE</span>
+                </div>
+              )}
               {classified > 0 && isClassifyMode && (
                 <p className="text-center text-sm text-gray-500 mt-4">Classified today: <span className="text-teal-400 font-bold">{classified}</span></p>
               )}
             </div>
           </div>
         </div>
-
-        {/* Reward Toast */}
-        {showRewardToast && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[100] animate-bounce">
-            <div className="flex items-center gap-2 px-4 py-2 bg-teal-500/90 backdrop-blur rounded-full shadow-lg">
-              <Zap className="w-5 h-5 text-white" />
-              <span className="text-white font-bold">+50 $SKEYE</span>
-            </div>
-          </div>
-        )}
       </div>
     );
   }
@@ -1880,19 +1881,16 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                 Next
               </button>
             )}
+            {/* Reward indicator below button */}
+            {showRewardToast && (
+              <div className="flex items-center justify-center gap-1 text-teal-400 animate-pulse">
+                <Zap className="w-3 h-3" />
+                <span className="text-[10px] font-bold">+50 $SKEYE</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
-
-      {/* Reward Toast */}
-      {showRewardToast && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[100] animate-bounce">
-          <div className="flex items-center gap-2 px-4 py-2 bg-teal-500/90 backdrop-blur rounded-full shadow-lg">
-            <Zap className="w-5 h-5 text-white" />
-            <span className="text-white font-bold">+50 $SKEYE</span>
-          </div>
-        </div>
-      )}
 
       {/* Comments Panel - Mobile Bottom Sheet */}
       {showComments && (
