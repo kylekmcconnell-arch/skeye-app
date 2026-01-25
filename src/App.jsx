@@ -769,12 +769,28 @@ function GlobalMapView({ isMobile, onViewProfile }) {
   const [classifiedSightings, setClassifiedSightings] = useState({});
   const [showRewardToast, setShowRewardToast] = useState(false);
 
-  // Handle classification
-  const handleClassifySighting = (sightingId, classification) => {
+  // Handle classification - call API
+  const handleClassifySighting = async (sightingId, classification) => {
     setClassifiedSightings(prev => ({ ...prev, [sightingId]: classification }));
     // Show reward toast
     setShowRewardToast(true);
     setTimeout(() => setShowRewardToast(false), 2000);
+    
+    // Call API to save classification
+    if (token) {
+      try {
+        await fetch(`${API_URL}/api/sightings/${sightingId}/classify`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ classification })
+        });
+      } catch (err) {
+        console.error('Failed to save classification:', err);
+      }
+    }
   };
 
   // Fetch real sightings from API
@@ -1115,7 +1131,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                   <div className="mb-3 border-t border-gray-700 pt-3">
                     <h4 className="text-xs font-semibold text-gray-400 mb-2">COMMENTS ({selectedSighting.siteComments?.length || 0})</h4>
                     <div className="space-y-2 max-h-32 overflow-y-auto mb-2">
-                      {selectedSighting.siteComments && selectedSighting.siteComments.length > 0 ? (
+                      {selectedSighting.siteComments && selectedSighting.commentsCount > 0 ? (
                         selectedSighting.siteComments.map(c => (
                           <div key={c.id} className="flex gap-2">
                             {c.avatarUrl ? (
@@ -1433,7 +1449,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 <div className="mb-2 border-t border-gray-700 pt-2">
                   <h4 className="text-[10px] font-semibold text-gray-400 mb-2">COMMENTS ({selectedSighting.siteComments?.length || 0})</h4>
                   <div className="space-y-2 max-h-24 overflow-y-auto mb-2">
-                    {selectedSighting.siteComments && selectedSighting.siteComments.length > 0 ? (
+                    {selectedSighting.siteComments && selectedSighting.commentsCount > 0 ? (
                       selectedSighting.siteComments.map((c, i) => (
                         <div key={i} className="flex gap-2">
                           {c.avatarUrl ? (
@@ -1548,13 +1564,31 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
     }
   };
   
-  const handleClassify = (type) => { 
+  // Classification handler - call API
+  const handleClassify = async (type) => { 
     setClassified(prev => prev + 1);
     setClassifiedClips(prev => ({ ...prev, [currentClip.id]: type }));
     if (onClassified) onClassified(currentClip.id);
     // Show reward toast
     setShowRewardToast(true);
     setTimeout(() => setShowRewardToast(false), 2000);
+    
+    // Call API to save classification
+    if (token) {
+      try {
+        await fetch(`${API_URL}/api/sightings/${currentClip.id}/classify`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ classification: type })
+        });
+      } catch (err) {
+        console.error('Failed to save classification:', err);
+      }
+    }
+    
     // For trending: auto-advance after short delay
     // For classify: show "Submitted" state
     if (isTrending) {
@@ -1564,6 +1598,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
 
   const siteLikes = (currentClip.siteLikes || 0) + (likedClips[currentClip.id] ? 1 : 0);
   const siteComments = currentClip.siteComments || [];
+  const commentsCount = currentClip.commentsCount || siteComments.length;
   const isClassified = !!classifiedClips[currentClip.id];
 
   // Desktop Layout
@@ -1669,7 +1704,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
             </button>
             <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${showComments ? 'bg-teal-500/20 text-teal-400' : 'bg-white/5 hover:bg-white/10'}`}>
               <MessageCircle className="w-5 h-5" />
-              <span>{siteComments.length}</span>
+              <span>{commentsCount}</span>
             </button>
             <button onClick={() => navigator.share ? navigator.share({ title: currentClip.location, url: window.location.href }) : navigator.clipboard.writeText(window.location.href)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10">
               <Share2 className="w-5 h-5" />
@@ -1681,9 +1716,9 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
             {/* Comments Section - Shows when toggled */}
             {showComments && (
               <div className="p-4 border-b border-gray-800">
-                <h4 className="text-sm font-semibold text-gray-400 mb-3">COMMENTS ({siteComments.length})</h4>
+                <h4 className="text-sm font-semibold text-gray-400 mb-3">COMMENTS ({commentsCount})</h4>
                 <div className="space-y-3 mb-3">
-                  {siteComments.length === 0 ? (
+                  {commentsCount === 0 ? (
                     <p className="text-center text-gray-500 py-4 text-sm">No comments yet. Be the first!</p>
                   ) : (
                     siteComments.map((c, i) => (
@@ -1902,7 +1937,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
             </button>
             <button onClick={() => setShowComments(true)} className="flex flex-col items-center">
               <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"><MessageCircle className="w-4 h-4" /></div>
-              <span className="text-[10px] mt-0.5">{siteComments.length}</span>
+              <span className="text-[10px] mt-0.5">{commentsCount}</span>
             </button>
             <button onClick={() => navigator.share ? navigator.share({ title: currentClip.location, url: window.location.href }) : navigator.clipboard.writeText(window.location.href)} className="flex flex-col items-center">
               <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"><Share2 className="w-4 h-4" /></div>
@@ -1959,11 +1994,11 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
           <div className="absolute inset-x-0 bottom-0 bg-[#141414] rounded-t-3xl max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mt-3" />
             <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-              <h3 className="font-semibold">Comments ({siteComments.length})</h3>
+              <h3 className="font-semibold">Comments ({commentsCount})</h3>
               <button onClick={() => setShowComments(false)}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[200px]">
-              {siteComments.length === 0 ? (<p className="text-center text-gray-500 py-8">No comments yet. Be the first!</p>) : (
+              {commentsCount === 0 ? (<p className="text-center text-gray-500 py-8">No comments yet. Be the first!</p>) : (
                 siteComments.map((c, i) => (
                   <div key={i} className="flex gap-3">
                     <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center text-xs font-bold text-teal-400 flex-shrink-0">{c.avatar}</div>
@@ -1990,37 +2025,14 @@ function TrendingView({ isMobile, clips, onViewProfile }) {
   const [sightings, setSightings] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Sample comments and usernames for random assignment
-  const sampleComments = [
-    { user: 'SkyWatcher_AZ', text: 'Incredible footage! Never seen anything like this.', avatar: 'S' },
-    { user: 'NightOwl42', text: 'This is definitely not a conventional aircraft.', avatar: 'N' },
-    { user: 'DroneHunter', text: 'Could be military? Hard to tell.', avatar: 'D' },
-    { user: 'CosmicEye', text: 'I saw something similar last week!', avatar: 'C' },
-    { user: 'SkepticalSam', text: 'Need more analysis on this one.', avatar: 'S' },
-    { user: 'TruthSeeker', text: 'The movement pattern is fascinating.', avatar: 'T' },
-    { user: 'Observer1', text: 'What time was this captured?', avatar: 'O' },
-    { user: 'StarGazer99', text: 'Amazing capture! What camera?', avatar: 'S' },
-  ];
-
   useEffect(() => {
     const fetchSightings = async () => {
       try {
         const res = await fetch(`${API_URL}/api/sightings`);
         if (res.ok) {
           const data = await res.json();
-          // Transform and add random likes/comments
-          const transformed = data.map((s, i) => {
-            const numComments = Math.floor(Math.random() * 4);
-            const randomComments = [];
-            for (let j = 0; j < numComments; j++) {
-              const comment = sampleComments[Math.floor(Math.random() * sampleComments.length)];
-              randomComments.push({
-                ...comment,
-                id: j,
-                time: `${Math.floor(Math.random() * 12) + 1}h ago`,
-                likes: Math.floor(Math.random() * 50)
-              });
-            }
+          // Transform data - use real likes/comments counts from API
+          const transformed = data.map((s) => {
             const createdAt = new Date(s.created_at);
             return {
               id: s.id,
@@ -2029,8 +2041,9 @@ function TrendingView({ isMobile, clips, onViewProfile }) {
               title: s.title || s.location,
               classification: s.classification,
               confidence: s.ai_confidence,
-              siteLikes: Math.floor(Math.random() * 500) + 50,
-              siteComments: randomComments,
+              siteLikes: parseInt(s.likes_count) || 0,
+              siteComments: [], // Will be fetched when needed
+              commentsCount: parseInt(s.comments_count) || 0,
               owner: { 
                 username: s.uploader_username || 'Admin', 
                 avatar: (s.uploader_username || 'A')[0].toUpperCase(),
@@ -2041,9 +2054,9 @@ function TrendingView({ isMobile, clips, onViewProfile }) {
               time: getTimeAgo(createdAt.getTime()),
             };
           });
-          // Shuffle once when loading
-          const shuffled = transformed.sort(() => Math.random() - 0.5);
-          setSightings(shuffled);
+          // Sort by likes (most popular first) for trending
+          const sorted = transformed.sort((a, b) => b.siteLikes - a.siteLikes);
+          setSightings(sorted);
         }
       } catch (err) {
         console.error('Failed to fetch sightings:', err);
@@ -2102,14 +2115,6 @@ function ClassifyView({ isMobile, onViewProfile }) {
     loadMyClassifications();
   }, [token, API_URL]);
 
-  // Sample comments for random assignment
-  const sampleComments = [
-    { user: 'SkyWatcher_AZ', text: 'Incredible footage! Never seen anything like this.', avatar: 'S' },
-    { user: 'NightOwl42', text: 'This is definitely not a conventional aircraft.', avatar: 'N' },
-    { user: 'DroneHunter', text: 'Could be military? Hard to tell.', avatar: 'D' },
-    { user: 'CosmicEye', text: 'I saw something similar last week!', avatar: 'C' },
-  ];
-
   useEffect(() => {
     const fetchSightings = async () => {
       try {
@@ -2117,17 +2122,6 @@ function ClassifyView({ isMobile, onViewProfile }) {
         if (res.ok) {
           const data = await res.json();
           const transformed = data.map((s) => {
-            const numComments = Math.floor(Math.random() * 3);
-            const randomComments = [];
-            for (let j = 0; j < numComments; j++) {
-              const comment = sampleComments[Math.floor(Math.random() * sampleComments.length)];
-              randomComments.push({
-                ...comment,
-                id: j,
-                time: `${Math.floor(Math.random() * 12) + 1}h ago`,
-                likes: Math.floor(Math.random() * 50)
-              });
-            }
             const createdAt = new Date(s.created_at);
             return {
               id: s.id,
@@ -2136,8 +2130,9 @@ function ClassifyView({ isMobile, onViewProfile }) {
               title: s.title || s.location,
               classification: s.classification,
               confidence: s.ai_confidence,
-              siteLikes: Math.floor(Math.random() * 200) + 20,
-              siteComments: randomComments,
+              siteLikes: parseInt(s.likes_count) || 0,
+              siteComments: [],
+              commentsCount: parseInt(s.comments_count) || 0,
               owner: { 
                 username: s.uploader_username || 'Admin', 
                 avatar: (s.uploader_username || 'A')[0].toUpperCase(),
@@ -2417,7 +2412,7 @@ function CommunityView({ isMobile }) {
                   </div>
                   {/* Comments */}
                   <div className="space-y-1">
-                    {selectedPost.siteComments && selectedPost.siteComments.length > 0 ? (
+                    {selectedPost.siteComments && selectedPost.commentsCount > 0 ? (
                       selectedPost.siteComments.map(comment => (
                         <CommentComponent key={comment.id} comment={comment} />
                       ))
@@ -2569,7 +2564,7 @@ function CommunityView({ isMobile }) {
               </div>
               {/* Comments */}
               <div className="pt-4 space-y-1">
-                {selectedPost.siteComments && selectedPost.siteComments.length > 0 ? (
+                {selectedPost.siteComments && selectedPost.commentsCount > 0 ? (
                   selectedPost.siteComments.map(comment => (
                     <CommentComponent key={comment.id} comment={comment} />
                   ))
@@ -2737,7 +2732,7 @@ function AvatarPickerModal({ currentAvatar, avatars, onClose }) {
 }
 
 function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips, viewingProfile, setViewingProfile }) {
-  const { user, token } = useAuth();
+  const { user, token, API_URL } = useAuth();
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [publicProfile, setPublicProfile] = useState(null);
   const [publicClips, setPublicClips] = useState([]);
