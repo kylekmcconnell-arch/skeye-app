@@ -351,6 +351,22 @@ const getTimeAgo = (timestamp) => {
   return `${Math.floor(hours / 24)}d ago`;
 };
 
+const getPreciseTimeAgo = (timestamp) => {
+  const totalSeconds = Math.floor((Date.now() - timestamp) / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  
+  let parts = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
+  
+  return parts.join(' ') + ' ago';
+};
+
 const generateSightings = () => {
   const cities = [
     { city: 'Los Angeles', lat: 34.0522, lng: -118.2437 }, { city: 'New York', lat: 40.7128, lng: -74.0060 },
@@ -1155,114 +1171,122 @@ function GlobalMapView({ isMobile, onViewProfile }) {
             onClick={() => setSelectedSighting(null)}
           />
           <div 
-            className="absolute inset-x-0 bottom-0 z-[1001] bg-[#141414] rounded-t-3xl max-h-[80vh] flex flex-col transition-transform"
+            className="absolute inset-x-2 top-2 bottom-2 z-[1001] bg-[#141414] rounded-2xl flex flex-col overflow-hidden"
             style={{ transform: `translateY(${swipeY}px)` }}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
           >
             {/* Close button - top right */}
             <button 
               onClick={() => setSelectedSighting(null)} 
-              className="absolute top-3 right-3 z-10 w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center"
+              className="absolute top-2 right-2 z-20 w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center"
             >
               <X className="w-5 h-5 text-white" />
             </button>
             
-            {/* Swipe handle */}
-            <div 
-              className="flex flex-col items-center py-3 cursor-grab active:cursor-grabbing"
-              onClick={() => setSelectedSighting(null)}
-            >
-              <div className="w-12 h-1 bg-gray-600 rounded-full" />
-              <p className="text-[10px] text-gray-500 mt-1">Tap or swipe to close</p>
-            </div>
-            
-            <div className="aspect-video bg-black relative">
+            {/* Video - takes most of the space */}
+            <div className="flex-1 bg-black relative min-h-0">
               {selectedSighting.videoUrl ? (
                 <video 
                   key={selectedSighting.id}
                   src={selectedSighting.videoUrl} 
-                  className="w-full h-full object-contain" 
+                  className="w-full h-full object-contain"
+                  style={{ position: 'relative', zIndex: 10 }}
                   controls 
-                  autoPlay 
+                  autoPlay
+                  muted 
+                  loop
                   playsInline
+                  webkit-playsinline="true"
                 />
               ) : selectedSighting.videoId ? (
-                <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=0&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Sighting" />
+                <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=1&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Sighting" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-500">
                   <Play className="w-12 h-12" />
                 </div>
               )}
-              {/* Right side actions */}
-              <div className="absolute right-2 bottom-2 flex flex-col gap-2">
-                <button onClick={() => handleLikeSighting(selectedSighting.id)} className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur ${sightingLikes[selectedSighting.id] ? 'bg-green-500' : 'bg-black/50'}`}>
-                  <ThumbsUp className="w-4 h-4" />
-                </button>
-                <span className="text-[10px] text-center">{(selectedSighting.likes || 0) + (sightingLikes[selectedSighting.id] ? 1 : 0)}</span>
-                <button className="w-10 h-10 rounded-full bg-black/50 backdrop-blur flex items-center justify-center">
-                  <MessageCircle className="w-4 h-4" />
-                </button>
-                <span className="text-[10px] text-center">{selectedSighting.commentsCount || 0}</span>
-              </div>
             </div>
-            <div className="p-4">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h3 className="font-semibold text-lg">{selectedSighting.city}</h3>
-                  <p className="text-sm text-gray-400">{selectedSighting.time}</p>
+            
+            {/* Compact Info Panel */}
+            <div className="flex-shrink-0 p-3 bg-[#141414]">
+              {/* Top row: Location + Actions */}
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-base truncate">{selectedSighting.city}</h3>
                   <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.utcTime || ''}</p>
+                  <p className="text-[10px] text-gray-500">{selectedSighting.timestamp ? getPreciseTimeAgo(selectedSighting.timestamp) : selectedSighting.time}</p>
                   <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat?.toFixed(4)}°, {selectedSighting.lng?.toFixed(4)}°</p>
                 </div>
+                {/* Actions */}
+                <div className="flex items-center gap-2 ml-2">
+                  <button onClick={() => handleLikeSighting(selectedSighting.id)} className="flex flex-col items-center">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center ${sightingLikes[selectedSighting.id] ? 'bg-green-500' : 'bg-white/10'}`}>
+                      <ThumbsUp className="w-4 h-4" />
+                    </div>
+                    <span className="text-[9px]">{(selectedSighting.likes || 0) + (sightingLikes[selectedSighting.id] ? 1 : 0)}</span>
+                  </button>
+                  <button className="flex flex-col items-center">
+                    <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
+                      <MessageCircle className="w-4 h-4" />
+                    </div>
+                    <span className="text-[9px]">{selectedSighting.commentsCount || 0}</span>
+                  </button>
+                  <button className="flex flex-col items-center">
+                    <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
+                      <Share2 className="w-4 h-4" />
+                    </div>
+                  </button>
+                </div>
               </div>
-              {/* Owner link */}
-              <button onClick={() => onViewProfile && onViewProfile(selectedSighting.owner.username)} className="flex items-center gap-2 mb-3 hover:bg-white/5 px-2 py-1 rounded-lg -ml-2">
-                {selectedSighting.owner.avatarUrl ? (
-                  <img src={selectedSighting.owner.avatarUrl} alt="" className="w-6 h-6 rounded-full object-cover" />
-                ) : (
-                  <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-bold text-green-400">{selectedSighting.owner.avatar}</div>
-                )}
-                <span className="text-sm text-green-400">@{selectedSighting.owner.username}</span>
-              </button>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold" style={{ backgroundColor: `${classificationOptions.find(o => o.id === selectedSighting.type)?.color}33`, color: classificationOptions.find(o => o.id === selectedSighting.type)?.color }}>
+              
+              {/* Owner + Classification badge */}
+              <div className="flex items-center gap-2 mb-2">
+                <button onClick={() => onViewProfile && onViewProfile(selectedSighting.owner.username)} className="flex items-center gap-1.5">
+                  {selectedSighting.owner.avatarUrl ? (
+                    <img src={selectedSighting.owner.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center text-[10px] font-bold text-green-400">{selectedSighting.owner.avatar}</div>
+                  )}
+                  <span className="text-xs text-green-400">@{selectedSighting.owner.username}</span>
+                </button>
+                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold" style={{ backgroundColor: `${classificationOptions.find(o => o.id === selectedSighting.type)?.color}33`, color: classificationOptions.find(o => o.id === selectedSighting.type)?.color }}>
                   <span>{classificationOptions.find(o => o.id === selectedSighting.type)?.icon}</span>
                   <span>{selectedSighting.type}</span>
                 </div>
-                <span className="text-xs text-gray-400">AI Confidence: <span className="text-green-400 font-bold">{selectedSighting.confidence}%</span></span>
+                <span className="text-[10px] text-gray-400">AI: <span className="text-green-400 font-bold">{selectedSighting.confidence}%</span></span>
               </div>
-              <p className="text-xs text-gray-400 mb-2">Classify this sighting:</p>
-              <div className="flex gap-1 mb-3">
+              
+              {/* Classify buttons */}
+              <div className="flex gap-1 mb-2">
                 {classificationOptions.map(opt => (
                   <button 
                     key={opt.id} 
                     onClick={() => handleClassifySighting(selectedSighting.id, opt.id)}
                     disabled={!!classifiedSightings[selectedSighting.id]}
-                    className={`flex-1 py-2 rounded-xl flex flex-col items-center gap-0.5 ${classifiedSightings[selectedSighting.id] === opt.id ? 'ring-2 ring-white scale-105' : ''} ${classifiedSightings[selectedSighting.id] ? 'opacity-50' : 'active:scale-95'}`} 
+                    className={`flex-1 py-1.5 rounded-lg flex flex-col items-center gap-0.5 ${classifiedSightings[selectedSighting.id] === opt.id ? 'ring-2 ring-white scale-105' : ''} ${classifiedSightings[selectedSighting.id] ? 'opacity-50' : 'active:scale-95'}`} 
                     style={{ backgroundColor: `${opt.color}20`, color: opt.color }}
                   >
-                    <span className="text-base">{opt.icon}</span>
-                    <span className="text-[8px] font-medium">{opt.label}</span>
+                    <span className="text-sm">{opt.icon}</span>
+                    <span className="text-[7px] font-medium">{opt.label}</span>
                   </button>
                 ))}
               </div>
+              
               {/* Skip/Submitted + Reward */}
               <div className="flex items-center gap-2">
                 {classifiedSightings[selectedSighting.id] ? (
-                  <div className="flex-1 flex items-center justify-center gap-2 py-3 text-green-400">
-                    <span className="text-xl">✓</span>
-                    <span className="font-medium">Submitted</span>
+                  <div className="flex-1 flex items-center justify-center gap-2 py-2 text-green-400">
+                    <span className="text-lg">✓</span>
+                    <span className="text-sm font-medium">Submitted</span>
                   </div>
                 ) : (
                   <button 
                     onClick={() => { setSelectedSighting(null); }}
-                    className="flex-1 py-3 rounded-xl font-medium bg-white/10 text-gray-400"
+                    className="flex-1 py-2 rounded-lg text-sm font-medium bg-white/10 text-gray-400"
                   >
                     Skip
                   </button>
                 )}
-                <div className={`flex items-center gap-1 px-4 py-3 rounded-xl ${classifiedSightings[selectedSighting.id] ? 'bg-green-500' : 'bg-green-500/20'}`}>
+                <div className={`flex items-center gap-1 px-3 py-2 rounded-lg ${classifiedSightings[selectedSighting.id] ? 'bg-green-500' : 'bg-green-500/20'}`}>
                   <Zap className={`w-4 h-4 ${classifiedSightings[selectedSighting.id] ? 'text-white' : 'text-green-400'}`} />
                   <span className={`text-sm font-semibold ${classifiedSightings[selectedSighting.id] ? 'text-white' : 'text-green-400'}`}>+50 $SKEYE</span>
                 </div>
@@ -1526,120 +1550,131 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
   };
 
   return (
-    <div 
-      className="h-full relative bg-black overflow-hidden"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* Full Screen Video */}
-      <div 
-        className="absolute inset-0 transition-transform duration-200"
-        style={{ transform: `translateX(${swipeOffset * 0.3}px)` }}
-      >
-        {currentClip.videoUrl ? (
-          <video 
-            key={currentClip.id}
-            src={currentClip.videoUrl} 
-            className="absolute inset-0 w-full h-full object-contain" 
-            controls 
-            autoPlay 
-            loop
-            playsInline
-          />
-        ) : currentClip.videoId ? (
-          <iframe 
-            key={currentClip.id} 
-            src={`https://www.youtube.com/embed/${currentClip.videoId}?autoplay=1&mute=0&playsinline=1&rel=0&modestbranding=1&loop=1&playlist=${currentClip.videoId}`} 
-            className="absolute inset-0 w-full h-full" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-            allowFullScreen 
-            title={currentClip.title} 
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-gray-500">
-            <Play className="w-16 h-16" />
-          </div>
-        )}
-      </div>
-
-      {/* Swipe Indicators */}
-      {swipeOffset > 40 && (isTrending || currentIndex > 0) && (
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 backdrop-blur rounded-full p-3">
-          <ChevronLeft className="w-8 h-8" />
-        </div>
-      )}
-      {swipeOffset < -40 && (
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 backdrop-blur rounded-full p-3">
-          <ChevronRight className="w-8 h-8" />
-        </div>
-      )}
-      
-      {/* Top Bar - Progress & Info - only show progress for classify mode */}
-      <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-3 pb-8">
-        {isClassifyMode && (
-          <div className="flex gap-1 mb-2">
+    <div className="h-full flex flex-col bg-black">
+      {/* Top Progress Bar - only for classify mode */}
+      {isClassifyMode && (
+        <div className="flex-shrink-0 p-2 bg-black">
+          <div className="flex gap-1 mb-1">
             {clips.map((_, i) => (<div key={i} className={`flex-1 h-1 rounded-full transition-all ${i === currentIndex ? 'bg-white' : i < currentIndex ? 'bg-white/50' : 'bg-white/20'}`} />))}
           </div>
-        )}
-        <div className="flex items-center justify-between">
-          {isClassifyMode && <div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">{currentIndex + 1} / {clips.length}</div>}
-          {classified > 0 && isClassifyMode && (<div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">Classified: <span className="text-green-400 font-bold">{classified}</span></div>)}
-        </div>
-      </div>
-
-      {/* Nav Arrows */}
-      <button onClick={handlePrev} disabled={!isTrending && currentIndex === 0} className={`absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center z-10 transition-opacity ${!isTrending && currentIndex === 0 ? 'opacity-30' : 'active:scale-95'}`}><ChevronLeft className="w-6 h-6" /></button>
-      <button onClick={handleNext} className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center z-10 active:scale-95"><ChevronRight className="w-6 h-6" /></button>
-
-      {/* Right Side Actions */}
-      <div className="absolute right-3 bottom-44 flex flex-col items-center gap-4 z-10">
-        <button onClick={handleLike} className="flex flex-col items-center">
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center backdrop-blur transition-colors ${likedClips[currentClip.id] ? 'bg-green-500' : 'bg-black/40'}`}><ThumbsUp className="w-5 h-5" /></div>
-          <span className="text-xs mt-1 drop-shadow">{siteLikes}</span>
-        </button>
-        <button onClick={() => setShowComments(true)} className="flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center"><MessageCircle className="w-5 h-5" /></div>
-          <span className="text-xs mt-1 drop-shadow">{siteComments.length}</span>
-        </button>
-        <button className="flex flex-col items-center">
-          <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center"><Share2 className="w-5 h-5" /></div>
-        </button>
-      </div>
-
-      {/* Bottom Bar - Info & Classify */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-12 pb-3 px-3">
-        <div className="mb-2 pr-16">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color + '40', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color }}>
-              {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.icon} {currentClip.classification || currentClip.type || 'UAP'}
-            </span>
-            {currentClip.confidence && <span className="text-[10px] text-gray-400">AI: <span className="text-green-400 font-bold">{currentClip.confidence}%</span></span>}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-400">{currentIndex + 1} / {clips.length}</span>
+            {classified > 0 && <span className="text-xs text-gray-400">Classified: <span className="text-green-400 font-bold">{classified}</span></span>}
           </div>
-          <h3 className="font-semibold text-sm line-clamp-1 drop-shadow">{currentClip.location || currentClip.title}</h3>
-          <p className="text-xs text-gray-300 flex items-center gap-1 mt-0.5 drop-shadow"><MapPin className="w-3 h-3" />{currentClip.location}</p>
-          {currentClip.time && <p className="text-[10px] text-gray-500 mt-0.5">{currentClip.time}</p>}
-          {/* Owner link */}
-          {currentClip.owner && (
-            <button onClick={() => onViewProfile && onViewProfile(currentClip.owner.username)} className="flex items-center gap-1.5 mt-1">
-              {currentClip.owner.avatarUrl ? (
-                <img src={currentClip.owner.avatarUrl} alt="" className="w-4 h-4 rounded-full object-cover" />
-              ) : (
-                <div className="w-4 h-4 rounded-full bg-green-500/30 flex items-center justify-center text-[8px] font-bold text-green-400">{currentClip.owner.avatar}</div>
-              )}
-              <span className="text-xs text-green-400">@{currentClip.owner.username}</span>
-            </button>
+        </div>
+      )}
+
+      {/* Video Section - takes about half the screen */}
+      <div 
+        className="flex-1 relative bg-black min-h-0"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div 
+          className="absolute inset-0 transition-transform duration-200"
+          style={{ transform: `translateX(${swipeOffset * 0.3}px)` }}
+        >
+          {currentClip.videoUrl ? (
+            <video 
+              key={currentClip.id}
+              src={currentClip.videoUrl} 
+              className="w-full h-full object-contain"
+              style={{ position: 'relative', zIndex: 20 }}
+              controls 
+              autoPlay 
+              muted
+              loop
+              playsInline
+              webkit-playsinline="true"
+            />
+          ) : currentClip.videoId ? (
+            <iframe 
+              key={currentClip.id} 
+              src={`https://www.youtube.com/embed/${currentClip.videoId}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&loop=1&playlist=${currentClip.videoId}`} 
+              className="absolute inset-0 w-full h-full" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowFullScreen 
+              title={currentClip.location} 
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-gray-500">
+              <Play className="w-16 h-16" />
+            </div>
           )}
         </div>
 
-        {/* Classify Bar with Labels */}
+        {/* Swipe Indicators */}
+        {swipeOffset > 40 && (isTrending || currentIndex > 0) && (
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 z-30 bg-white/20 backdrop-blur rounded-full p-3">
+            <ChevronLeft className="w-8 h-8" />
+          </div>
+        )}
+        {swipeOffset < -40 && (
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 z-30 bg-white/20 backdrop-blur rounded-full p-3">
+            <ChevronRight className="w-8 h-8" />
+          </div>
+        )}
+
+        {/* Nav Arrows */}
+        <button onClick={handlePrev} disabled={!isTrending && currentIndex === 0} className={`absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center z-30 transition-opacity ${!isTrending && currentIndex === 0 ? 'opacity-30' : 'active:scale-95'}`}><ChevronLeft className="w-5 h-5" /></button>
+        <button onClick={handleNext} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center z-30 active:scale-95"><ChevronRight className="w-5 h-5" /></button>
+      </div>
+
+      {/* Info Panel Below Video */}
+      <div className="flex-shrink-0 bg-[#0a0a0a] p-3">
+        {/* Top row: Classification badge + AI + Actions */}
+        <div className="flex items-start justify-between mb-2">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color + '40', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color }}>
+                {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.icon} {currentClip.classification || currentClip.type || 'UAP'}
+              </span>
+              {currentClip.confidence && <span className="text-[10px] text-gray-400">AI: <span className="text-green-400 font-bold">{currentClip.confidence}%</span></span>}
+            </div>
+            {/* Location */}
+            <h3 className="font-semibold text-sm">{currentClip.location}</h3>
+            {/* UTC time */}
+            {currentClip.utcTime && <p className="text-[10px] text-gray-500 font-mono">{currentClip.utcTime}</p>}
+            {/* Precise time ago */}
+            {currentClip.timestamp && <p className="text-[10px] text-gray-500">{getPreciseTimeAgo(currentClip.timestamp)}</p>}
+            {/* Owner */}
+            {currentClip.owner && (
+              <button onClick={() => onViewProfile && onViewProfile(currentClip.owner.username)} className="flex items-center gap-1.5 mt-1">
+                {currentClip.owner.avatarUrl ? (
+                  <img src={currentClip.owner.avatarUrl} alt="" className="w-4 h-4 rounded-full object-cover" />
+                ) : (
+                  <div className="w-4 h-4 rounded-full bg-green-500/30 flex items-center justify-center text-[8px] font-bold text-green-400">{currentClip.owner.avatar}</div>
+                )}
+                <span className="text-xs text-green-400">@{currentClip.owner.username}</span>
+              </button>
+            )}
+          </div>
+          
+          {/* Actions on right */}
+          <div className="flex items-center gap-2">
+            <button onClick={handleLike} className="flex flex-col items-center">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${likedClips[currentClip.id] ? 'bg-green-500' : 'bg-white/10'}`}><ThumbsUp className="w-4 h-4" /></div>
+              <span className="text-[10px] mt-0.5">{siteLikes}</span>
+            </button>
+            <button onClick={() => setShowComments(true)} className="flex flex-col items-center">
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"><MessageCircle className="w-4 h-4" /></div>
+              <span className="text-[10px] mt-0.5">{siteComments.length}</span>
+            </button>
+            <button className="flex flex-col items-center">
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"><Share2 className="w-4 h-4" /></div>
+            </button>
+          </div>
+        </div>
+
+        {/* Classify Bar */}
         <div className="flex items-stretch gap-1">
           {classificationOptions.map(opt => (
             <button 
               key={opt.id} 
               onClick={() => !(isClassified && isClassifyMode) && handleClassify(opt.id)} 
               disabled={isClassified && isClassifyMode}
-              className={`flex-1 py-2 rounded-lg transition-transform backdrop-blur flex flex-col items-center gap-0.5 ${isClassified && classifiedClips[currentClip.id] === opt.id ? 'ring-2 ring-white' : ''} ${isClassified && isClassifyMode ? 'opacity-60' : 'active:scale-95'}`}
+              className={`flex-1 py-2 rounded-lg transition-transform flex flex-col items-center gap-0.5 ${isClassified && classifiedClips[currentClip.id] === opt.id ? 'ring-2 ring-white' : ''} ${isClassified && isClassifyMode ? 'opacity-60' : 'active:scale-95'}`}
               style={{ backgroundColor: `${opt.color}30` }}
             >
               <span className="text-base">{opt.icon}</span>
@@ -1647,26 +1682,24 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
             </button>
           ))}
           <div className="flex flex-col gap-1">
-            {/* For classify mode: show Skip/Submitted button */}
             {isClassifyMode && (
               <button 
                 onClick={handleNext} 
-                className={`px-2 py-1.5 rounded-lg text-[10px] backdrop-blur active:scale-95 ${isClassified ? 'bg-green-500 text-white font-medium' : 'text-gray-400 bg-white/10'}`}
+                className={`px-2 py-1.5 rounded-lg text-[10px] active:scale-95 ${isClassified ? 'bg-green-500 text-white font-medium' : 'text-gray-400 bg-white/10'}`}
               >
                 {isClassified ? '✓ Next' : 'Skip'}
               </button>
             )}
-            {/* For trending mode: just Next button */}
             {isTrending && (
               <button 
                 onClick={handleNext} 
-                className="px-2 py-1.5 rounded-lg text-[10px] backdrop-blur active:scale-95 text-gray-400 bg-white/10"
+                className="px-2 py-1.5 rounded-lg text-[10px] active:scale-95 text-gray-400 bg-white/10"
               >
                 Next
               </button>
             )}
             {showReward && !isClassified && isClassifyMode && (
-              <div className="flex items-center justify-center gap-0.5 bg-green-500/20 backdrop-blur px-2 py-1 rounded-lg">
+              <div className="flex items-center justify-center gap-0.5 bg-green-500/20 px-2 py-1 rounded-lg">
                 <Zap className="w-3 h-3 text-green-400" />
                 <span className="text-[9px] text-green-400 font-semibold">+50</span>
               </div>
