@@ -981,14 +981,32 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 )}
                 <p className="text-xs text-gray-400 mb-2">Classify this sighting:</p>
                 <div className="flex gap-1">
-                  {classificationOptions.map(opt => (<button key={opt.id} className="flex-1 py-2 rounded-lg text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-transform flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}20`, color: opt.color }}><span>{opt.icon}</span><span className="text-[8px]">{opt.label}</span></button>))}
+                  {classificationOptions.map(opt => (
+                    <button 
+                      key={opt.id} 
+                      onClick={() => handleClassifySighting(selectedSighting.id, opt.id)}
+                      disabled={!!classifiedSightings[selectedSighting.id]}
+                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-transform flex flex-col items-center gap-0.5 ${classifiedSightings[selectedSighting.id] === opt.id ? 'ring-2 ring-white scale-105' : ''} ${classifiedSightings[selectedSighting.id] ? 'opacity-50' : 'hover:scale-[1.02] active:scale-[0.98]'}`} 
+                      style={{ backgroundColor: `${opt.color}20`, color: opt.color }}
+                    >
+                      <span>{opt.icon}</span>
+                      <span className="text-[8px]">{opt.label}</span>
+                    </button>
+                  ))}
                 </div>
-                {/* Skip + Reward */}
+                {/* Skip/Submitted + Reward */}
                 <div className="flex items-center gap-2 mt-3">
-                  <button onClick={() => { setSelectedSighting(null); setShowSightingComments(false); }} className="flex-1 py-2 rounded-lg text-sm text-gray-400 bg-white/5 hover:bg-white/10">Skip</button>
-                  <div className="flex items-center gap-1 bg-green-500/20 px-3 py-2 rounded-lg">
-                    <Zap className="w-4 h-4 text-green-400" />
-                    <span className="text-sm text-green-400 font-semibold">+50 $SKEYE</span>
+                  {classifiedSightings[selectedSighting.id] ? (
+                    <div className="flex-1 flex items-center justify-center gap-2 py-2 text-green-400">
+                      <span className="text-lg">✓</span>
+                      <span className="text-sm font-medium">Submitted</span>
+                    </div>
+                  ) : (
+                    <button onClick={() => { setSelectedSighting(null); setShowSightingComments(false); }} className="flex-1 py-2 rounded-lg text-sm text-gray-400 bg-white/5 hover:bg-white/10">Skip</button>
+                  )}
+                  <div className={`flex items-center gap-1 px-3 py-2 rounded-lg ${classifiedSightings[selectedSighting.id] ? 'bg-green-500' : 'bg-green-500/20'}`}>
+                    <Zap className={`w-4 h-4 ${classifiedSightings[selectedSighting.id] ? 'text-white' : 'text-green-400'}`} />
+                    <span className={`text-sm font-semibold ${classifiedSightings[selectedSighting.id] ? 'text-white' : 'text-green-400'}`}>+50 $SKEYE</span>
                   </div>
                 </div>
               </div>
@@ -1220,7 +1238,8 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                   <button 
                     key={opt.id} 
                     onClick={() => handleClassifySighting(selectedSighting.id, opt.id)}
-                    className={`flex-1 py-2 rounded-xl active:scale-95 flex flex-col items-center gap-0.5 ${classifiedSightings[selectedSighting.id] === opt.id ? 'ring-2 ring-white' : ''}`} 
+                    disabled={!!classifiedSightings[selectedSighting.id]}
+                    className={`flex-1 py-2 rounded-xl flex flex-col items-center gap-0.5 ${classifiedSightings[selectedSighting.id] === opt.id ? 'ring-2 ring-white scale-105' : ''} ${classifiedSightings[selectedSighting.id] ? 'opacity-50' : 'active:scale-95'}`} 
                     style={{ backgroundColor: `${opt.color}20`, color: opt.color }}
                   >
                     <span className="text-base">{opt.icon}</span>
@@ -1228,12 +1247,26 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                   </button>
                 ))}
               </div>
-              <button 
-                className={`w-full py-3 rounded-xl font-medium ${classifiedSightings[selectedSighting.id] ? 'bg-green-500 text-white' : 'bg-white/10 text-gray-400'}`}
-                disabled={!!classifiedSightings[selectedSighting.id]}
-              >
-                {classifiedSightings[selectedSighting.id] ? '✓ Submitted' : 'Skip'}
-              </button>
+              {/* Skip/Submitted + Reward */}
+              <div className="flex items-center gap-2">
+                {classifiedSightings[selectedSighting.id] ? (
+                  <div className="flex-1 flex items-center justify-center gap-2 py-3 text-green-400">
+                    <span className="text-xl">✓</span>
+                    <span className="font-medium">Submitted</span>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => { setSelectedSighting(null); }}
+                    className="flex-1 py-3 rounded-xl font-medium bg-white/10 text-gray-400"
+                  >
+                    Skip
+                  </button>
+                )}
+                <div className={`flex items-center gap-1 px-4 py-3 rounded-xl ${classifiedSightings[selectedSighting.id] ? 'bg-green-500' : 'bg-green-500/20'}`}>
+                  <Zap className={`w-4 h-4 ${classifiedSightings[selectedSighting.id] ? 'text-white' : 'text-green-400'}`} />
+                  <span className={`text-sm font-semibold ${classifiedSightings[selectedSighting.id] ? 'text-white' : 'text-green-400'}`}>+50 $SKEYE</span>
+                </div>
+              </div>
             </div>
           </div>
         </>
