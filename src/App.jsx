@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, createContext, useContext } from 'react';
-import { Camera, TrendingUp, Users, Bell, Play, Eye, Zap, Globe, Radio, Wifi, MapPin, ThumbsUp, MessageCircle, Share2, Download, X, Settings, ChevronLeft, ChevronRight, Volume2, CreditCard, HardDrive, User, LogOut, ChevronDown, ChevronUp, Send, Film, SkipBack, Plus, Filter, List, Grid, Mail, Lock, EyeOff, Loader, Pencil, Upload, Search, ExternalLink } from 'lucide-react';
+import { Camera, TrendingUp, Users, Bell, Play, Eye, Zap, Globe, Radio, Wifi, MapPin, ThumbsUp, MessageCircle, Share2, Download, X, Settings, ChevronLeft, ChevronRight, Volume2, CreditCard, HardDrive, User, LogOut, ChevronDown, ChevronUp, Send, Film, SkipBack, Plus, Filter, List, Grid, Mail, Lock, EyeOff, Loader, Pencil, Upload, Search, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import logo from './logo.png';
 import cameraImg from './camera.png';
 import profileImg from './profile.jpg';
@@ -10,6 +10,69 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 // Supabase Configuration
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Thumbnail generation cache to avoid duplicate processing
+const thumbnailProcessing = new Set();
+
+// Generate and save thumbnail for a sighting
+const generateAndSaveThumbnail = async (sightingId, videoUrl, token) => {
+  // Skip if already processing or no video
+  if (!videoUrl || !sightingId || !token || thumbnailProcessing.has(sightingId)) return null;
+  
+  thumbnailProcessing.add(sightingId);
+  
+  try {
+    // Generate thumbnail from video
+    const thumbnailBase64 = await new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      video.crossOrigin = 'anonymous';
+      video.src = videoUrl;
+      video.muted = true;
+      video.preload = 'metadata';
+      
+      video.onloadeddata = () => {
+        video.currentTime = 1;
+      };
+      
+      video.onseeked = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 320;
+          canvas.height = 180;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        } catch (e) {
+          reject(e);
+        }
+      };
+      
+      video.onerror = () => reject(new Error('Video load failed'));
+      setTimeout(() => reject(new Error('Timeout')), 15000);
+    });
+    
+    // Save to backend
+    const res = await fetch(`${API_URL}/api/sightings/${sightingId}/thumbnail`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ thumbnailBase64 })
+    });
+    
+    if (res.ok) {
+      const data = await res.json();
+      return data.thumbnailUrl;
+    }
+  } catch (err) {
+    console.log(`Thumbnail generation failed for ${sightingId}:`, err.message);
+  } finally {
+    thumbnailProcessing.delete(sightingId);
+  }
+  
+  return null;
+};
 
 // Upload image to Supabase Storage
 const uploadAvatar = async (file, userId) => {
@@ -3169,7 +3232,24 @@ function DevicesSubView({ isMobile, devices }) {
 
 // Public profile clips view
 function PublicClipsView({ isMobile, clips, username }) {
+  const { token } = useAuth();
   const [selectedClip, setSelectedClip] = useState(null);
+  const [localThumbnails, setLocalThumbnails] = useState({});
+
+  // Auto-generate thumbnails for clips missing them
+  useEffect(() => {
+    if (!token) return;
+    
+    clips.forEach(clip => {
+      if (!clip.thumbnailUrl && clip.videoUrl && !localThumbnails[clip.id]) {
+        generateAndSaveThumbnail(clip.id, clip.videoUrl, token).then(url => {
+          if (url) {
+            setLocalThumbnails(prev => ({ ...prev, [clip.id]: url }));
+          }
+        });
+      }
+    });
+  }, [clips, token]);
 
   if (!clips || clips.length === 0) {
     return (
@@ -3194,7 +3274,8 @@ function PublicClipsView({ isMobile, clips, username }) {
           >
             {/* Thumbnail */}
             <div className={`${isMobile ? 'w-20 h-14' : 'w-28 h-20'} bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden flex-shrink-0`}>
-              {clip.thumbnailUrl ? (
+              {(clip.thumbnailUrl || localThumbnails[clip.id]) ? (
+                <img src={clip.thumbnailUrl || localThumbnails[clip.id]} alt="" className="w-full h-full object-cover" />
                 <img src={clip.thumbnailUrl} alt="" className="w-full h-full object-cover" />
               ) : (
                 <Play className="w-6 h-6 text-gray-500" />
@@ -3564,6 +3645,8 @@ function AdminView({ isMobile }) {
   const [message, setMessage] = useState('');
   const [bulkClassification, setBulkClassification] = useState('UAP');
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
+  const [generatingThumbnails, setGeneratingThumbnails] = useState(false);
+  const [thumbnailProgress, setThumbnailProgress] = useState({ current: 0, total: 0 });
   
   // Random locations for bulk upload
   const randomLocations = [
@@ -3608,6 +3691,85 @@ function AdminView({ isMobile }) {
     { id: 'Bird', label: 'Bird', icon: '●', color: '#eab308' },
     { id: 'Weather', label: 'Weather', icon: '○', color: '#06b6d4' },
   ];
+
+  // Generate thumbnail from video URL
+  const generateThumbnailFromVideo = (videoUrl) => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      video.crossOrigin = 'anonymous';
+      video.src = videoUrl;
+      video.muted = true;
+      video.preload = 'metadata';
+      
+      video.onloadeddata = () => {
+        video.currentTime = 1; // Seek to 1 second
+      };
+      
+      video.onseeked = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 320;
+          canvas.height = 180;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          resolve(dataUrl);
+        } catch (e) {
+          reject(e);
+        }
+      };
+      
+      video.onerror = () => reject(new Error('Failed to load video'));
+      
+      // Timeout after 10 seconds
+      setTimeout(() => reject(new Error('Timeout')), 10000);
+    });
+  };
+
+  // Generate thumbnails for all sightings missing them
+  const handleGenerateAllThumbnails = async () => {
+    setGeneratingThumbnails(true);
+    const missing = sightings.filter(s => !s.thumbnail_url && s.video_url);
+    setThumbnailProgress({ current: 0, total: missing.length });
+    setMessage(`Generating thumbnails for ${missing.length} videos...`);
+    
+    let successCount = 0;
+    for (let i = 0; i < missing.length; i++) {
+      const sighting = missing[i];
+      setThumbnailProgress({ current: i + 1, total: missing.length });
+      setMessage(`Processing ${i + 1}/${missing.length}: ${sighting.location}`);
+      
+      try {
+        // Generate thumbnail
+        const thumbnailBase64 = await generateThumbnailFromVideo(sighting.video_url);
+        
+        // Upload to backend
+        const res = await fetch(`${API_URL}/api/admin/sightings/${sighting.id}/thumbnail`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ thumbnailBase64 })
+        });
+        
+        if (res.ok) {
+          successCount++;
+          // Update local state
+          setSightings(prev => prev.map(s => 
+            s.id === sighting.id ? { ...s, thumbnail_url: (await res.json()).thumbnailUrl } : s
+          ));
+        }
+      } catch (err) {
+        console.error(`Failed to generate thumbnail for ${sighting.id}:`, err);
+      }
+    }
+    
+    setMessage(`✓ Generated ${successCount}/${missing.length} thumbnails!`);
+    setGeneratingThumbnails(false);
+    setThumbnailProgress({ current: 0, total: 0 });
+    fetchSightings();
+  };
 
   // Fetch sightings
   useEffect(() => {
@@ -3670,7 +3832,7 @@ function AdminView({ isMobile }) {
         const randomConfidence = 70 + Math.floor(Math.random() * 25); // 70-95%
         
         // Create sighting
-        await fetch(`${API_URL}/api/admin/sightings`, {
+        const createRes = await fetch(`${API_URL}/api/admin/sightings`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -3686,12 +3848,30 @@ function AdminView({ isMobile }) {
           })
         });
         
+        // Generate and upload thumbnail for the new sighting
+        if (createRes.ok) {
+          const newSighting = await createRes.json();
+          try {
+            const thumbnailBase64 = await generateThumbnailFromVideo(videoUrl);
+            await fetch(`${API_URL}/api/admin/sightings/${newSighting.id}/thumbnail`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ thumbnailBase64 })
+            });
+          } catch (thumbErr) {
+            console.log(`Thumbnail generation failed for ${file.name}, will retry later`);
+          }
+        }
+        
       } catch (err) {
         console.error(`Error processing ${file.name}:`, err);
       }
     }
     
-    setMessage(`✓ Uploaded ${files.length} videos!`);
+    setMessage(`✓ Uploaded ${files.length} videos with thumbnails!`);
     setUploading(false);
     setBulkProgress({ current: 0, total: 0 });
     fetchSightings();
@@ -3801,7 +3981,15 @@ function AdminView({ isMobile }) {
             <h1 className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>Admin Panel</h1>
             <p className="text-sm text-gray-400">Manage sightings and videos</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={handleGenerateAllThumbnails}
+              disabled={generatingThumbnails}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium ${generatingThumbnails ? 'bg-yellow-500/50 text-yellow-200' : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'}`}
+            >
+              <ImageIcon className="w-5 h-5" />
+              {generatingThumbnails ? `${thumbnailProgress.current}/${thumbnailProgress.total}` : 'Gen Thumbnails'}
+            </button>
             <button
               onClick={() => { setShowBulkUpload(!showBulkUpload); setShowAddForm(false); }}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium ${showBulkUpload ? 'bg-purple-500 text-white' : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'}`}
@@ -3818,6 +4006,22 @@ function AdminView({ isMobile }) {
             </button>
           </div>
         </div>
+
+        {/* Missing Thumbnails Count */}
+        {sightings.filter(s => !s.thumbnail_url).length > 0 && (
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 mb-4 flex items-center justify-between">
+            <span className="text-yellow-400 text-sm">
+              ⚠️ {sightings.filter(s => !s.thumbnail_url).length} videos missing thumbnails
+            </span>
+            <button 
+              onClick={handleGenerateAllThumbnails}
+              disabled={generatingThumbnails}
+              className="text-yellow-400 text-sm underline hover:text-yellow-300"
+            >
+              Generate now
+            </button>
+          </div>
+        )}
 
         {/* Message */}
         {message && (
