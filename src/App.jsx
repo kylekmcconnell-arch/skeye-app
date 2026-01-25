@@ -2668,8 +2668,35 @@ function AdminView({ isMobile }) {
   const [sightings, setSightings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState('');
+  const [bulkClassification, setBulkClassification] = useState('UAP');
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
+  
+  // Random locations for bulk upload
+  const randomLocations = [
+    { city: 'Los Angeles, CA', lat: 34.0522, lng: -118.2437 },
+    { city: 'New York, NY', lat: 40.7128, lng: -74.0060 },
+    { city: 'Chicago, IL', lat: 41.8781, lng: -87.6298 },
+    { city: 'Miami, FL', lat: 25.7617, lng: -80.1918 },
+    { city: 'Seattle, WA', lat: 47.6062, lng: -122.3321 },
+    { city: 'Denver, CO', lat: 39.7392, lng: -104.9903 },
+    { city: 'Phoenix, AZ', lat: 33.4484, lng: -112.0740 },
+    { city: 'London, UK', lat: 51.5074, lng: -0.1278 },
+    { city: 'Paris, France', lat: 48.8566, lng: 2.3522 },
+    { city: 'Berlin, Germany', lat: 52.5200, lng: 13.4050 },
+    { city: 'Tokyo, Japan', lat: 35.6762, lng: 139.6503 },
+    { city: 'Sydney, Australia', lat: -33.8688, lng: 151.2093 },
+    { city: 'Toronto, Canada', lat: 43.6532, lng: -79.3832 },
+    { city: 'Dubai, UAE', lat: 25.2048, lng: 55.2708 },
+    { city: 'Singapore', lat: 1.3521, lng: 103.8198 },
+    { city: 'Mumbai, India', lat: 19.0760, lng: 72.8777 },
+    { city: 'São Paulo, Brazil', lat: -23.5505, lng: -46.6333 },
+    { city: 'Mexico City, Mexico', lat: 19.4326, lng: -99.1332 },
+    { city: 'Cape Town, South Africa', lat: -33.9249, lng: 18.4241 },
+    { city: 'Auckland, New Zealand', lat: -36.8509, lng: 174.7645 },
+  ];
   
   // Form state
   const [formData, setFormData] = useState({
@@ -2710,6 +2737,73 @@ function AdminView({ isMobile }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Bulk upload videos
+  const handleBulkUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    
+    setUploading(true);
+    setBulkProgress({ current: 0, total: files.length });
+    setMessage(`Uploading ${files.length} videos...`);
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setBulkProgress({ current: i + 1, total: files.length });
+      setMessage(`Uploading ${i + 1}/${files.length}: ${file.name}`);
+      
+      try {
+        // Upload video to Supabase
+        const fileName = `sighting-${Date.now()}-${i}.${file.name.split('.').pop()}`;
+        const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/videos/${fileName}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': file.type,
+            'x-upsert': 'true'
+          },
+          body: file
+        });
+        
+        if (!uploadRes.ok) {
+          console.error(`Failed to upload ${file.name}`);
+          continue;
+        }
+        
+        const videoUrl = `${SUPABASE_URL}/storage/v1/object/public/videos/${fileName}`;
+        
+        // Pick random location and time
+        const randomLoc = randomLocations[Math.floor(Math.random() * randomLocations.length)];
+        const randomHoursAgo = Math.floor(Math.random() * 72); // 0-72 hours ago
+        const randomConfidence = 70 + Math.floor(Math.random() * 25); // 70-95%
+        
+        // Create sighting
+        await fetch(`${API_URL}/api/admin/sightings`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            videoUrl,
+            location: randomLoc.city,
+            latitude: randomLoc.lat + (Math.random() - 0.5) * 0.1, // Small random offset
+            longitude: randomLoc.lng + (Math.random() - 0.5) * 0.1,
+            classification: bulkClassification,
+            aiConfidence: randomConfidence
+          })
+        });
+        
+      } catch (err) {
+        console.error(`Error processing ${file.name}:`, err);
+      }
+    }
+    
+    setMessage(`✓ Uploaded ${files.length} videos!`);
+    setUploading(false);
+    setBulkProgress({ current: 0, total: 0 });
+    fetchSightings();
   };
 
   // Upload video to Supabase
@@ -2816,19 +2910,87 @@ function AdminView({ isMobile }) {
             <h1 className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>Admin Panel</h1>
             <p className="text-sm text-gray-400">Manage sightings and videos</p>
           </div>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600"
-          >
-            <Plus className="w-5 h-5" />
-            Add Sighting
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setShowBulkUpload(!showBulkUpload); setShowAddForm(false); }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium ${showBulkUpload ? 'bg-purple-500 text-white' : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'}`}
+            >
+              <Upload className="w-5 h-5" />
+              Bulk Upload
+            </button>
+            <button
+              onClick={() => { setShowAddForm(!showAddForm); setShowBulkUpload(false); }}
+              className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600"
+            >
+              <Plus className="w-5 h-5" />
+              Add Single
+            </button>
+          </div>
         </div>
 
         {/* Message */}
         {message && (
           <div className={`p-3 rounded-xl mb-4 ${message.includes('error') || message.includes('Failed') ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
             {message}
+          </div>
+        )}
+
+        {/* Bulk Upload Section */}
+        {showBulkUpload && (
+          <div className="bg-[#141414] border border-gray-700 rounded-2xl p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-4">Bulk Upload Videos</h2>
+            <p className="text-sm text-gray-400 mb-4">
+              Select multiple videos at once. Location and timestamp will be randomly assigned.
+            </p>
+            
+            {/* Classification Selection */}
+            <div className="mb-4">
+              <label className="block text-sm text-gray-400 mb-2">Classification for all videos</label>
+              <div className="flex gap-2">
+                {classificationOptions.map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setBulkClassification(opt.id)}
+                    className={`flex-1 py-3 rounded-xl flex flex-col items-center gap-1 transition-all ${bulkClassification === opt.id ? 'ring-2 ring-white' : ''}`}
+                    style={{ backgroundColor: `${opt.color}20`, color: opt.color }}
+                  >
+                    <span className="text-xl">{opt.icon}</span>
+                    <span className="text-xs">{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Upload Area */}
+            <label className={`flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploading ? 'border-green-500 bg-green-500/10' : 'border-gray-700 hover:border-green-500/50'}`}>
+              <input 
+                type="file" 
+                accept="video/*" 
+                multiple 
+                className="hidden" 
+                onChange={handleBulkUpload}
+                disabled={uploading}
+              />
+              {uploading ? (
+                <>
+                  <Loader className="w-10 h-10 text-green-400 animate-spin mb-2" />
+                  <p className="text-sm text-green-400">Uploading {bulkProgress.current}/{bulkProgress.total}</p>
+                  <div className="w-full max-w-xs bg-gray-700 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-green-500 h-2 rounded-full transition-all" 
+                      style={{ width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-10 h-10 text-gray-400 mb-2" />
+                  <p className="text-sm text-gray-400">Click to select multiple videos</p>
+                  <p className="text-xs text-gray-500 mt-1">or drag and drop</p>
+                </>
+              )}
+            </label>
           </div>
         )}
 
