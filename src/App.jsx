@@ -481,7 +481,7 @@ const generateSightings = () => {
 const allSightings = generateSightings();
 
 function AppContent() {
-  const { user, isAuthenticated, loading, logout, token } = useAuth();
+  const { user, isAuthenticated, loading, logout, token, API_URL } = useAuth();
   const [activeTab, setActiveTab] = useState('map');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -492,10 +492,44 @@ function AppContent() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [viewingProfile, setViewingProfile] = useState(null);
   const [selectedNotification, setSelectedNotification] = useState(null);
+  const [userClips, setUserClips] = useState([]);
 
   const unreadCount = notificationsList.filter(n => !n.read).length;
   const [currentTime, setCurrentTime] = useState(new Date());
   const liveDevices = mockDevices.filter(d => d.status === 'online').length;
+
+  // Load user's own clips from the API
+  useEffect(() => {
+    const loadUserClips = async () => {
+      if (!token || !user?.username) return;
+      try {
+        const res = await fetch(`${API_URL}/api/users/${user.username}/clips`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          // Transform clips to match expected format
+          const clips = (data.clips || []).map(clip => ({
+            id: clip.id,
+            device: 'My Device',
+            time: clip.createdAt ? getTimeAgo(new Date(clip.createdAt).getTime()) : 'Recently',
+            type: clip.classification || 'UAP',
+            confidence: clip.confidence || 85,
+            duration: '0:30',
+            videoUrl: clip.videoUrl,
+            thumbnailUrl: clip.thumbnailUrl,
+            location: clip.location,
+            likes: clip.likesCount || 0,
+            commentsCount: clip.commentsCount || 0
+          }));
+          setUserClips(clips);
+        }
+      } catch (err) {
+        console.error('Failed to load user clips:', err);
+      }
+    };
+    loadUserClips();
+  }, [token, user?.username, API_URL]);
 
   // Load notifications from user account
   useEffect(() => {
@@ -723,7 +757,7 @@ function AppContent() {
         {activeTab === 'trending' && <TrendingView isMobile={isMobile} clips={mockClips} onViewProfile={(username) => { setViewingProfile(username); setActiveTab('profile'); }} />}
         {activeTab === 'classify' && <ClassifyView isMobile={isMobile} onViewProfile={(username) => { setViewingProfile(username); setActiveTab('profile'); }} />}
         {activeTab === 'community' && <CommunityView isMobile={isMobile} />}
-        {activeTab === 'profile' && <ProfileView isMobile={isMobile} profileSubTab={profileSubTab} setProfileSubTab={setProfileSubTab} devices={mockDevices} clips={myClips} viewingProfile={viewingProfile} setViewingProfile={setViewingProfile} />}
+        {activeTab === 'profile' && <ProfileView isMobile={isMobile} profileSubTab={profileSubTab} setProfileSubTab={setProfileSubTab} devices={mockDevices} clips={userClips} viewingProfile={viewingProfile} setViewingProfile={setViewingProfile} />}
         {activeTab === 'admin' && user?.role === 'admin' && <AdminView isMobile={isMobile} />}
       </main>
 
@@ -3377,6 +3411,23 @@ function ClipsSubView({ isMobile, clips, devices }) {
   const filteredClips = deviceFilter === 'all' ? clips : clips.filter(c => c.device === deviceFilter);
   const uniqueDevices = [...new Set(clips.map(c => c.device))];
 
+  // Helper to get thumbnail URL
+  const getThumbnail = (clip) => {
+    if (clip.thumbnailUrl) return clip.thumbnailUrl;
+    if (clip.videoId) return `https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`;
+    return null;
+  };
+
+  if (clips.length === 0) {
+    return (
+      <div className={`${isMobile ? 'p-4' : 'p-6'} text-center`}>
+        <Film className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+        <p className="text-gray-400">You haven't uploaded any clips yet</p>
+        <p className="text-gray-500 text-sm mt-2">Clips from your devices will appear here</p>
+      </div>
+    );
+  }
+
   return (
     <div className={`${isMobile ? 'p-3' : 'p-5'}`}>
       {/* Filters */}
@@ -3401,10 +3452,14 @@ function ClipsSubView({ isMobile, clips, devices }) {
         <div className="space-y-2">
           {filteredClips.map(clip => (
             <div key={clip.id} onClick={() => setSelectedClip(clip)} className={`flex items-center gap-3 ${isMobile ? 'p-2' : 'p-3'} bg-white/5 rounded-xl hover:bg-white/10 cursor-pointer`}>
-              <div className={`${isMobile ? 'w-20 h-14' : 'w-32 h-20'} bg-black rounded-lg relative flex-shrink-0 overflow-hidden`}>
-                <img src={`https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`} alt="Clip" className="w-full h-full object-cover" />
-                <Play className={`absolute inset-0 m-auto ${isMobile ? 'w-6 h-6' : 'w-8 h-8'} text-white/80`} />
-                <span className="absolute bottom-1 right-1 text-[10px] bg-black/70 px-1 rounded">{clip.duration}</span>
+              <div className={`${isMobile ? 'w-20 h-14' : 'w-32 h-20'} bg-gray-800 rounded-lg relative flex-shrink-0 overflow-hidden flex items-center justify-center`}>
+                {getThumbnail(clip) ? (
+                  <img src={getThumbnail(clip)} alt="Clip" className="w-full h-full object-cover" />
+                ) : (
+                  <Play className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} text-gray-500`} />
+                )}
+                {getThumbnail(clip) && <Play className={`absolute inset-0 m-auto ${isMobile ? 'w-6 h-6' : 'w-8 h-8'} text-white/80`} />}
+                {clip.duration && <span className="absolute bottom-1 right-1 text-[10px] bg-black/70 px-1 rounded">{clip.duration}</span>}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
@@ -3413,7 +3468,7 @@ function ClipsSubView({ isMobile, clips, devices }) {
                   </span>
                   <span className={`text-teal-400 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>{clip.confidence}%</span>
                 </div>
-                <p className={`text-white truncate ${isMobile ? 'text-xs' : 'text-sm font-medium'}`}>{clip.device}</p>
+                <p className={`text-white truncate ${isMobile ? 'text-xs' : 'text-sm font-medium'}`}>{clip.location || clip.device}</p>
                 <p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>{clip.time}</p>
                 {!isMobile && (
                   <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
@@ -3434,14 +3489,18 @@ function ClipsSubView({ isMobile, clips, devices }) {
         <div className="grid grid-cols-3 gap-4">
           {filteredClips.map(clip => (
             <div key={clip.id} onClick={() => setSelectedClip(clip)} className="rounded-xl overflow-hidden bg-white/5 hover:bg-white/10 cursor-pointer">
-              <div className="aspect-video bg-black relative">
-                <img src={`https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`} alt="Clip" className="w-full h-full object-cover" />
-                <Play className="absolute inset-0 m-auto w-10 h-10 text-white/80" />
+              <div className="aspect-video bg-gray-800 relative flex items-center justify-center">
+                {getThumbnail(clip) ? (
+                  <img src={getThumbnail(clip)} alt="Clip" className="w-full h-full object-cover" />
+                ) : (
+                  <Play className="w-10 h-10 text-gray-500" />
+                )}
+                {getThumbnail(clip) && <Play className="absolute inset-0 m-auto w-10 h-10 text-white/80" />}
                 <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === clip.type)?.color, color: 'white' }}>{classificationOptions.find(o => o.id === clip.type)?.icon} {clip.type}</span>
-                <span className="absolute bottom-2 right-2 text-xs bg-black/70 px-1.5 py-0.5 rounded">{clip.duration}</span>
+                {clip.duration && <span className="absolute bottom-2 right-2 text-xs bg-black/70 px-1.5 py-0.5 rounded">{clip.duration}</span>}
               </div>
               <div className="p-3">
-                <p className="text-sm font-medium truncate">{clip.device}</p>
+                <p className="text-sm font-medium truncate">{clip.location || clip.device}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{clip.time}</p>
                 <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                   <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3" />{clip.likes || 0}</span>
@@ -3460,11 +3519,17 @@ function ClipsSubView({ isMobile, clips, devices }) {
             {isMobile ? (
               <>
                 <div className="flex items-center justify-between p-4">
-                  <div><h3 className="font-semibold">{selectedClip.device}</h3><p className="text-xs text-gray-400">{selectedClip.time}</p></div>
+                  <div><h3 className="font-semibold">{selectedClip.location || selectedClip.device}</h3><p className="text-xs text-gray-400">{selectedClip.time}</p></div>
                   <button onClick={() => setSelectedClip(null)}><X className="w-6 h-6 text-gray-400" /></button>
                 </div>
                 <div className="flex-1 bg-black">
-                  <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Clip" />
+                  {selectedClip.videoUrl ? (
+                    <video src={selectedClip.videoUrl} className="w-full h-full" controls autoPlay muted />
+                  ) : selectedClip.videoId ? (
+                    <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Clip" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-500"><Play className="w-16 h-16" /></div>
+                  )}
                 </div>
                 <div className="p-4 flex justify-between items-center">
                   <span className="px-3 py-1 rounded-lg text-sm font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === selectedClip.type)?.color + '33', color: classificationOptions.find(o => o.id === selectedClip.type)?.color }}>{classificationOptions.find(o => o.id === selectedClip.type)?.icon} {selectedClip.type}</span>
@@ -3477,13 +3542,19 @@ function ClipsSubView({ isMobile, clips, devices }) {
             ) : (
               <div className="bg-[#141414] rounded-2xl overflow-hidden max-w-5xl w-full flex">
                 <div className="flex-1 aspect-video bg-black">
-                  <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Clip" />
+                  {selectedClip.videoUrl ? (
+                    <video src={selectedClip.videoUrl} className="w-full h-full" controls autoPlay muted />
+                  ) : selectedClip.videoId ? (
+                    <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Clip" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-500"><Play className="w-16 h-16" /></div>
+                  )}
                 </div>
                 <div className="w-80 border-l border-gray-800 flex flex-col">
                   <div className="p-4 border-b border-gray-800 flex justify-between items-start">
                     <div>
                       <span className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === selectedClip.type)?.color + '30', color: classificationOptions.find(o => o.id === selectedClip.type)?.color }}>{classificationOptions.find(o => o.id === selectedClip.type)?.icon} {selectedClip.type}</span>
-                      <h3 className="font-semibold mt-2">{selectedClip.device}</h3>
+                      <h3 className="font-semibold mt-2">{selectedClip.location || selectedClip.device}</h3>
                       <p className="text-sm text-gray-400">{selectedClip.time}</p>
                     </div>
                     <button onClick={() => setSelectedClip(null)} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button>
