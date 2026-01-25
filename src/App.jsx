@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, createContext, useContext } from 'react';
-import { Camera, TrendingUp, Users, Bell, Play, Eye, Zap, Globe, Radio, Wifi, MapPin, ThumbsUp, MessageCircle, Share2, Download, X, Settings, ChevronLeft, ChevronRight, Volume2, CreditCard, HardDrive, User, LogOut, ChevronDown, ChevronUp, Send, Film, SkipBack, Plus, Filter, List, Grid, Mail, Lock, EyeOff, Loader, Pencil, Upload } from 'lucide-react';
+import { Camera, TrendingUp, Users, Bell, Play, Eye, Zap, Globe, Radio, Wifi, MapPin, ThumbsUp, MessageCircle, Share2, Download, X, Settings, ChevronLeft, ChevronRight, Volume2, CreditCard, HardDrive, User, LogOut, ChevronDown, ChevronUp, Send, Film, SkipBack, Plus, Filter, List, Grid, Mail, Lock, EyeOff, Loader, Pencil, Upload, Search } from 'lucide-react';
 import logo from './logo.png';
 import cameraImg from './camera.png';
 import profileImg from './profile.jpg';
@@ -649,6 +649,8 @@ function GlobalMapView({ isMobile, onViewProfile }) {
   const [swipeStartY, setSwipeStartY] = useState(null);
   const [showSightingComments, setShowSightingComments] = useState(false);
   const [newSightingComment, setNewSightingComment] = useState('');
+  const [confidenceSort, setConfidenceSort] = useState('desc'); // 'desc' = high to low, 'asc' = low to high
+  const [locationSearch, setLocationSearch] = useState('');
 
   const toggleTypeFilter = (type) => setTypeFilters(prev => ({ ...prev, [type]: !prev[type] }));
   const handleLikeSighting = (id) => setSightingLikes(prev => ({ ...prev, [id]: !prev[id] }));
@@ -698,10 +700,33 @@ function GlobalMapView({ isMobile, onViewProfile }) {
       const cutoff = Date.now() - range.hours * 60 * 60 * 1000;
       filtered = filtered.filter(s => s.timestamp >= cutoff);
     }
+    // Sort by confidence if set, otherwise by timestamp
+    if (confidenceSort === 'desc') {
+      return filtered.sort((a, b) => b.confidence - a.confidence);
+    } else if (confidenceSort === 'asc') {
+      return filtered.sort((a, b) => a.confidence - b.confidence);
+    }
     return filtered.sort((a, b) => b.timestamp - a.timestamp);
   };
 
   const filteredSightings = getFiltered();
+
+  // Handle location search
+  const handleLocationSearch = (e) => {
+    e.preventDefault();
+    if (!locationSearch.trim() || !mapInstanceRef.current) return;
+    
+    // Simple geocoding using Nominatim
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationSearch)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.length > 0) {
+          const { lat, lon } = data[0];
+          mapInstanceRef.current.flyTo([parseFloat(lat), parseFloat(lon)], 10, { duration: 1.5 });
+        }
+      })
+      .catch(err => console.error('Search error:', err));
+  };
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -784,6 +809,22 @@ function GlobalMapView({ isMobile, onViewProfile }) {
               </div>
             )}
           </div>
+
+          {/* Search Bar - Bottom Right */}
+          <form onSubmit={handleLocationSearch} className="absolute bottom-4 right-4 z-[1000]">
+            <div className="flex items-center bg-[#141414]/95 border border-gray-700 rounded-lg overflow-hidden">
+              <input
+                type="text"
+                value={locationSearch}
+                onChange={(e) => setLocationSearch(e.target.value)}
+                placeholder="Search location..."
+                className="bg-transparent px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none w-48"
+              />
+              <button type="submit" className="px-3 py-2 hover:bg-white/10 transition-colors">
+                <Search className="w-4 h-4 text-gray-400" />
+              </button>
+            </div>
+          </form>
 
           {/* Sighting Detail Panel - On Map */}
           {selectedSighting && (
@@ -879,10 +920,15 @@ function GlobalMapView({ isMobile, onViewProfile }) {
               <h3 className="text-sm font-semibold flex items-center gap-2"><Radio className="w-4 h-4 text-green-400 animate-pulse" />Live Sightings</h3>
               <span className="text-xs text-gray-400">{filteredSightings.length} total</span>
             </div>
-            <button className="flex items-center gap-1 mt-2 text-xs text-gray-500 hover:text-green-400 transition-colors">
-              <span>AI Confidence</span>
-              <ChevronDown className="w-3 h-3" />
-            </button>
+            <div className="flex items-center justify-end mt-2">
+              <button 
+                onClick={() => setConfidenceSort(prev => prev === 'desc' ? 'asc' : 'desc')}
+                className="flex items-center gap-1 text-xs text-gray-500 hover:text-green-400 transition-colors"
+              >
+                <span>AI Confidence</span>
+                {confidenceSort === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
+              </button>
+            </div>
           </div>
 
           {/* Sightings List */}
@@ -925,6 +971,20 @@ function GlobalMapView({ isMobile, onViewProfile }) {
           {timeRanges.map(r => (<button key={r.id} onClick={() => setTimeRange(r.id)} className={`flex-1 py-2 text-xs font-medium rounded ${timeRange === r.id ? 'bg-green-500/20 text-green-400' : 'text-gray-400'}`}>{r.label}</button>))}
         </div>
       </div>
+
+      {/* Search Bar - Below Time Range */}
+      <form onSubmit={handleLocationSearch} className="absolute top-16 left-2 right-2 z-[1000]">
+        <div className="flex items-center bg-[#141414]/95 border border-gray-700 rounded-lg overflow-hidden">
+          <Search className="w-4 h-4 text-gray-500 ml-3" />
+          <input
+            type="text"
+            value={locationSearch}
+            onChange={(e) => setLocationSearch(e.target.value)}
+            placeholder="Search location..."
+            className="flex-1 bg-transparent px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none"
+          />
+        </div>
+      </form>
 
       {/* Filter Button - Bottom Left */}
       <button onClick={() => setShowFilters(true)} className="absolute bottom-4 left-4 z-[1000] bg-[#141414]/95 border border-gray-700 rounded-full w-12 h-12 flex items-center justify-center active:scale-95">
