@@ -1717,29 +1717,40 @@ function CommunityView({ isMobile }) {
 }
 
 function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips }) {
+  const { user } = useAuth();
   const subTabs = [
     { id: 'devices', label: 'My Devices', icon: Camera },
     { id: 'clips', label: 'My Clips', icon: Film },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
+  // Generate avatar from username initials if no avatar URL
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header */}
       <div className={`flex-shrink-0 ${isMobile ? 'p-4' : 'p-6'} bg-gradient-to-b from-green-500/10 to-transparent`}>
         <div className="flex items-center gap-4">
-          <div className={`${isMobile ? 'w-16 h-16' : 'w-20 h-20'} rounded-full overflow-hidden border-2 border-green-500/50`}>
-            <img src={profileImg} alt="Profile" className="w-full h-full object-cover" />
+          <div className={`${isMobile ? 'w-16 h-16' : 'w-20 h-20'} rounded-full overflow-hidden border-2 border-green-500/50 flex items-center justify-center bg-green-500/20`}>
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <span className={`font-bold text-green-400 ${isMobile ? 'text-xl' : 'text-2xl'}`}>{getInitials(user?.username)}</span>
+            )}
           </div>
           <div>
-            <h2 className={`font-bold ${isMobile ? 'text-lg' : 'text-2xl'}`}>John Doe</h2>
-            <p className={`text-gray-400 ${isMobile ? 'text-sm' : ''}`}>john@example.com</p>
+            <h2 className={`font-bold ${isMobile ? 'text-lg' : 'text-2xl'}`}>{user?.username || 'User'}</h2>
+            <p className={`text-gray-400 ${isMobile ? 'text-sm' : ''}`}>{user?.email || ''}</p>
           </div>
         </div>
         <div className={`flex ${isMobile ? 'gap-6 mt-4' : 'gap-8 mt-5'}`}>
-          <div><p className={`font-bold text-green-400 ${isMobile ? '' : 'text-xl'}`}>12,450</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>$SKEYE</p></div>
-          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>156</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Classified</p></div>
-          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>#47</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Rank</p></div>
+          <div><p className={`font-bold text-green-400 ${isMobile ? '' : 'text-xl'}`}>{user?.skeyeBalance?.toLocaleString() || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>$SKEYE</p></div>
+          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{clips?.length || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Classified</p></div>
+          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>#{user?.rank || '—'}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Rank</p></div>
         </div>
       </div>
 
@@ -2084,14 +2095,105 @@ function ClipsSubView({ isMobile, clips, devices }) {
 }
 
 function SettingsSubView({ isMobile }) {
+  const { user, logout, token, API_URL } = useAuth();
+  const [editing, setEditing] = useState(false);
+  const [username, setUsername] = useState(user?.username || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [bio, setBio] = useState(user?.bio || '');
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    setMessage('');
+    try {
+      const res = await fetch(`${API_URL}/api/auth/profile`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ username, bio })
+      });
+      if (res.ok) {
+        setMessage('Profile updated!');
+        setEditing(false);
+      } else {
+        const data = await res.json();
+        setMessage(data.error || 'Failed to update');
+      }
+    } catch (err) {
+      setMessage('Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const settingsGroups = [
-    { title: 'Account', items: [{ icon: User, label: 'Edit Profile' }, { icon: CreditCard, label: 'Subscription', badge: 'Pro' }, { icon: HardDrive, label: 'Storage', badge: '45/100GB' }] },
+    { title: 'Account', items: [{ icon: CreditCard, label: 'Subscription', badge: 'Free' }, { icon: HardDrive, label: 'Storage', badge: '0/10GB' }] },
     { title: 'Preferences', items: [{ icon: Bell, label: 'Notifications' }, { icon: Globe, label: 'Language' }] },
     { title: 'Support', items: [{ icon: MessageCircle, label: 'Help Center' }, { icon: Settings, label: 'About' }] },
   ];
 
   return (
     <div className={`${isMobile ? 'p-3 space-y-4' : 'p-5 space-y-6 max-w-2xl'}`}>
+      {/* Edit Profile Section */}
+      <div>
+        <h4 className={`text-gray-500 uppercase font-semibold mb-2 px-2 ${isMobile ? 'text-xs' : 'text-xs'}`}>Profile</h4>
+        <div className="bg-white/5 rounded-2xl overflow-hidden p-4 space-y-4">
+          {message && <div className={`p-2 rounded-lg text-sm ${message.includes('Failed') ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>{message}</div>}
+          
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Username</label>
+            <input 
+              type="text" 
+              value={username} 
+              onChange={(e) => setUsername(e.target.value)}
+              disabled={!editing}
+              className={`w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50 ${!editing ? 'opacity-60' : ''}`}
+            />
+          </div>
+          
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Email</label>
+            <input 
+              type="email" 
+              value={email} 
+              disabled
+              className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white opacity-60"
+            />
+            <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+          </div>
+          
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Bio</label>
+            <textarea 
+              value={bio} 
+              onChange={(e) => setBio(e.target.value)}
+              disabled={!editing}
+              placeholder="Tell us about yourself..."
+              rows={3}
+              className={`w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50 resize-none ${!editing ? 'opacity-60' : ''}`}
+            />
+          </div>
+          
+          <div className="flex gap-2">
+            {editing ? (
+              <>
+                <button onClick={() => setEditing(false)} className="flex-1 py-3 bg-white/5 rounded-xl font-medium text-sm text-gray-400 hover:bg-white/10">Cancel</button>
+                <button onClick={handleSaveProfile} disabled={saving} className="flex-1 py-3 bg-green-500 rounded-xl font-medium text-sm text-white hover:bg-green-600 disabled:opacity-50">
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </>
+            ) : (
+              <button onClick={() => setEditing(true)} className="w-full py-3 bg-green-500/10 text-green-400 rounded-xl font-medium text-sm hover:bg-green-500/20">
+                Edit Profile
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {settingsGroups.map(group => (
         <div key={group.title}>
           <h4 className={`text-gray-500 uppercase font-semibold mb-2 px-2 ${isMobile ? 'text-xs' : 'text-xs'}`}>{group.title}</h4>
@@ -2110,7 +2212,7 @@ function SettingsSubView({ isMobile }) {
           </div>
         </div>
       ))}
-      <button className={`w-full ${isMobile ? 'py-3' : 'py-4'} bg-red-500/10 text-red-400 rounded-xl font-medium hover:bg-red-500/20`}>Sign Out</button>
+      <button onClick={logout} className={`w-full ${isMobile ? 'py-3' : 'py-4'} bg-red-500/10 text-red-400 rounded-xl font-medium hover:bg-red-500/20`}>Sign Out</button>
     </div>
   );
 }
