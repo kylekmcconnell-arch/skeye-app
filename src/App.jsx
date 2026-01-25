@@ -659,6 +659,12 @@ function GlobalMapView({ isMobile, onViewProfile }) {
   const [newSightingComment, setNewSightingComment] = useState('');
   const [confidenceSort, setConfidenceSort] = useState('desc');
   const [locationSearch, setLocationSearch] = useState('');
+  const [classifiedSightings, setClassifiedSightings] = useState({});
+
+  // Handle classification
+  const handleClassifySighting = (sightingId, classification) => {
+    setClassifiedSightings(prev => ({ ...prev, [sightingId]: classification }));
+  };
 
   // Fetch real sightings from API
   useEffect(() => {
@@ -669,23 +675,31 @@ function GlobalMapView({ isMobile, onViewProfile }) {
           const data = await res.json();
           console.log('Fetched sightings:', data); // Debug log
           // Transform API data to match expected format
-          const transformed = data.map(s => ({
-            id: s.id,
-            lat: parseFloat(s.latitude),
-            lng: parseFloat(s.longitude),
-            type: s.classification,
-            confidence: s.ai_confidence || 85,
-            city: s.location,
-            title: s.title,
-            timestamp: new Date(s.created_at).getTime(),
-            time: getTimeAgo(new Date(s.created_at).getTime()),
-            videoUrl: s.video_url,
-            thumbnailUrl: s.thumbnail_url,
-            owner: { username: s.uploader_username || 'Admin', avatar: (s.uploader_username || 'A')[0].toUpperCase() },
-            likes: 0,
-            commentsCount: 0,
-            siteComments: [],
-          }));
+          const transformed = data.map(s => {
+            const createdAt = new Date(s.created_at);
+            return {
+              id: s.id,
+              lat: parseFloat(s.latitude),
+              lng: parseFloat(s.longitude),
+              type: s.classification,
+              confidence: s.ai_confidence || 85,
+              city: s.location,
+              title: s.title,
+              timestamp: createdAt.getTime(),
+              time: getTimeAgo(createdAt.getTime()),
+              utcTime: createdAt.toISOString().slice(0, 19).replace('T', ' ') + ' UTC',
+              videoUrl: s.video_url,
+              thumbnailUrl: s.thumbnail_url,
+              owner: { 
+                username: s.uploader_username || 'Admin', 
+                avatar: (s.uploader_username || 'A')[0].toUpperCase(),
+                avatarUrl: s.uploader_avatar || null
+              },
+              likes: 0,
+              commentsCount: 0,
+              siteComments: [],
+            };
+          });
           console.log('Transformed sightings:', transformed); // Debug log
           setSightings(transformed);
         } else {
@@ -901,8 +915,9 @@ function GlobalMapView({ isMobile, onViewProfile }) {
               <div className="p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h3 className="font-semibold">{selectedSighting.title || selectedSighting.city}</h3>
+                    <h3 className="font-semibold">{selectedSighting.city}</h3>
                     <p className="text-xs text-gray-400">{selectedSighting.time}</p>
+                    <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.utcTime || ''}</p>
                     <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat?.toFixed(4)}°, {selectedSighting.lng?.toFixed(4)}°</p>
                   </div>
                   <div className="text-right">
@@ -915,18 +930,22 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 </div>
                 {/* Owner link */}
                 <button onClick={() => onViewProfile && onViewProfile(selectedSighting.owner.username)} className="flex items-center gap-2 mb-3 hover:bg-white/5 px-2 py-1 rounded-lg -ml-2">
-                  <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center text-[10px] font-bold text-green-400">{selectedSighting.owner.avatar}</div>
+                  {selectedSighting.owner.avatarUrl ? (
+                    <img src={selectedSighting.owner.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center text-[10px] font-bold text-green-400">{selectedSighting.owner.avatar}</div>
+                  )}
                   <span className="text-xs text-green-400">@{selectedSighting.owner.username}</span>
                 </button>
                 {/* Likes & Comments */}
                 <div className="flex items-center gap-3 mb-3">
                   <button onClick={() => handleLikeSighting(selectedSighting.id)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${sightingLikes[selectedSighting.id] ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
                     <ThumbsUp className="w-4 h-4" />
-                    <span className="text-xs font-medium">{selectedSighting.likes + (sightingLikes[selectedSighting.id] ? 1 : 0)}</span>
+                    <span className="text-xs font-medium">{(selectedSighting.likes || 0) + (sightingLikes[selectedSighting.id] ? 1 : 0)}</span>
                   </button>
                   <button onClick={() => setShowSightingComments(!showSightingComments)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${showSightingComments ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
                     <MessageCircle className="w-4 h-4" />
-                    <span className="text-xs font-medium">{selectedSighting.commentsCount}</span>
+                    <span className="text-xs font-medium">{selectedSighting.commentsCount || 0}</span>
                   </button>
                   <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10">
                     <Share2 className="w-4 h-4" />
@@ -1175,12 +1194,17 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 <div>
                   <h3 className="font-semibold text-lg">{selectedSighting.city}</h3>
                   <p className="text-sm text-gray-400">{selectedSighting.time}</p>
-                  <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat.toFixed(4)}°, {selectedSighting.lng.toFixed(4)}°</p>
+                  <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.utcTime || ''}</p>
+                  <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat?.toFixed(4)}°, {selectedSighting.lng?.toFixed(4)}°</p>
                 </div>
               </div>
               {/* Owner link */}
               <button onClick={() => onViewProfile && onViewProfile(selectedSighting.owner.username)} className="flex items-center gap-2 mb-3 hover:bg-white/5 px-2 py-1 rounded-lg -ml-2">
-                <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-bold text-green-400">{selectedSighting.owner.avatar}</div>
+                {selectedSighting.owner.avatarUrl ? (
+                  <img src={selectedSighting.owner.avatarUrl} alt="" className="w-6 h-6 rounded-full object-cover" />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-bold text-green-400">{selectedSighting.owner.avatar}</div>
+                )}
                 <span className="text-sm text-green-400">@{selectedSighting.owner.username}</span>
               </button>
               <div className="flex items-center gap-2 mb-3">
@@ -1191,9 +1215,25 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 <span className="text-xs text-gray-400">AI Confidence: <span className="text-green-400 font-bold">{selectedSighting.confidence}%</span></span>
               </div>
               <p className="text-xs text-gray-400 mb-2">Classify this sighting:</p>
-              <div className="flex gap-1">
-                {classificationOptions.map(opt => (<button key={opt.id} className="flex-1 py-2 rounded-xl active:scale-95 flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}20`, color: opt.color }}><span className="text-base">{opt.icon}</span><span className="text-[8px] font-medium">{opt.label}</span></button>))}
+              <div className="flex gap-1 mb-3">
+                {classificationOptions.map(opt => (
+                  <button 
+                    key={opt.id} 
+                    onClick={() => handleClassifySighting(selectedSighting.id, opt.id)}
+                    className={`flex-1 py-2 rounded-xl active:scale-95 flex flex-col items-center gap-0.5 ${classifiedSightings[selectedSighting.id] === opt.id ? 'ring-2 ring-white' : ''}`} 
+                    style={{ backgroundColor: `${opt.color}20`, color: opt.color }}
+                  >
+                    <span className="text-base">{opt.icon}</span>
+                    <span className="text-[8px] font-medium">{opt.label}</span>
+                  </button>
+                ))}
               </div>
+              <button 
+                className={`w-full py-3 rounded-xl font-medium ${classifiedSightings[selectedSighting.id] ? 'bg-green-500 text-white' : 'bg-white/10 text-gray-400'}`}
+                disabled={!!classifiedSightings[selectedSighting.id]}
+              >
+                {classifiedSightings[selectedSighting.id] ? '✓ Submitted' : 'Skip'}
+              </button>
             </div>
           </div>
         </>
@@ -2832,37 +2872,74 @@ function AdminView({ isMobile }) {
                 />
               </div>
 
-              {/* Location */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="md:col-span-1">
-                  <label className="block text-sm text-gray-400 mb-2">Location Name *</label>
-                  <input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                    placeholder="e.g., Los Angeles, CA"
-                    className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50"
-                  />
+              {/* Location Search */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Search Location *</label>
+                <div className="flex gap-2">
+                  <div className="flex-1 relative">
+                    <input
+                      type="text"
+                      value={formData.location}
+                      onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                      placeholder="Search city or address..."
+                      className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!formData.location) return;
+                      try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formData.location)}`);
+                        const data = await res.json();
+                        if (data && data.length > 0) {
+                          setFormData(prev => ({
+                            ...prev,
+                            location: data[0].display_name.split(',').slice(0, 2).join(','),
+                            latitude: data[0].lat,
+                            longitude: data[0].lon
+                          }));
+                          setMessage('Location found!');
+                        } else {
+                          setMessage('Location not found');
+                        }
+                      } catch (err) {
+                        setMessage('Search failed');
+                      }
+                    }}
+                    className="px-4 py-3 bg-green-500/20 text-green-400 rounded-xl font-medium hover:bg-green-500/30"
+                  >
+                    <Search className="w-5 h-5" />
+                  </button>
                 </div>
+                {(formData.latitude && formData.longitude) && (
+                  <p className="text-xs text-green-400 mt-2">
+                    📍 {formData.latitude}, {formData.longitude}
+                  </p>
+                )}
+              </div>
+
+              {/* Hidden lat/lng inputs for manual override if needed */}
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Latitude *</label>
+                  <label className="block text-sm text-gray-400 mb-2">Latitude</label>
                   <input
                     type="number"
                     step="any"
                     value={formData.latitude}
                     onChange={(e) => setFormData(prev => ({ ...prev, latitude: e.target.value }))}
-                    placeholder="34.0522"
+                    placeholder="Auto-filled"
                     className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Longitude *</label>
+                  <label className="block text-sm text-gray-400 mb-2">Longitude</label>
                   <input
                     type="number"
                     step="any"
                     value={formData.longitude}
                     onChange={(e) => setFormData(prev => ({ ...prev, longitude: e.target.value }))}
-                    placeholder="-118.2437"
+                    placeholder="Auto-filled"
                     className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50"
                   />
                 </div>
