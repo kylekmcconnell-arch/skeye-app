@@ -3825,9 +3825,10 @@ function AdminView({ isMobile }) {
         
         if (res.ok) {
           successCount++;
+          const result = await res.json();
           // Update local state
           setSightings(prev => prev.map(s => 
-            s.id === sighting.id ? { ...s, thumbnail_url: (await res.json()).thumbnailUrl } : s
+            s.id === sighting.id ? { ...s, thumbnail_url: result.thumbnailUrl } : s
           ));
         }
       } catch (err) {
