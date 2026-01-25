@@ -1268,18 +1268,20 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                   <div className="mb-3 border-t border-gray-700 pt-3">
                     <h4 className="text-xs font-semibold text-gray-400 mb-2">COMMENTS ({selectedSighting.siteComments?.length || selectedSighting.commentsCount || 0})</h4>
                     <div className="space-y-2 max-h-32 overflow-y-auto mb-2">
-                      {selectedSighting.siteComments && selectedSighting.commentsCount > 0 ? (
-                        selectedSighting.siteComments.map(c => (
-                          <div key={c.id} className="flex gap-2">
-                            {c.avatarUrl ? (
-                              <img src={c.avatarUrl} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
+                      {selectedSighting.siteComments && selectedSighting.siteComments.length > 0 ? (
+                        selectedSighting.siteComments.map((c, i) => (
+                          <div key={c.id || i} className="flex gap-2">
+                            {(c.user?.avatarUrl || c.avatarUrl) ? (
+                              <img src={c.user?.avatarUrl || c.avatarUrl} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
                             ) : (
-                              <div className="w-6 h-6 rounded-full bg-teal-500/20 flex items-center justify-center text-[10px] font-bold text-teal-400 flex-shrink-0">{c.avatar}</div>
+                              <div className="w-6 h-6 rounded-full bg-teal-500/20 flex items-center justify-center text-[10px] font-bold text-teal-400 flex-shrink-0">
+                                {(c.user?.username || c.user || '?')[0]?.toUpperCase()}
+                              </div>
                             )}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1">
-                                <span className="text-[10px] font-semibold">{c.user}</span>
-                                <span className="text-[9px] text-gray-500">{c.time}</span>
+                                <span className="text-[10px] font-semibold">{c.user?.username || c.user}</span>
+                                <span className="text-[9px] text-gray-500">{c.time || (c.createdAt ? getTimeAgo(new Date(c.createdAt).getTime()) : '')}</span>
                               </div>
                               <p className="text-[10px] text-gray-300">{c.text}</p>
                             </div>
@@ -1586,18 +1588,20 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 <div className="mb-2 border-t border-gray-700 pt-2">
                   <h4 className="text-[10px] font-semibold text-gray-400 mb-2">COMMENTS ({selectedSighting.siteComments?.length || selectedSighting.commentsCount || 0})</h4>
                   <div className="space-y-2 max-h-24 overflow-y-auto mb-2">
-                    {selectedSighting.siteComments && selectedSighting.commentsCount > 0 ? (
+                    {selectedSighting.siteComments && selectedSighting.siteComments.length > 0 ? (
                       selectedSighting.siteComments.map((c, i) => (
-                        <div key={i} className="flex gap-2">
-                          {c.avatarUrl ? (
-                            <img src={c.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
+                        <div key={c.id || i} className="flex gap-2">
+                          {(c.user?.avatarUrl || c.avatarUrl) ? (
+                            <img src={c.user?.avatarUrl || c.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
                           ) : (
-                            <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center text-[8px] font-bold text-teal-400 flex-shrink-0">{c.avatar}</div>
+                            <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center text-[8px] font-bold text-teal-400 flex-shrink-0">
+                              {(c.user?.username || c.user || '?')[0]?.toUpperCase()}
+                            </div>
                           )}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1">
-                              <span className="font-medium text-[10px]">{c.user}</span>
-                              <span className="text-[8px] text-gray-500">{c.time}</span>
+                              <span className="font-medium text-[10px]">{c.user?.username || c.user}</span>
+                              <span className="text-[8px] text-gray-500">{c.time || (c.createdAt ? getTimeAgo(new Date(c.createdAt).getTime()) : '')}</span>
                             </div>
                             <p className="text-[10px] text-gray-300">{c.text}</p>
                           </div>
