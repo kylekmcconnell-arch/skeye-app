@@ -1722,7 +1722,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
               <span className="px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color + '40', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color }}>
                 {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.icon} {currentClip.classification || currentClip.type || 'UAP'}
               </span>
-              {currentClip.confidence && <span className="text-[10px] text-gray-400">AI: <span className="text-teal-400 font-bold">{currentClip.confidence}%</span></span>}
+              {currentClip.confidence && <span className="text-[10px] text-gray-400">AI Confidence: <span className="text-teal-400 font-bold">{currentClip.confidence}%</span></span>}
             </div>
             {/* Location */}
             <h3 className="font-semibold text-sm">{currentClip.location}</h3>
@@ -1744,7 +1744,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
           </div>
           
           {/* Actions on right */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-start gap-2">
             <button onClick={handleLike} className="flex flex-col items-center">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${likedClips[currentClip.id] ? 'bg-teal-500' : 'bg-white/10'}`}><ThumbsUp className="w-4 h-4" /></div>
               <span className="text-[10px] mt-0.5">{siteLikes}</span>
@@ -1753,8 +1753,9 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
               <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"><MessageCircle className="w-4 h-4" /></div>
               <span className="text-[10px] mt-0.5">{siteComments.length}</span>
             </button>
-            <button className="flex flex-col items-center">
+            <button onClick={() => navigator.share ? navigator.share({ title: currentClip.location, url: window.location.href }) : navigator.clipboard.writeText(window.location.href)} className="flex flex-col items-center">
               <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"><Share2 className="w-4 h-4" /></div>
+              <span className="text-[10px] mt-0.5">&nbsp;</span>
             </button>
           </div>
         </div>
