@@ -2628,14 +2628,49 @@ function AvatarPickerModal({ currentAvatar, avatars, onClose }) {
   );
 }
 
-function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips }) {
-  const { user } = useAuth();
+function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips, viewingProfile, setViewingProfile }) {
+  const { user, token } = useAuth();
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
-  const subTabs = [
+  const [publicProfile, setPublicProfile] = useState(null);
+  const [publicClips, setPublicClips] = useState([]);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  
+  // Determine if viewing own profile or another user's
+  const isOwnProfile = !viewingProfile || viewingProfile === user?.username;
+  
+  const subTabs = isOwnProfile ? [
     { id: 'devices', label: 'My Devices', icon: Camera },
     { id: 'clips', label: 'My Clips', icon: Film },
     { id: 'settings', label: 'Settings', icon: Settings },
+  ] : [
+    { id: 'clips', label: 'Clips', icon: Film },
   ];
+
+  // Fetch public profile when viewing another user
+  useEffect(() => {
+    if (viewingProfile && viewingProfile !== user?.username) {
+      setLoadingProfile(true);
+      // Fetch public profile data
+      fetch(`${API_URL}/api/users/${viewingProfile}`)
+        .then(res => res.json())
+        .then(data => {
+          setPublicProfile(data);
+          setLoadingProfile(false);
+        })
+        .catch(err => {
+          console.error('Failed to load profile:', err);
+          setLoadingProfile(false);
+        });
+      
+      // Fetch user's public clips
+      fetch(`${API_URL}/api/users/${viewingProfile}/clips`)
+        .then(res => res.json())
+        .then(data => {
+          setPublicClips(data.clips || []);
+        })
+        .catch(err => console.error('Failed to load clips:', err));
+    }
+  }, [viewingProfile, user?.username]);
 
   // Default avatar options
   const defaultAvatars = [
@@ -2653,46 +2688,93 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
+  // Profile data - use publicProfile when viewing others
+  const displayUser = isOwnProfile ? user : publicProfile;
+  const displayClips = isOwnProfile ? clips : publicClips;
+
+  if (loadingProfile) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader className="w-8 h-8 text-teal-400 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
+      {/* Back button when viewing another profile */}
+      {!isOwnProfile && (
+        <div className="flex-shrink-0 p-3 border-b border-gray-800">
+          <button 
+            onClick={() => setViewingProfile(null)} 
+            className="flex items-center gap-2 text-gray-400 hover:text-white"
+          >
+            <ChevronLeft className="w-5 h-5" />
+            <span className="text-sm">Back to my profile</span>
+          </button>
+        </div>
+      )}
+      
       {/* Header */}
       <div className={`flex-shrink-0 ${isMobile ? 'p-4' : 'p-6'} bg-gradient-to-b from-teal-500/10 to-transparent`}>
         <div className="flex items-center gap-4">
           <div className="relative">
             <div 
-              onClick={() => setShowAvatarPicker(true)}
-              className={`${isMobile ? 'w-16 h-16' : 'w-20 h-20'} rounded-full overflow-hidden border-2 border-teal-500/50 flex items-center justify-center bg-teal-500/20 cursor-pointer hover:border-teal-400 transition-colors`}
+              onClick={() => isOwnProfile && setShowAvatarPicker(true)}
+              className={`${isMobile ? 'w-16 h-16' : 'w-20 h-20'} rounded-full overflow-hidden border-2 border-teal-500/50 flex items-center justify-center bg-teal-500/20 ${isOwnProfile ? 'cursor-pointer hover:border-teal-400' : ''} transition-colors`}
             >
-              {user?.avatarUrl ? (
-                <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+              {displayUser?.avatarUrl ? (
+                <img src={displayUser.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <span className={`font-bold text-teal-400 ${isMobile ? 'text-xl' : 'text-2xl'}`}>{getInitials(user?.username)}</span>
+                <span className={`font-bold text-teal-400 ${isMobile ? 'text-xl' : 'text-2xl'}`}>{getInitials(displayUser?.username)}</span>
               )}
             </div>
-            {/* Pencil Edit Icon */}
-            <button 
-              onClick={() => setShowAvatarPicker(true)}
-              className="absolute bottom-0 right-0 w-6 h-6 bg-teal-500 rounded-full flex items-center justify-center border-2 border-[#0a0a0a] hover:bg-teal-400 transition-colors"
-            >
-              <Pencil className="w-3 h-3 text-white" />
-            </button>
+            {/* Pencil Edit Icon - only on own profile */}
+            {isOwnProfile && (
+              <button 
+                onClick={() => setShowAvatarPicker(true)}
+                className="absolute bottom-0 right-0 w-6 h-6 bg-teal-500 rounded-full flex items-center justify-center border-2 border-[#0a0a0a] hover:bg-teal-400 transition-colors"
+              >
+                <Pencil className="w-3 h-3 text-white" />
+              </button>
+            )}
           </div>
           <div>
-            <h2 className={`font-bold ${isMobile ? 'text-lg' : 'text-2xl'}`}>{user?.username || 'User'}</h2>
-            <p className={`text-gray-400 ${isMobile ? 'text-sm' : ''}`}>{user?.email || ''}</p>
+            <h2 className={`font-bold ${isMobile ? 'text-lg' : 'text-2xl'}`}>
+              {isOwnProfile ? (displayUser?.username || 'User') : `@${displayUser?.username || 'User'}`}
+            </h2>
+            {isOwnProfile && <p className={`text-gray-400 ${isMobile ? 'text-sm' : ''}`}>{displayUser?.email || ''}</p>}
+            {!isOwnProfile && displayUser?.location && (
+              <p className={`text-gray-400 flex items-center gap-1 ${isMobile ? 'text-sm' : ''}`}>
+                <MapPin className="w-3 h-3" />
+                {displayUser.location}
+              </p>
+            )}
+            {!isOwnProfile && displayUser?.bio && (
+              <p className={`text-gray-300 mt-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>{displayUser.bio}</p>
+            )}
           </div>
         </div>
         <div className={`flex ${isMobile ? 'gap-6 mt-4' : 'gap-8 mt-5'}`}>
-          <div><p className={`font-bold text-teal-400 ${isMobile ? '' : 'text-xl'}`}>{user?.skeyeBalance?.toLocaleString() || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>$SKEYE</p></div>
-          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{clips?.length || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Classified</p></div>
-          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>#{user?.rank || '—'}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Rank</p></div>
+          <div><p className={`font-bold text-teal-400 ${isMobile ? '' : 'text-xl'}`}>{displayUser?.skeyeBalance?.toLocaleString() || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>$SKEYE</p></div>
+          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{displayClips?.length || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Clips</p></div>
+          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>#{displayUser?.rank || '—'}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Rank</p></div>
+          {!isOwnProfile && (
+            <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{displayUser?.stats?.classificationsCount || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Classifications</p></div>
+          )}
         </div>
+        {/* Member since - for public profiles */}
+        {!isOwnProfile && displayUser?.createdAt && (
+          <p className={`text-gray-500 mt-3 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+            Member since {new Date(displayUser.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          </p>
+        )}
       </div>
 
-      {/* Avatar Picker Modal */}
-      {showAvatarPicker && (
+      {/* Avatar Picker Modal - only for own profile */}
+      {isOwnProfile && showAvatarPicker && (
         <AvatarPickerModal 
-          currentAvatar={user?.avatarUrl} 
+          currentAvatar={displayUser?.avatarUrl} 
           avatars={defaultAvatars} 
           onClose={() => setShowAvatarPicker(false)} 
         />
@@ -2713,9 +2795,15 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        {profileSubTab === 'devices' && <DevicesSubView isMobile={isMobile} devices={devices} />}
-        {profileSubTab === 'clips' && <ClipsSubView isMobile={isMobile} clips={clips} devices={devices} />}
-        {profileSubTab === 'settings' && <SettingsSubView isMobile={isMobile} />}
+        {isOwnProfile ? (
+          <>
+            {profileSubTab === 'devices' && <DevicesSubView isMobile={isMobile} devices={devices} />}
+            {profileSubTab === 'clips' && <ClipsSubView isMobile={isMobile} clips={clips} devices={devices} />}
+            {profileSubTab === 'settings' && <SettingsSubView isMobile={isMobile} />}
+          </>
+        ) : (
+          <PublicClipsView isMobile={isMobile} clips={displayClips} username={displayUser?.username} />
+        )}
       </div>
     </div>
   );
@@ -2888,6 +2976,127 @@ function DevicesSubView({ isMobile, devices }) {
                 <button className="w-full py-3 bg-teal-500/10 text-teal-400 rounded-xl font-medium hover:bg-teal-500/20">Scan QR Code</button>
                 <button className="w-full py-3 bg-white/5 text-gray-400 rounded-xl font-medium hover:bg-white/10">Enter Serial Number Manually</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Public profile clips view
+function PublicClipsView({ isMobile, clips, username }) {
+  const [selectedClip, setSelectedClip] = useState(null);
+
+  if (!clips || clips.length === 0) {
+    return (
+      <div className={`${isMobile ? 'p-4' : 'p-6'} text-center`}>
+        <Film className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+        <p className="text-gray-400">@{username} hasn't uploaded any clips yet</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`${isMobile ? 'p-3' : 'p-5'}`}>
+      <p className={`text-gray-400 mb-3 ${isMobile ? 'text-xs' : 'text-sm'}`}>{clips.length} clip{clips.length !== 1 ? 's' : ''}</p>
+      
+      {/* Clips List */}
+      <div className="space-y-2">
+        {clips.map((clip, i) => (
+          <div 
+            key={clip.id || i} 
+            onClick={() => setSelectedClip(clip)}
+            className={`flex items-center gap-3 ${isMobile ? 'p-2' : 'p-3'} bg-white/5 rounded-xl hover:bg-white/10 cursor-pointer transition-colors`}
+          >
+            {/* Thumbnail */}
+            <div className={`${isMobile ? 'w-20 h-14' : 'w-28 h-20'} bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden flex-shrink-0`}>
+              {clip.thumbnailUrl ? (
+                <img src={clip.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <Play className="w-6 h-6 text-gray-500" />
+              )}
+              {clip.duration && (
+                <span className="absolute bottom-1 right-1 text-[10px] bg-black/60 px-1 rounded">{clip.duration}</span>
+              )}
+            </div>
+            
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span 
+                  className="px-2 py-0.5 rounded text-[10px] font-bold"
+                  style={{ 
+                    backgroundColor: classificationOptions.find(o => o.id === clip.classification)?.color + '30', 
+                    color: classificationOptions.find(o => o.id === clip.classification)?.color 
+                  }}
+                >
+                  {classificationOptions.find(o => o.id === clip.classification)?.icon} {clip.classification || 'UAP'}
+                </span>
+                {clip.confidence && (
+                  <span className="text-[10px] text-gray-400">AI: <span className="text-teal-400 font-bold">{clip.confidence}%</span></span>
+                )}
+              </div>
+              <p className={`text-gray-300 truncate ${isMobile ? 'text-xs' : 'text-sm'}`}>{clip.location || 'Unknown location'}</p>
+              <p className="text-[10px] text-gray-500">{clip.createdAt ? new Date(clip.createdAt).toLocaleDateString() : ''}</p>
+            </div>
+            
+            {/* Stats */}
+            <div className="flex items-center gap-3 text-gray-400">
+              <div className="flex items-center gap-1">
+                <ThumbsUp className="w-3 h-3" />
+                <span className="text-xs">{clip.likesCount || 0}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <MessageCircle className="w-3 h-3" />
+                <span className="text-xs">{clip.commentsCount || 0}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Clip Detail Modal */}
+      {selectedClip && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={() => setSelectedClip(null)}>
+          <div className={`bg-[#141414] rounded-2xl ${isMobile ? 'w-full max-h-[90vh]' : 'w-full max-w-2xl'} overflow-hidden`} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-3 border-b border-gray-800">
+              <h3 className="font-semibold text-sm">{selectedClip.location || 'Clip'}</h3>
+              <button onClick={() => setSelectedClip(null)} className="p-2 hover:bg-white/10 rounded-lg">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            <div className="aspect-video bg-black">
+              {selectedClip.videoUrl ? (
+                <video src={selectedClip.videoUrl} className="w-full h-full" controls autoPlay muted />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-500">
+                  <Play className="w-16 h-16" />
+                </div>
+              )}
+            </div>
+            <div className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span 
+                  className="px-2 py-1 rounded text-xs font-bold"
+                  style={{ 
+                    backgroundColor: classificationOptions.find(o => o.id === selectedClip.classification)?.color + '30', 
+                    color: classificationOptions.find(o => o.id === selectedClip.classification)?.color 
+                  }}
+                >
+                  {classificationOptions.find(o => o.id === selectedClip.classification)?.icon} {selectedClip.classification || 'UAP'}
+                </span>
+                {selectedClip.confidence && (
+                  <span className="text-xs text-gray-400">AI Confidence: <span className="text-teal-400 font-bold">{selectedClip.confidence}%</span></span>
+                )}
+              </div>
+              <p className="text-sm text-gray-300">{selectedClip.location}</p>
+              <p className="text-xs text-gray-500 mt-1">{selectedClip.createdAt ? new Date(selectedClip.createdAt).toLocaleString() : ''}</p>
+              {/* Blockchain link */}
+              <a href="https://solscan.io" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mt-2 text-xs text-gray-500 hover:text-teal-400">
+                <ExternalLink className="w-3 h-3" />
+                <span>View clip on blockchain</span>
+              </a>
             </div>
           </div>
         </div>
