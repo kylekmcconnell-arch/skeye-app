@@ -3291,6 +3291,15 @@ function CommentsSubView({ isMobile, comments, isOwnProfile, username, onViewSig
     );
   }
 
+  const handleCommentClick = (comment) => {
+    if (comment.type === 'sighting' && comment.sightingId && onViewSighting) {
+      onViewSighting(comment.sightingId);
+    } else if (comment.type === 'thread' && comment.threadId) {
+      // TODO: Navigate to thread when community feature is built
+      console.log('View thread:', comment.threadId);
+    }
+  };
+
   return (
     <div className={`${isMobile ? 'p-3' : 'p-5'}`}>
       <p className={`text-gray-400 mb-3 ${isMobile ? 'text-xs' : 'text-sm'}`}>{comments.length} comment{comments.length !== 1 ? 's' : ''}</p>
@@ -3299,20 +3308,31 @@ function CommentsSubView({ isMobile, comments, isOwnProfile, username, onViewSig
         {comments.map((comment, i) => (
           <div 
             key={comment.id || i} 
-            onClick={() => onViewSighting && onViewSighting(comment.sightingId)}
+            onClick={() => handleCommentClick(comment)}
             className={`${isMobile ? 'p-3' : 'p-4'} bg-white/5 rounded-xl hover:bg-white/10 cursor-pointer transition-colors`}
           >
-            {/* Sighting info */}
+            {/* Location/Thread info */}
             <div className="flex items-center gap-2 mb-2">
-              <MapPin className="w-3 h-3 text-gray-500" />
-              <span className={`text-gray-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>{comment.sightingLocation || 'Unknown location'}</span>
+              {comment.type === 'sighting' ? (
+                <>
+                  <MapPin className="w-3 h-3 text-gray-500" />
+                  <span className={`text-gray-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>{comment.sightingLocation || 'Unknown location'}</span>
+                </>
+              ) : (
+                <>
+                  <MessageCircle className="w-3 h-3 text-gray-500" />
+                  <span className={`text-gray-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>{comment.threadTitle || 'Community thread'}</span>
+                </>
+              )}
               <span className="text-gray-600">•</span>
               <span className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>{comment.createdAt ? getTimeAgo(new Date(comment.createdAt).getTime()) : ''}</span>
             </div>
             {/* Comment text */}
             <p className={`text-white ${isMobile ? 'text-sm' : 'text-base'}`}>{comment.text}</p>
             {/* View indicator */}
-            <p className={`text-teal-400 mt-2 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Tap to view sighting →</p>
+            <p className={`text-teal-400 mt-2 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+              {comment.type === 'sighting' ? 'Tap to view sighting →' : 'Tap to view thread →'}
+            </p>
           </div>
         ))}
       </div>
