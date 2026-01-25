@@ -641,10 +641,12 @@ export default function App() {
 }
 
 function GlobalMapView({ isMobile, onViewProfile }) {
+  const { token, API_URL } = useAuth();
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const [selectedSighting, setSelectedSighting] = useState(null);
-  const [sightings, setSightings] = useState(allSightings);
+  const [sightings, setSightings] = useState([]);
+  const [loadingSightings, setLoadingSightings] = useState(true);
   const [timeRange, setTimeRange] = useState('24h');
   const [showSightingsList, setShowSightingsList] = useState(!isMobile);
   const [showFilters, setShowFilters] = useState(!isMobile);
@@ -655,8 +657,50 @@ function GlobalMapView({ isMobile, onViewProfile }) {
   const [swipeStartY, setSwipeStartY] = useState(null);
   const [showSightingComments, setShowSightingComments] = useState(false);
   const [newSightingComment, setNewSightingComment] = useState('');
-  const [confidenceSort, setConfidenceSort] = useState('desc'); // 'desc' = high to low, 'asc' = low to high
+  const [confidenceSort, setConfidenceSort] = useState('desc');
   const [locationSearch, setLocationSearch] = useState('');
+
+  // Fetch real sightings from API
+  useEffect(() => {
+    const fetchSightings = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/sightings`);
+        if (res.ok) {
+          const data = await res.json();
+          // Transform API data to match expected format
+          const transformed = data.map(s => ({
+            id: s.id,
+            lat: parseFloat(s.latitude),
+            lng: parseFloat(s.longitude),
+            type: s.classification,
+            confidence: s.ai_confidence || 85,
+            city: s.location,
+            title: s.title,
+            timestamp: new Date(s.created_at).getTime(),
+            time: getTimeAgo(new Date(s.created_at).getTime()),
+            videoUrl: s.video_url,
+            thumbnailUrl: s.thumbnail_url,
+            owner: { username: s.uploader_username || 'Admin', avatar: (s.uploader_username || 'A')[0].toUpperCase() },
+            likes: 0,
+            commentsCount: 0,
+            siteComments: [],
+          }));
+          setSightings(transformed.length > 0 ? transformed : allSightings); // Fall back to mock if no real data
+        } else {
+          setSightings(allSightings); // Fall back to mock data
+        }
+      } catch (err) {
+        console.error('Failed to fetch sightings:', err);
+        setSightings(allSightings); // Fall back to mock data
+      } finally {
+        setLoadingSightings(false);
+      }
+    };
+    fetchSightings();
+  }, [API_URL]);
+
+  const toggleTypeFilter = (type) => setTypeFilters(prev => ({ ...prev, [type]: !prev[type] }));
+  const handleLikeSighting = (id) => setSightingLikes(prev => ({ ...prev, [id]: !prev[id] }));
 
   const toggleTypeFilter = (type) => setTypeFilters(prev => ({ ...prev, [type]: !prev[type] }));
   const handleLikeSighting = (id) => setSightingLikes(prev => ({ ...prev, [id]: !prev[id] }));
@@ -836,15 +880,30 @@ function GlobalMapView({ isMobile, onViewProfile }) {
           {selectedSighting && (
             <div className="absolute bottom-4 right-4 z-[1001] w-96 bg-[#141414] rounded-2xl border border-gray-700 shadow-2xl overflow-hidden max-h-[calc(100vh-120px)] overflow-y-auto">
               <div className="aspect-video bg-black relative">
-                <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=0&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Sighting" />
+                {selectedSighting.videoUrl ? (
+                  <video 
+                    key={selectedSighting.id}
+                    src={selectedSighting.videoUrl} 
+                    className="w-full h-full object-contain" 
+                    controls 
+                    autoPlay 
+                    playsInline
+                  />
+                ) : selectedSighting.videoId ? (
+                  <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=0&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Sighting" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-500">
+                    <Play className="w-12 h-12" />
+                  </div>
+                )}
                 <button onClick={() => setSelectedSighting(null)} className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-full"><X className="w-4 h-4" /></button>
               </div>
               <div className="p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h3 className="font-semibold">{selectedSighting.city}</h3>
+                    <h3 className="font-semibold">{selectedSighting.title || selectedSighting.city}</h3>
                     <p className="text-xs text-gray-400">{selectedSighting.time}</p>
-                    <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat.toFixed(4)}°, {selectedSighting.lng.toFixed(4)}°</p>
+                    <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat?.toFixed(4)}°, {selectedSighting.lng?.toFixed(4)}°</p>
                   </div>
                   <div className="text-right">
                     <div className="flex items-center gap-1 px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: `${classificationOptions.find(o => o.id === selectedSighting.type)?.color}33`, color: classificationOptions.find(o => o.id === selectedSighting.type)?.color }}>
@@ -1083,17 +1142,32 @@ function GlobalMapView({ isMobile, onViewProfile }) {
             </div>
             
             <div className="aspect-video bg-black relative">
-              <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=0&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Sighting" />
+              {selectedSighting.videoUrl ? (
+                <video 
+                  key={selectedSighting.id}
+                  src={selectedSighting.videoUrl} 
+                  className="w-full h-full object-contain" 
+                  controls 
+                  autoPlay 
+                  playsInline
+                />
+              ) : selectedSighting.videoId ? (
+                <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=0&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Sighting" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-500">
+                  <Play className="w-12 h-12" />
+                </div>
+              )}
               {/* Right side actions */}
               <div className="absolute right-2 bottom-2 flex flex-col gap-2">
                 <button onClick={() => handleLikeSighting(selectedSighting.id)} className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur ${sightingLikes[selectedSighting.id] ? 'bg-green-500' : 'bg-black/50'}`}>
                   <ThumbsUp className="w-4 h-4" />
                 </button>
-                <span className="text-[10px] text-center">{selectedSighting.likes + (sightingLikes[selectedSighting.id] ? 1 : 0)}</span>
+                <span className="text-[10px] text-center">{(selectedSighting.likes || 0) + (sightingLikes[selectedSighting.id] ? 1 : 0)}</span>
                 <button className="w-10 h-10 rounded-full bg-black/50 backdrop-blur flex items-center justify-center">
                   <MessageCircle className="w-4 h-4" />
                 </button>
-                <span className="text-[10px] text-center">{selectedSighting.commentsCount}</span>
+                <span className="text-[10px] text-center">{selectedSighting.commentsCount || 0}</span>
               </div>
             </div>
             <div className="p-4">
