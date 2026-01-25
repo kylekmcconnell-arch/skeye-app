@@ -422,7 +422,16 @@ function AppContent() {
   const [activeTab, setActiveTab] = useState('map');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [notificationsList, setNotificationsList] = useState(notifications);
+  
+  // Load notifications from localStorage or use defaults
+  const [notificationsList, setNotificationsList] = useState(() => {
+    const saved = localStorage.getItem('skeye_notifications');
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    return notifications;
+  });
+  
   const [profileSubTab, setProfileSubTab] = useState('devices');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [viewingProfile, setViewingProfile] = useState(null);
@@ -431,6 +440,11 @@ function AppContent() {
   const unreadCount = notificationsList.filter(n => !n.read).length;
   const [currentTime, setCurrentTime] = useState(new Date());
   const liveDevices = mockDevices.filter(d => d.status === 'online').length;
+
+  // Save notifications to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('skeye_notifications', JSON.stringify(notificationsList));
+  }, [notificationsList]);
 
   const handleNotificationClick = (notification) => {
     setNotificationsList(prev => prev.map(n => n.id === notification.id ? {...n, read: true} : n));
@@ -516,15 +530,15 @@ function AppContent() {
       <div className={`flex flex-col h-full ${!isAuthenticated ? 'blur-sm pointer-events-none' : ''}`}>
       {/* Header */}
       <header className="relative z-[60] border-b border-green-500/20 bg-[#0a0a0a] flex-shrink-0">
-        <div className={`flex items-center justify-between ${isMobile ? 'px-3 py-2' : 'px-4 py-2 ml-16'}`}>
+        <div className={`flex items-center justify-between ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2 ml-16'}`}>
           <img src={logo} alt="SKEYE.AI" className={`${isMobile ? 'h-5' : 'h-6'} w-auto`} />
           
           {/* UTC Time & Live Devices - Centered */}
-          <div className={`flex items-center gap-2 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+          <div className={`flex items-center gap-1.5 ${isMobile ? 'text-[9px]' : 'text-xs'}`}>
             <span className="text-gray-400 font-mono">{utcTime}</span>
             <span className="text-gray-600">•</span>
             <div className="flex items-center gap-1">
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+              <div className={`${isMobile ? 'w-1 h-1' : 'w-1.5 h-1.5'} bg-green-500 rounded-full animate-pulse`} />
               <span className="text-green-400">{liveDevices} devices live</span>
             </div>
           </div>
@@ -541,8 +555,8 @@ function AppContent() {
                 onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }}
                 className="p-1 hover:bg-white/5 rounded-lg"
               >
-                {user?.avatar_url ? (
-                  <img src={user.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover" />
+                {(user?.avatar_url || user?.avatarUrl) ? (
+                  <img src={user.avatar_url || user.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover" />
                 ) : (
                   <div className="w-7 h-7 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-bold text-green-400">
                     {user?.username?.[0]?.toUpperCase() || 'U'}
@@ -983,7 +997,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <h3 className="font-semibold">{selectedSighting.city}</h3>
-                    <p className="text-xs text-gray-400">{selectedSighting.time}</p>
+                    <p className="text-xs text-gray-400">{selectedSighting.timestamp ? getPreciseTimeAgo(selectedSighting.timestamp) : selectedSighting.time}</p>
                     <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.utcTime || ''}</p>
                     <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat?.toFixed(4)}°, {selectedSighting.lng?.toFixed(4)}°</p>
                   </div>
@@ -1225,14 +1239,6 @@ function GlobalMapView({ isMobile, onViewProfile }) {
             className="absolute inset-x-2 top-2 bottom-2 z-[1001] bg-[#141414] rounded-2xl flex flex-col overflow-hidden"
             style={{ transform: `translateY(${swipeY}px)` }}
           >
-            {/* Close button - top left corner of modal, outside video */}
-            <button 
-              onClick={() => setSelectedSighting(null)} 
-              className="absolute top-2 left-2 z-50 w-8 h-8 bg-black/70 hover:bg-black/90 rounded-full flex items-center justify-center"
-            >
-              <X className="w-5 h-5 text-white" />
-            </button>
-            
             {/* Video - takes most of the space */}
             <div className="flex-1 bg-black relative min-h-0">
               {selectedSighting.videoUrl ? (
@@ -1259,7 +1265,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
             
             {/* Compact Info Panel */}
             <div className="flex-shrink-0 p-3 bg-[#141414]">
-              {/* Top row: Location + Actions */}
+              {/* Top row: Location + Actions + Close */}
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-base truncate">{selectedSighting.city}</h3>
@@ -1267,8 +1273,8 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                   <p className="text-[10px] text-gray-500">{selectedSighting.timestamp ? getPreciseTimeAgo(selectedSighting.timestamp) : selectedSighting.time}</p>
                   <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat?.toFixed(4)}°, {selectedSighting.lng?.toFixed(4)}°</p>
                 </div>
-                {/* Actions - aligned horizontally */}
-                <div className="flex items-start gap-3 ml-2">
+                {/* Actions + Close button */}
+                <div className="flex items-start gap-2 ml-2">
                   <button onClick={() => handleLikeSighting(selectedSighting.id)} className="flex flex-col items-center">
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center ${sightingLikes[selectedSighting.id] ? 'bg-green-500' : 'bg-white/10'}`}>
                       <ThumbsUp className="w-4 h-4" />
@@ -1285,6 +1291,13 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                     <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
                       <Share2 className="w-4 h-4" />
                     </div>
+                  </button>
+                  {/* Close button */}
+                  <button 
+                    onClick={() => setSelectedSighting(null)} 
+                    className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"
+                  >
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
               </div>
