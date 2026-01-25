@@ -822,8 +822,8 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 avatar: (s.uploader_username || 'A')[0].toUpperCase(),
                 avatarUrl: s.uploader_avatar || null
               },
-              likes: 0,
-              commentsCount: 0,
+              likes: parseInt(s.likes_count) || 0,
+              commentsCount: parseInt(s.comments_count) || 0,
               siteComments: [],
             };
           });
@@ -1591,9 +1591,64 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
     }
   };
 
+  // Fetch comments for current clip
+  const [clipComments, setClipComments] = useState({});
+  
+  useEffect(() => {
+    const fetchComments = async () => {
+      if (!currentClip?.id || clipComments[currentClip.id]) return;
+      try {
+        const res = await fetch(`${API_URL}/api/sightings/${currentClip.id}/comments`);
+        if (res.ok) {
+          const data = await res.json();
+          setClipComments(prev => ({ ...prev, [currentClip.id]: data }));
+        }
+      } catch (err) {
+        console.error('Failed to fetch comments:', err);
+      }
+    };
+    fetchComments();
+  }, [currentClip?.id, API_URL]);
+
+  // Post comment handler
+  const handlePostComment = async () => {
+    if (!newComment.trim() || !currentClip?.id) return;
+    
+    const commentText = newComment.trim();
+    const newCommentObj = {
+      id: Date.now(),
+      text: commentText,
+      user: { username: user?.username || 'Anonymous', avatar: user?.username?.[0]?.toUpperCase() || 'A', avatarUrl: user?.avatarUrl },
+      createdAt: new Date().toISOString()
+    };
+    
+    // Optimistically update UI
+    setClipComments(prev => ({
+      ...prev,
+      [currentClip.id]: [...(prev[currentClip.id] || []), newCommentObj]
+    }));
+    setNewComment('');
+    
+    // Call API
+    if (token) {
+      try {
+        await fetch(`${API_URL}/api/sightings/${currentClip.id}/comments`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ text: commentText })
+        });
+      } catch (err) {
+        console.error('Failed to post comment:', err);
+      }
+    }
+  };
+
   const siteLikes = (currentClip.siteLikes || 0) + (likedClips[currentClip.id] ? 1 : 0);
-  const siteComments = currentClip.siteComments || [];
-  const commentsCount = currentClip.commentsCount || siteComments.length;
+  const siteComments = clipComments[currentClip.id] || currentClip.siteComments || [];
+  const commentsCount = (clipComments[currentClip.id]?.length) || currentClip.commentsCount || 0;
   const isClassified = !!classifiedClips[currentClip.id];
 
   // Desktop Layout
@@ -1717,12 +1772,16 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                     <p className="text-center text-gray-500 py-4 text-sm">No comments yet. Be the first!</p>
                   ) : (
                     siteComments.map((c, i) => (
-                      <div key={i} className="flex gap-2">
-                        <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center text-xs font-bold text-teal-400 flex-shrink-0">{c.avatar}</div>
+                      <div key={c.id || i} className="flex gap-2">
+                        {(c.user?.avatarUrl || c.avatarUrl) ? (
+                          <img src={c.user?.avatarUrl || c.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center text-xs font-bold text-teal-400 flex-shrink-0">{c.user?.avatar || c.avatar || (c.user?.username || c.user)?.[0]?.toUpperCase() || '?'}</div>
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-xs">{c.user}</span>
-                            <span className="text-[10px] text-gray-500">{c.time}</span>
+                            <span className="font-semibold text-xs">{c.user?.username || c.user || 'Anonymous'}</span>
+                            <span className="text-[10px] text-gray-500">{c.time || (c.createdAt ? getTimeAgo(new Date(c.createdAt).getTime()) : '')}</span>
                           </div>
                           <p className="text-xs text-gray-300 mt-0.5">{c.text}</p>
                         </div>
@@ -1731,8 +1790,8 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Add a comment..." className="flex-1 px-3 py-2 bg-white/5 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-teal-500/50" />
-                  <button className="px-3 py-2 bg-teal-500 rounded-lg text-sm font-medium">Post</button>
+                  <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handlePostComment()} placeholder="Add a comment..." className="flex-1 px-3 py-2 bg-white/5 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-teal-500/50" />
+                  <button onClick={handlePostComment} className="px-3 py-2 bg-teal-500 rounded-lg text-sm font-medium">Post</button>
                 </div>
               </div>
             )}
@@ -1995,17 +2054,21 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
             <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[200px]">
               {commentsCount === 0 ? (<p className="text-center text-gray-500 py-8">No comments yet. Be the first!</p>) : (
                 siteComments.map((c, i) => (
-                  <div key={i} className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center text-xs font-bold text-teal-400 flex-shrink-0">{c.avatar}</div>
-                    <div className="flex-1"><div className="flex items-center gap-2"><span className="font-semibold text-sm">{c.user}</span><span className="text-[10px] text-gray-500">{c.time}</span></div><p className="text-sm text-gray-300 mt-1">{c.text}</p></div>
+                  <div key={c.id || i} className="flex gap-3">
+                    {(c.user?.avatarUrl || c.avatarUrl) ? (
+                      <img src={c.user?.avatarUrl || c.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center text-xs font-bold text-teal-400 flex-shrink-0">{c.user?.avatar || c.avatar || (c.user?.username || c.user)?.[0]?.toUpperCase() || '?'}</div>
+                    )}
+                    <div className="flex-1"><div className="flex items-center gap-2"><span className="font-semibold text-sm">{c.user?.username || c.user || 'Anonymous'}</span><span className="text-[10px] text-gray-500">{c.time || (c.createdAt ? getTimeAgo(new Date(c.createdAt).getTime()) : '')}</span></div><p className="text-sm text-gray-300 mt-1">{c.text}</p></div>
                   </div>
                 ))
               )}
             </div>
             <div className="p-4 border-t border-gray-800">
               <div className="flex gap-2">
-                <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Add a comment..." className="flex-1 px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white text-sm focus:outline-none focus:border-teal-500/50" />
-                <button className="px-4 py-3 bg-teal-500 rounded-xl text-sm font-medium">Post</button>
+                <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handlePostComment()} placeholder="Add a comment..." className="flex-1 px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white text-sm focus:outline-none focus:border-teal-500/50" />
+                <button onClick={handlePostComment} className="px-4 py-3 bg-teal-500 rounded-xl text-sm font-medium">Post</button>
               </div>
             </div>
           </div>
