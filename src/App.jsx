@@ -1250,7 +1250,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
   );
 }
 
-function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile = true, onViewProfile, onClassified }) {
+function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile = true, onViewProfile, onClassified, mode = "trending" }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedClips, setLikedClips] = useState({});
   const [classified, setClassified] = useState(0);
@@ -1259,14 +1259,30 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
   const [newComment, setNewComment] = useState('');
   const currentClip = clips[currentIndex];
 
+  const isTrending = mode === "trending";
+  const isClassifyMode = mode === "classify";
+
   const handlePrev = () => { if (currentIndex > 0) setCurrentIndex(currentIndex - 1); setShowComments(false); };
-  const handleNext = () => { if (currentIndex < clips.length - 1) setCurrentIndex(currentIndex + 1); else setCurrentIndex(0); setShowComments(false); };
+  const handleNext = () => { 
+    // For trending, loop infinitely
+    if (isTrending) {
+      setCurrentIndex((currentIndex + 1) % clips.length);
+    } else {
+      if (currentIndex < clips.length - 1) setCurrentIndex(currentIndex + 1); 
+      else setCurrentIndex(0); 
+    }
+    setShowComments(false); 
+  };
   const handleLike = () => setLikedClips(prev => ({ ...prev, [currentClip.id]: !prev[currentClip.id] }));
   const handleClassify = (type) => { 
     setClassified(prev => prev + 1);
     setClassifiedClips(prev => ({ ...prev, [currentClip.id]: type }));
     if (onClassified) onClassified(currentClip.id);
-    // Don't auto-advance - let user see "Submitted" state
+    // For trending: auto-advance after short delay
+    // For classify: show "Submitted" state
+    if (isTrending) {
+      setTimeout(() => handleNext(), 500);
+    }
   };
 
   const siteLikes = (currentClip.siteLikes || 0) + (likedClips[currentClip.id] ? 1 : 0);
@@ -1304,7 +1320,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
           )}
           
           {/* Nav Arrows */}
-          <button onClick={handlePrev} disabled={currentIndex === 0} className={`absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center z-10 transition-all ${currentIndex === 0 ? 'opacity-30' : ''}`}>
+          <button onClick={handlePrev} disabled={isTrending ? false : currentIndex === 0} className={`absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center z-10 transition-all ${!isTrending && currentIndex === 0 ? 'opacity-30' : ''}`}>
             <ChevronLeft className="w-8 h-8" />
           </button>
           <button onClick={handleNext} className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center z-10">
@@ -1314,21 +1330,23 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
 
         {/* Right Sidebar */}
         <div className="w-80 bg-[#0a0a0a] border-l border-gray-800 flex flex-col overflow-hidden">
-          {/* Progress */}
-          <div className="flex-shrink-0 p-4 border-b border-gray-800">
-            <div className="flex gap-1 mb-3">
-              {clips.map((_, i) => (<div key={i} className={`flex-1 h-1.5 rounded-full transition-all ${i === currentIndex ? 'bg-green-400' : i < currentIndex ? 'bg-green-400/50' : 'bg-gray-700'}`} />))}
+          {/* Progress - only show for classify mode */}
+          {isClassifyMode && (
+            <div className="flex-shrink-0 p-4 border-b border-gray-800">
+              <div className="flex gap-1 mb-3">
+                {clips.map((_, i) => (<div key={i} className={`flex-1 h-1.5 rounded-full transition-all ${i === currentIndex ? 'bg-green-400' : i < currentIndex ? 'bg-green-400/50' : 'bg-gray-700'}`} />))}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-400">{currentIndex + 1} of {clips.length}</span>
+                {showReward && (
+                  <div className="flex items-center gap-1 bg-green-500/20 px-3 py-1 rounded-full">
+                    <Zap className="w-4 h-4 text-green-400" />
+                    <span className="text-sm text-green-400 font-semibold">+50 $SKEYE</span>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-400">{currentIndex + 1} of {clips.length}</span>
-              {showReward && (
-                <div className="flex items-center gap-1 bg-green-500/20 px-3 py-1 rounded-full">
-                  <Zap className="w-4 h-4 text-green-400" />
-                  <span className="text-sm text-green-400 font-semibold">+50 $SKEYE</span>
-                </div>
-              )}
-            </div>
-          </div>
+          )}
 
           {/* Clip Info */}
           <div className="flex-shrink-0 p-4 border-b border-gray-800">
@@ -1410,8 +1428,8 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                   <button 
                     key={opt.id} 
                     onClick={() => !isClassified && handleClassify(opt.id)} 
-                    disabled={isClassified}
-                    className={`w-full py-3 rounded-xl font-semibold transition-transform flex items-center justify-center gap-2 ${isClassified && classifiedClips[currentClip.id] === opt.id ? 'ring-2 ring-white' : ''} ${isClassified ? 'opacity-60' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
+                    disabled={isClassified && isClassifyMode}
+                    className={`w-full py-3 rounded-xl font-semibold transition-transform flex items-center justify-center gap-2 ${isClassified && classifiedClips[currentClip.id] === opt.id ? 'ring-2 ring-white' : ''} ${isClassified && isClassifyMode ? 'opacity-60' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
                     style={{ backgroundColor: `${opt.color}20`, color: opt.color }}
                   >
                     <span className="text-xl">{opt.icon}</span>
@@ -1419,13 +1437,25 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                   </button>
                 ))}
               </div>
-              <button 
-                onClick={handleNext} 
-                className={`w-full mt-3 py-3 rounded-xl font-medium ${isClassified ? 'bg-green-500 text-white' : 'text-gray-400 bg-white/5 hover:bg-white/10'}`}
-              >
-                {isClassified ? '✓ Submitted - Next' : 'Skip'}
-              </button>
-              {classified > 0 && (
+              {/* Only show Skip/Submitted button for classify mode */}
+              {isClassifyMode && (
+                <button 
+                  onClick={handleNext} 
+                  className={`w-full mt-3 py-3 rounded-xl font-medium ${isClassified ? 'bg-green-500 text-white' : 'text-gray-400 bg-white/5 hover:bg-white/10'}`}
+                >
+                  {isClassified ? '✓ Submitted - Next' : 'Skip'}
+                </button>
+              )}
+              {/* For trending, just show a simple next button */}
+              {isTrending && (
+                <button 
+                  onClick={handleNext} 
+                  className="w-full mt-3 py-3 rounded-xl font-medium text-gray-400 bg-white/5 hover:bg-white/10"
+                >
+                  Next
+                </button>
+              )}
+              {classified > 0 && isClassifyMode && (
                 <p className="text-center text-sm text-gray-500 mt-4">Classified today: <span className="text-green-400 font-bold">{classified}</span></p>
               )}
             </div>
@@ -1499,7 +1529,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
       </div>
 
       {/* Swipe Indicators */}
-      {swipeOffset > 40 && currentIndex > 0 && (
+      {swipeOffset > 40 && (isTrending || currentIndex > 0) && (
         <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 backdrop-blur rounded-full p-3">
           <ChevronLeft className="w-8 h-8" />
         </div>
@@ -1510,19 +1540,21 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
         </div>
       )}
       
-      {/* Top Bar - Progress & Info */}
+      {/* Top Bar - Progress & Info - only show progress for classify mode */}
       <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-3 pb-8">
-        <div className="flex gap-1 mb-2">
-          {clips.map((_, i) => (<div key={i} className={`flex-1 h-1 rounded-full transition-all ${i === currentIndex ? 'bg-white' : i < currentIndex ? 'bg-white/50' : 'bg-white/20'}`} />))}
-        </div>
+        {isClassifyMode && (
+          <div className="flex gap-1 mb-2">
+            {clips.map((_, i) => (<div key={i} className={`flex-1 h-1 rounded-full transition-all ${i === currentIndex ? 'bg-white' : i < currentIndex ? 'bg-white/50' : 'bg-white/20'}`} />))}
+          </div>
+        )}
         <div className="flex items-center justify-between">
-          <div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">{currentIndex + 1} / {clips.length}</div>
-          {classified > 0 && (<div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">Classified: <span className="text-green-400 font-bold">{classified}</span></div>)}
+          {isClassifyMode && <div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">{currentIndex + 1} / {clips.length}</div>}
+          {classified > 0 && isClassifyMode && (<div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">Classified: <span className="text-green-400 font-bold">{classified}</span></div>)}
         </div>
       </div>
 
       {/* Nav Arrows */}
-      <button onClick={handlePrev} disabled={currentIndex === 0} className={`absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center z-10 transition-opacity ${currentIndex === 0 ? 'opacity-30' : 'active:scale-95'}`}><ChevronLeft className="w-6 h-6" /></button>
+      <button onClick={handlePrev} disabled={!isTrending && currentIndex === 0} className={`absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center z-10 transition-opacity ${!isTrending && currentIndex === 0 ? 'opacity-30' : 'active:scale-95'}`}><ChevronLeft className="w-6 h-6" /></button>
       <button onClick={handleNext} className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center z-10 active:scale-95"><ChevronRight className="w-6 h-6" /></button>
 
       {/* Right Side Actions */}
@@ -1570,9 +1602,9 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
           {classificationOptions.map(opt => (
             <button 
               key={opt.id} 
-              onClick={() => !isClassified && handleClassify(opt.id)} 
-              disabled={isClassified}
-              className={`flex-1 py-2 rounded-lg transition-transform backdrop-blur flex flex-col items-center gap-0.5 ${isClassified && classifiedClips[currentClip.id] === opt.id ? 'ring-2 ring-white' : ''} ${isClassified ? 'opacity-60' : 'active:scale-95'}`}
+              onClick={() => !(isClassified && isClassifyMode) && handleClassify(opt.id)} 
+              disabled={isClassified && isClassifyMode}
+              className={`flex-1 py-2 rounded-lg transition-transform backdrop-blur flex flex-col items-center gap-0.5 ${isClassified && classifiedClips[currentClip.id] === opt.id ? 'ring-2 ring-white' : ''} ${isClassified && isClassifyMode ? 'opacity-60' : 'active:scale-95'}`}
               style={{ backgroundColor: `${opt.color}30` }}
             >
               <span className="text-base">{opt.icon}</span>
@@ -1580,19 +1612,31 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
             </button>
           ))}
           <div className="flex flex-col gap-1">
-            <button 
-              onClick={handleNext} 
-              className={`px-2 py-1.5 rounded-lg text-[10px] backdrop-blur active:scale-95 ${isClassified ? 'bg-green-500 text-white font-medium' : 'text-gray-400 bg-white/10'}`}
-            >
-              {isClassified ? '✓ Next' : 'Skip'}
-            </button>
-            {showReward && !isClassified && (
+            {/* For classify mode: show Skip/Submitted button */}
+            {isClassifyMode && (
+              <button 
+                onClick={handleNext} 
+                className={`px-2 py-1.5 rounded-lg text-[10px] backdrop-blur active:scale-95 ${isClassified ? 'bg-green-500 text-white font-medium' : 'text-gray-400 bg-white/10'}`}
+              >
+                {isClassified ? '✓ Next' : 'Skip'}
+              </button>
+            )}
+            {/* For trending mode: just Next button */}
+            {isTrending && (
+              <button 
+                onClick={handleNext} 
+                className="px-2 py-1.5 rounded-lg text-[10px] backdrop-blur active:scale-95 text-gray-400 bg-white/10"
+              >
+                Next
+              </button>
+            )}
+            {showReward && !isClassified && isClassifyMode && (
               <div className="flex items-center justify-center gap-0.5 bg-green-500/20 backdrop-blur px-2 py-1 rounded-lg">
                 <Zap className="w-3 h-3 text-green-400" />
                 <span className="text-[9px] text-green-400 font-semibold">+50</span>
               </div>
             )}
-            {isClassified && (
+            {isClassified && isClassifyMode && (
               <div className="flex items-center justify-center gap-0.5 bg-green-500 px-2 py-1 rounded-lg">
                 <Zap className="w-3 h-3 text-white" />
                 <span className="text-[9px] text-white font-semibold">+50</span>
@@ -1715,7 +1759,10 @@ function TrendingView({ isMobile, clips, onViewProfile }) {
     );
   }
 
-  return <VideoFeedView clips={sightings} showReward={false} title="Trending" isMobile={isMobile} onViewProfile={onViewProfile} />;
+  // Shuffle sightings for random order
+  const shuffled = [...sightings].sort(() => Math.random() - 0.5);
+
+  return <VideoFeedView clips={shuffled} showReward={false} title="Trending" isMobile={isMobile} onViewProfile={onViewProfile} mode="trending" />;
 }
 
 function ClassifyView({ isMobile, onViewProfile }) {
@@ -1724,30 +1771,53 @@ function ClassifyView({ isMobile, onViewProfile }) {
   const [loading, setLoading] = useState(true);
   const [classifiedIds, setClassifiedIds] = useState(new Set());
 
+  // Sample comments for random assignment
+  const sampleComments = [
+    { user: 'SkyWatcher_AZ', text: 'Incredible footage! Never seen anything like this.', avatar: 'S' },
+    { user: 'NightOwl42', text: 'This is definitely not a conventional aircraft.', avatar: 'N' },
+    { user: 'DroneHunter', text: 'Could be military? Hard to tell.', avatar: 'D' },
+    { user: 'CosmicEye', text: 'I saw something similar last week!', avatar: 'C' },
+  ];
+
   useEffect(() => {
     const fetchSightings = async () => {
       try {
         const res = await fetch(`${API_URL}/api/sightings`);
         if (res.ok) {
           const data = await res.json();
-          const transformed = data.map((s) => ({
-            id: s.id,
-            videoUrl: s.video_url,
-            location: s.location,
-            title: s.title || s.location,
-            classification: s.classification,
-            confidence: s.ai_confidence,
-            siteLikes: Math.floor(Math.random() * 200) + 20,
-            siteComments: [],
-            owner: { 
-              username: s.uploader_username || 'Admin', 
-              avatar: (s.uploader_username || 'A')[0].toUpperCase(),
-              avatarUrl: s.uploader_avatar 
-            },
-            timestamp: new Date(s.created_at).getTime(),
-            time: getTimeAgo(new Date(s.created_at).getTime()),
-          }));
-          setSightings(transformed);
+          const transformed = data.map((s) => {
+            const numComments = Math.floor(Math.random() * 3);
+            const randomComments = [];
+            for (let j = 0; j < numComments; j++) {
+              const comment = sampleComments[Math.floor(Math.random() * sampleComments.length)];
+              randomComments.push({
+                ...comment,
+                id: j,
+                time: `${Math.floor(Math.random() * 12) + 1}h ago`,
+                likes: Math.floor(Math.random() * 50)
+              });
+            }
+            return {
+              id: s.id,
+              videoUrl: s.video_url,
+              location: s.location,
+              title: s.title || s.location,
+              classification: s.classification,
+              confidence: s.ai_confidence,
+              siteLikes: Math.floor(Math.random() * 200) + 20,
+              siteComments: randomComments,
+              owner: { 
+                username: s.uploader_username || 'Admin', 
+                avatar: (s.uploader_username || 'A')[0].toUpperCase(),
+                avatarUrl: s.uploader_avatar 
+              },
+              timestamp: new Date(s.created_at).getTime(),
+              time: getTimeAgo(new Date(s.created_at).getTime()),
+            };
+          });
+          // Shuffle for random order
+          const shuffled = transformed.sort(() => Math.random() - 0.5);
+          setSightings(shuffled);
         }
       } catch (err) {
         console.error('Failed to fetch sightings:', err);
@@ -1783,7 +1853,7 @@ function ClassifyView({ isMobile, onViewProfile }) {
     );
   }
 
-  return <VideoFeedView clips={unclassifiedSightings} showReward={true} title="Classify" isMobile={isMobile} onViewProfile={onViewProfile} onClassified={handleClassified} />;
+  return <VideoFeedView clips={unclassifiedSightings} showReward={true} title="Classify" isMobile={isMobile} onViewProfile={onViewProfile} onClassified={handleClassified} mode="classify" />;
 }
 
 const communityTopics = [
