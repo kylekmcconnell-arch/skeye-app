@@ -1461,7 +1461,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
   );
 }
 
-function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile = true, onViewProfile, onClassified, mode = "trending" }) {
+function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile = true, onViewProfile, onClassified, mode = "trending", totalClassifications = 0 }) {
   const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedClips, setLikedClips] = useState({});
@@ -1474,6 +1474,9 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
 
   const isTrending = mode === "trending";
   const isClassifyMode = mode === "classify";
+  
+  // Use totalClassifications from parent if available, otherwise use local session count
+  const displayClassifications = totalClassifications > 0 ? totalClassifications + classified : classified;
 
   const handlePrev = () => { if (currentIndex > 0) setCurrentIndex(currentIndex - 1); setShowComments(false); };
   const handleNext = () => { 
@@ -1688,8 +1691,8 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                   <span className="text-sm font-bold">+50 $SKEYE</span>
                 </div>
               )}
-              {classified > 0 && isClassifyMode && (
-                <p className="text-center text-sm text-gray-500 mt-4">Classified today: <span className="text-teal-400 font-bold">{classified}</span></p>
+              {(displayClassifications > 0) && isClassifyMode && (
+                <p className="text-center text-sm text-gray-500 mt-4">Total classified: <span className="text-teal-400 font-bold">{displayClassifications}</span></p>
               )}
             </div>
           </div>
@@ -2013,10 +2016,33 @@ function TrendingView({ isMobile, clips, onViewProfile }) {
 }
 
 function ClassifyView({ isMobile, onViewProfile }) {
-  const { API_URL, user } = useAuth();
+  const { API_URL, token, user } = useAuth();
   const [sightings, setSightings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [classifiedIds, setClassifiedIds] = useState(new Set());
+  const [totalClassifications, setTotalClassifications] = useState(0);
+
+  // Load user's previous classifications on mount
+  useEffect(() => {
+    const loadMyClassifications = async () => {
+      if (!token) return;
+      try {
+        const res = await fetch(`${API_URL}/api/sightings/my-classifications`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          // data is an object like { sightingId: classification, ... }
+          const ids = Object.keys(data).map(id => parseInt(id));
+          setClassifiedIds(new Set(ids));
+          setTotalClassifications(ids.length);
+        }
+      } catch (err) {
+        console.error('Failed to load classifications:', err);
+      }
+    };
+    loadMyClassifications();
+  }, [token, API_URL]);
 
   // Sample comments for random assignment
   const sampleComments = [
@@ -2082,6 +2108,7 @@ function ClassifyView({ isMobile, onViewProfile }) {
 
   const handleClassified = (id) => {
     setClassifiedIds(prev => new Set([...prev, id]));
+    setTotalClassifications(prev => prev + 1);
   };
 
   if (loading) {
@@ -2098,11 +2125,12 @@ function ClassifyView({ isMobile, onViewProfile }) {
         <Eye className="w-16 h-16 mb-4 text-teal-400" />
         <h2 className="text-xl font-bold text-white mb-2">All Caught Up!</h2>
         <p className="text-center">You've classified all available sightings. Check back later for more!</p>
+        <p className="text-center mt-4 text-teal-400 font-semibold">Total classifications: {totalClassifications}</p>
       </div>
     );
   }
 
-  return <VideoFeedView clips={unclassifiedSightings} showReward={true} title="Classify" isMobile={isMobile} onViewProfile={onViewProfile} onClassified={handleClassified} mode="classify" />;
+  return <VideoFeedView clips={unclassifiedSightings} showReward={true} title="Classify" isMobile={isMobile} onViewProfile={onViewProfile} onClassified={handleClassified} mode="classify" totalClassifications={totalClassifications} />;
 }
 
 const communityTopics = [
@@ -2656,6 +2684,7 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
   const [publicProfile, setPublicProfile] = useState(null);
   const [publicClips, setPublicClips] = useState([]);
   const [loadingProfile, setLoadingProfile] = useState(false);
+  const [ownClassificationsCount, setOwnClassificationsCount] = useState(0);
   
   // Determine if viewing own profile or another user's
   const isOwnProfile = !viewingProfile || viewingProfile === user?.username;
@@ -2667,6 +2696,21 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
   ] : [
     { id: 'clips', label: 'Clips', icon: Film },
   ];
+
+  // Fetch own classifications count
+  useEffect(() => {
+    if (isOwnProfile && token) {
+      fetch(`${API_URL}/api/sightings/my-classifications`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          const count = Object.keys(data).length;
+          setOwnClassificationsCount(count);
+        })
+        .catch(err => console.error('Failed to load classifications count:', err));
+    }
+  }, [isOwnProfile, token, API_URL]);
 
   // Fetch public profile when viewing another user
   useEffect(() => {
@@ -2781,6 +2825,9 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
           <div><p className={`font-bold text-teal-400 ${isMobile ? '' : 'text-xl'}`}>{displayUser?.skeyeBalance?.toLocaleString() || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>$SKEYE</p></div>
           <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{displayClips?.length || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Clips</p></div>
           <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>#{displayUser?.rank || '—'}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Rank</p></div>
+          {isOwnProfile && (
+            <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{ownClassificationsCount}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Classified</p></div>
+          )}
           {!isOwnProfile && (
             <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{displayUser?.stats?.classificationsCount || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Classifications</p></div>
           )}
