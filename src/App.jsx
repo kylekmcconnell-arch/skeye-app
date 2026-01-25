@@ -2934,6 +2934,9 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [ownClassificationsCount, setOwnClassificationsCount] = useState(0);
   const [userComments, setUserComments] = useState([]);
+  const [selectedSighting, setSelectedSighting] = useState(null);
+  const [sightingComments, setSightingComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
   
   // Determine if viewing own profile or another user's
   const isOwnProfile = !viewingProfile || viewingProfile === user?.username;
@@ -2947,6 +2950,51 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
     { id: 'clips', label: 'Clips', icon: Film },
     { id: 'comments', label: 'Comments', icon: MessageCircle },
   ];
+
+  // View sighting from comment click
+  const handleViewSighting = async (sightingId) => {
+    if (!sightingId) return;
+    try {
+      // Fetch the sighting details
+      const res = await fetch(`${API_URL}/api/sightings/${sightingId}`);
+      if (res.ok) {
+        const sighting = await res.json();
+        setSelectedSighting(sighting);
+        // Fetch comments for this sighting
+        const commentsRes = await fetch(`${API_URL}/api/sightings/${sightingId}/comments`);
+        if (commentsRes.ok) {
+          const comments = await commentsRes.json();
+          setSightingComments(comments);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch sighting:', err);
+    }
+  };
+
+  // Post comment on sighting
+  const handlePostComment = async () => {
+    if (!newComment.trim() || !selectedSighting || !token) return;
+    const commentText = newComment.trim();
+    const tempComment = {
+      id: Date.now(),
+      text: commentText,
+      user: { username: user?.username, avatarUrl: user?.avatarUrl },
+      createdAt: new Date().toISOString()
+    };
+    setSightingComments(prev => [...prev, tempComment]);
+    setNewComment('');
+    
+    try {
+      await fetch(`${API_URL}/api/sightings/${selectedSighting.id}/comments`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: commentText })
+      });
+    } catch (err) {
+      console.error('Failed to post comment:', err);
+    }
+  };
 
   // Fetch user's comments
   useEffect(() => {
@@ -3140,21 +3188,94 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
           <>
             {profileSubTab === 'devices' && <DevicesSubView isMobile={isMobile} devices={devices} />}
             {profileSubTab === 'clips' && <ClipsSubView isMobile={isMobile} clips={clips} devices={devices} />}
-            {profileSubTab === 'comments' && <CommentsSubView isMobile={isMobile} comments={userComments} isOwnProfile={true} />}
+            {profileSubTab === 'comments' && <CommentsSubView isMobile={isMobile} comments={userComments} isOwnProfile={true} onViewSighting={handleViewSighting} />}
             {profileSubTab === 'settings' && <SettingsSubView isMobile={isMobile} />}
           </>
         ) : (
           <>
             {profileSubTab === 'clips' && <PublicClipsView isMobile={isMobile} clips={displayClips} username={displayUser?.username} />}
-            {profileSubTab === 'comments' && <CommentsSubView isMobile={isMobile} comments={userComments} isOwnProfile={false} username={displayUser?.username} />}
+            {profileSubTab === 'comments' && <CommentsSubView isMobile={isMobile} comments={userComments} isOwnProfile={false} username={displayUser?.username} onViewSighting={handleViewSighting} />}
           </>
         )}
       </div>
+
+      {/* Sighting Modal from Comment Click */}
+      {selectedSighting && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={() => setSelectedSighting(null)}>
+          <div className={`bg-[#141414] rounded-2xl ${isMobile ? 'w-full max-h-[90vh]' : 'w-full max-w-2xl max-h-[80vh]'} overflow-hidden flex flex-col`} onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-800">
+              <div>
+                <h3 className="font-semibold">{selectedSighting.location || 'Sighting'}</h3>
+                <p className="text-xs text-gray-400">{selectedSighting.created_at ? new Date(selectedSighting.created_at).toLocaleDateString() : ''}</p>
+              </div>
+              <button onClick={() => setSelectedSighting(null)} className="p-2 hover:bg-white/10 rounded-lg">
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+            
+            {/* Video */}
+            <div className="aspect-video bg-black flex-shrink-0">
+              {selectedSighting.video_url ? (
+                <video src={selectedSighting.video_url} className="w-full h-full object-contain" controls autoPlay muted />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-500">
+                  <Play className="w-16 h-16" />
+                </div>
+              )}
+            </div>
+            
+            {/* Comments Section */}
+            <div className="flex-1 overflow-y-auto p-4 min-h-0">
+              <h4 className="text-sm font-semibold text-gray-400 mb-3">COMMENTS ({sightingComments.length})</h4>
+              <div className="space-y-3 mb-4">
+                {sightingComments.length === 0 ? (
+                  <p className="text-gray-500 text-sm">No comments yet</p>
+                ) : (
+                  sightingComments.map((c, i) => (
+                    <div key={c.id || i} className="flex gap-2">
+                      {c.user?.avatarUrl ? (
+                        <img src={c.user.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center text-xs font-bold text-teal-400 flex-shrink-0">
+                          {(c.user?.username || '?')[0].toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-xs">{c.user?.username || 'Anonymous'}</span>
+                          <span className="text-[10px] text-gray-500">{c.createdAt ? getTimeAgo(new Date(c.createdAt).getTime()) : ''}</span>
+                        </div>
+                        <p className="text-sm text-gray-300">{c.text}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            
+            {/* Comment Input */}
+            <div className="p-4 border-t border-gray-800">
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={newComment} 
+                  onChange={(e) => setNewComment(e.target.value)} 
+                  onKeyPress={(e) => e.key === 'Enter' && handlePostComment()}
+                  placeholder="Add a comment..." 
+                  className="flex-1 px-4 py-2 bg-white/5 border border-gray-700 rounded-xl text-white text-sm focus:outline-none focus:border-teal-500/50" 
+                />
+                <button onClick={handlePostComment} className="px-4 py-2 bg-teal-500 rounded-xl text-sm font-medium">Post</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function CommentsSubView({ isMobile, comments, isOwnProfile, username }) {
+function CommentsSubView({ isMobile, comments, isOwnProfile, username, onViewSighting }) {
   if (!comments || comments.length === 0) {
     return (
       <div className={`${isMobile ? 'p-4' : 'p-6'} text-center`}>
@@ -3172,7 +3293,11 @@ function CommentsSubView({ isMobile, comments, isOwnProfile, username }) {
       
       <div className="space-y-3">
         {comments.map((comment, i) => (
-          <div key={comment.id || i} className={`${isMobile ? 'p-3' : 'p-4'} bg-white/5 rounded-xl`}>
+          <div 
+            key={comment.id || i} 
+            onClick={() => onViewSighting && onViewSighting(comment.sightingId)}
+            className={`${isMobile ? 'p-3' : 'p-4'} bg-white/5 rounded-xl hover:bg-white/10 cursor-pointer transition-colors`}
+          >
             {/* Sighting info */}
             <div className="flex items-center gap-2 mb-2">
               <MapPin className="w-3 h-3 text-gray-500" />
@@ -3182,6 +3307,8 @@ function CommentsSubView({ isMobile, comments, isOwnProfile, username }) {
             </div>
             {/* Comment text */}
             <p className={`text-white ${isMobile ? 'text-sm' : 'text-base'}`}>{comment.text}</p>
+            {/* View indicator */}
+            <p className={`text-teal-400 mt-2 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Tap to view sighting →</p>
           </div>
         ))}
       </div>
