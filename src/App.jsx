@@ -3175,13 +3175,21 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
 
       {/* Sub Tabs */}
       <div className={`flex-shrink-0 flex border-b border-gray-800 ${isMobile ? '' : 'px-4'}`}>
-        {subTabs.map(tab => {
+        {subTabs.map((tab, index) => {
           const Icon = tab.icon;
           return (
-            <button key={tab.id} onClick={() => setProfileSubTab(tab.id)} className={`flex-1 flex items-center justify-center gap-2 ${isMobile ? 'py-3' : 'py-4'} border-b-2 ${profileSubTab === tab.id ? 'border-teal-400 text-teal-400' : 'border-transparent text-gray-500 hover:text-gray-300'}`}>
-              <Icon className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
-              <span className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>{tab.label}</span>
-            </button>
+            <div key={tab.id} className="flex-1 flex items-center">
+              <button 
+                onClick={() => setProfileSubTab(tab.id)} 
+                className={`flex-1 flex items-center justify-center ${isMobile ? 'gap-1 py-2.5' : 'gap-2 py-4'} border-b-2 ${profileSubTab === tab.id ? 'border-teal-400 text-teal-400' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+              >
+                <Icon className={`${isMobile ? 'w-3.5 h-3.5' : 'w-5 h-5'}`} />
+                <span className={`font-medium whitespace-nowrap ${isMobile ? 'text-[10px]' : 'text-sm'}`}>{tab.label}</span>
+              </button>
+              {index < subTabs.length - 1 && (
+                <div className={`${isMobile ? 'h-4' : 'h-5'} w-px bg-gray-700`} />
+              )}
+            </div>
           );
         })}
       </div>
