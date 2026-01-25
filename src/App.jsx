@@ -781,7 +781,7 @@ function AppContent() {
                     <span>{classificationOptions.find(o => o.id === selectedNotification.classification)?.icon}</span>
                     <span>{selectedNotification.classification}</span>
                   </div>
-                  <p className="text-[10px] text-gray-400 mt-1">{isMobile ? 'AI:' : 'AI Confidence:'} <span className="text-teal-400 font-bold">{selectedNotification.confidence}%</span></p>
+                  <p className="text-[10px] text-gray-400 mt-1">AI Confidence: <span className="text-teal-400 font-bold">{selectedNotification.confidence}%</span></p>
                 </div>
               </div>
               <p className="text-xs text-gray-400 mb-2">Classify this detection:</p>
@@ -1559,7 +1559,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                   <span>{classificationOptions.find(o => o.id === selectedSighting.type)?.icon}</span>
                   <span>{selectedSighting.type}</span>
                 </div>
-                <span className="text-[10px] text-gray-400">AI: <span className="text-teal-400 font-bold">{selectedSighting.confidence}%</span></span>
+                <span className="text-[10px] text-gray-400">AI Confidence: <span className="text-teal-400 font-bold">{selectedSighting.confidence}%</span></span>
               </div>
               {/* Blockchain link */}
               <a href="https://solscan.io" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mb-2 text-[10px] text-gray-500 hover:text-teal-400">
@@ -3590,7 +3590,7 @@ function PublicClipsView({ isMobile, clips, username }) {
                   {classificationOptions.find(o => o.id === clip.classification)?.icon} {clip.classification || 'UAP'}
                 </span>
                 {clip.confidence && (
-                  <span className="text-[10px] text-gray-400">AI: <span className="text-teal-400 font-bold">{clip.confidence}%</span></span>
+                  <span className="text-[10px] text-gray-400">AI Confidence: <span className="text-teal-400 font-bold">{clip.confidence}%</span></span>
                 )}
               </div>
               <p className={`text-gray-300 truncate ${isMobile ? 'text-xs' : 'text-sm'}`}>{clip.location || 'Unknown location'}</p>
