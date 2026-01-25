@@ -124,8 +124,7 @@ function AuthModal({ isOpen, onClose, canClose = true }) {
         {/* Header */}
         <div className="p-6 border-b border-gray-800 text-center">
           <img src={logo} alt="SKEYE.AI" className="h-8 mx-auto mb-4" />
-          <h2 className="text-xl font-bold">{mode === 'signin' ? 'Welcome Back' : 'Join SKEYE.AI'}</h2>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-xs text-gray-400">
             {mode === 'signin' ? 'Sign in to access the global sky-watching network' : 'Create an account to start tracking the skies'}
           </p>
         </div>
@@ -181,14 +180,6 @@ function AuthModal({ isOpen, onClose, canClose = true }) {
           </button>
         </div>
 
-        {mode === 'signup' && (
-          <div className="px-6 pb-6">
-            <div className="flex items-center justify-center gap-2 py-3 bg-green-500/10 rounded-xl border border-green-500/20">
-              <Zap className="w-4 h-4 text-green-400" />
-              <span className="text-sm text-green-400">Get 100 $SKEYE tokens free when you sign up!</span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
