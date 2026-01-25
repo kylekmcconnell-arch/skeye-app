@@ -3623,7 +3623,7 @@ function SettingsSubView({ isMobile }) {
   ];
 
   return (
-    <div className={`${isMobile ? 'p-3 space-y-4' : 'p-5 space-y-6 max-w-2xl'}`}>
+    <div className={`${isMobile ? 'p-3 space-y-4' : 'p-5 space-y-6 max-w-2xl mx-auto'}`}>
       {/* Edit Profile Section */}
       <div>
         <h4 className={`text-gray-500 uppercase font-semibold mb-2 px-2 ${isMobile ? 'text-xs' : 'text-xs'}`}>Profile</h4>
