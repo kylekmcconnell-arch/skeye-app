@@ -828,32 +828,70 @@ function GlobalMapView({ isMobile, onViewProfile }) {
   }, [API_URL]);
 
   const toggleTypeFilter = (type) => setTypeFilters(prev => ({ ...prev, [type]: !prev[type] }));
-  const handleLikeSighting = (id) => setSightingLikes(prev => ({ ...prev, [id]: !prev[id] }));
+  
+  // Like sighting - call API
+  const handleLikeSighting = async (id) => {
+    // Optimistically update UI
+    setSightingLikes(prev => ({ ...prev, [id]: !prev[id] }));
+    
+    // Call API if authenticated
+    if (token) {
+      try {
+        await fetch(`${API_URL}/api/sightings/${id}/like`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      } catch (err) {
+        console.error('Failed to like:', err);
+        // Revert on error
+        setSightingLikes(prev => ({ ...prev, [id]: !prev[id] }));
+      }
+    }
+  };
 
-  const handlePostSightingComment = () => {
+  // Post comment - call API
+  const handlePostSightingComment = async () => {
     if (!newSightingComment.trim() || !selectedSighting) return;
+    
+    const commentText = newSightingComment.trim();
     const newComment = {
       id: Date.now(),
       user: user?.username || 'Anonymous',
       avatar: user?.username?.[0]?.toUpperCase() || 'A',
       avatarUrl: user?.avatarUrl || null,
-      text: newSightingComment,
+      text: commentText,
       time: 'Just now',
       likes: 0
     };
-    // Update the sighting's comments
+    
+    // Optimistically update UI
     setSightings(prev => prev.map(s => 
       s.id === selectedSighting.id 
         ? { ...s, siteComments: [...(s.siteComments || []), newComment], commentsCount: (s.commentsCount || 0) + 1 }
         : s
     ));
-    // Update selected sighting to show new comment
     setSelectedSighting(prev => ({
       ...prev,
       siteComments: [...(prev.siteComments || []), newComment],
       commentsCount: (prev.commentsCount || 0) + 1
     }));
     setNewSightingComment('');
+    
+    // Call API if authenticated
+    if (token) {
+      try {
+        await fetch(`${API_URL}/api/sightings/${selectedSighting.id}/comments`, {
+          method: 'POST',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ text: commentText })
+        });
+      } catch (err) {
+        console.error('Failed to post comment:', err);
+      }
+    }
   };
 
   // Swipe to dismiss handlers
@@ -1462,7 +1500,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
 }
 
 function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile = true, onViewProfile, onClassified, mode = "trending", totalClassifications = 0 }) {
-  const { user } = useAuth();
+  const { user, token, API_URL } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedClips, setLikedClips] = useState({});
   const [classified, setClassified] = useState(0);
@@ -1489,7 +1527,27 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
     }
     setShowComments(false); 
   };
-  const handleLike = () => setLikedClips(prev => ({ ...prev, [currentClip.id]: !prev[currentClip.id] }));
+  
+  // Like handler - call API
+  const handleLike = async () => {
+    // Optimistically update UI
+    setLikedClips(prev => ({ ...prev, [currentClip.id]: !prev[currentClip.id] }));
+    
+    // Call API if authenticated
+    if (token) {
+      try {
+        await fetch(`${API_URL}/api/sightings/${currentClip.id}/like`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      } catch (err) {
+        console.error('Failed to like:', err);
+        // Revert on error
+        setLikedClips(prev => ({ ...prev, [currentClip.id]: !prev[currentClip.id] }));
+      }
+    }
+  };
+  
   const handleClassify = (type) => { 
     setClassified(prev => prev + 1);
     setClassifiedClips(prev => ({ ...prev, [currentClip.id]: type }));
