@@ -509,7 +509,7 @@ function AppContent() {
         if (res.ok) {
           const data = await res.json();
           // Transform clips to match expected format
-          const clips = (data.clips || []).map(clip => ({
+          const transformedClips = (data.clips || []).map(clip => ({
             id: clip.id,
             device: 'My Device',
             time: clip.createdAt ? getTimeAgo(new Date(clip.createdAt).getTime()) : 'Recently',
@@ -522,7 +522,7 @@ function AppContent() {
             likes: clip.likesCount || 0,
             commentsCount: clip.commentsCount || 0
           }));
-          setUserClips(clips);
+          setUserClips(transformedClips);
         }
       } catch (err) {
         console.error('Failed to load user clips:', err);
@@ -3310,7 +3310,6 @@ function PublicClipsView({ isMobile, clips, username }) {
             <div className={`${isMobile ? 'w-20 h-14' : 'w-28 h-20'} bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden flex-shrink-0`}>
               {(clip.thumbnailUrl || localThumbnails[clip.id]) ? (
                 <img src={clip.thumbnailUrl || localThumbnails[clip.id]} alt="" className="w-full h-full object-cover" />
-                <img src={clip.thumbnailUrl} alt="" className="w-full h-full object-cover" />
               ) : (
                 <Play className="w-6 h-6 text-gray-500" />
               )}
