@@ -839,6 +839,25 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
+      <style>{`
+        .scrollbar-dark::-webkit-scrollbar {
+          width: 8px;
+        }
+        .scrollbar-dark::-webkit-scrollbar-track {
+          background: #1a1a1a;
+        }
+        .scrollbar-dark::-webkit-scrollbar-thumb {
+          background: #333;
+          border-radius: 4px;
+        }
+        .scrollbar-dark::-webkit-scrollbar-thumb:hover {
+          background: #444;
+        }
+        .scrollbar-dark {
+          scrollbar-width: thin;
+          scrollbar-color: #333 #1a1a1a;
+        }
+      `}</style>
       <AppContent />
     </AuthProvider>
   );
@@ -941,6 +960,27 @@ function GlobalMapView({ isMobile, onViewProfile }) {
   }, [API_URL]);
 
   const toggleTypeFilter = (type) => setTypeFilters(prev => ({ ...prev, [type]: !prev[type] }));
+  
+  // Fetch comments when a sighting is selected
+  useEffect(() => {
+    const fetchComments = async () => {
+      if (!selectedSighting?.id) return;
+      try {
+        const res = await fetch(`${API_URL}/api/sightings/${selectedSighting.id}/comments`);
+        if (res.ok) {
+          const comments = await res.json();
+          setSelectedSighting(prev => prev ? { ...prev, siteComments: comments } : null);
+          // Also update in sightings array
+          setSightings(prev => prev.map(s => 
+            s.id === selectedSighting.id ? { ...s, siteComments: comments } : s
+          ));
+        }
+      } catch (err) {
+        console.error('Failed to fetch comments:', err);
+      }
+    };
+    fetchComments();
+  }, [selectedSighting?.id, API_URL]);
   
   // Like sighting - call API
   const handleLikeSighting = async (id) => {
@@ -1226,7 +1266,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 {/* Comments Section */}
                 {showSightingComments && (
                   <div className="mb-3 border-t border-gray-700 pt-3">
-                    <h4 className="text-xs font-semibold text-gray-400 mb-2">COMMENTS ({selectedSighting.siteComments?.length || 0})</h4>
+                    <h4 className="text-xs font-semibold text-gray-400 mb-2">COMMENTS ({selectedSighting.siteComments?.length || selectedSighting.commentsCount || 0})</h4>
                     <div className="space-y-2 max-h-32 overflow-y-auto mb-2">
                       {selectedSighting.siteComments && selectedSighting.commentsCount > 0 ? (
                         selectedSighting.siteComments.map(c => (
@@ -1544,7 +1584,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
               {/* Comments Section - Mobile */}
               {showSightingComments && (
                 <div className="mb-2 border-t border-gray-700 pt-2">
-                  <h4 className="text-[10px] font-semibold text-gray-400 mb-2">COMMENTS ({selectedSighting.siteComments?.length || 0})</h4>
+                  <h4 className="text-[10px] font-semibold text-gray-400 mb-2">COMMENTS ({selectedSighting.siteComments?.length || selectedSighting.commentsCount || 0})</h4>
                   <div className="space-y-2 max-h-24 overflow-y-auto mb-2">
                     {selectedSighting.siteComments && selectedSighting.commentsCount > 0 ? (
                       selectedSighting.siteComments.map((c, i) => (
@@ -2893,6 +2933,7 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
   const [publicClips, setPublicClips] = useState([]);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [ownClassificationsCount, setOwnClassificationsCount] = useState(0);
+  const [userComments, setUserComments] = useState([]);
   
   // Determine if viewing own profile or another user's
   const isOwnProfile = !viewingProfile || viewingProfile === user?.username;
@@ -2900,10 +2941,30 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
   const subTabs = isOwnProfile ? [
     { id: 'devices', label: 'My Devices', icon: Camera },
     { id: 'clips', label: 'My Clips', icon: Film },
+    { id: 'comments', label: 'My Comments', icon: MessageCircle },
     { id: 'settings', label: 'Settings', icon: Settings },
   ] : [
     { id: 'clips', label: 'Clips', icon: Film },
+    { id: 'comments', label: 'Comments', icon: MessageCircle },
   ];
+
+  // Fetch user's comments
+  useEffect(() => {
+    const fetchComments = async () => {
+      const username = isOwnProfile ? user?.username : viewingProfile;
+      if (!username) return;
+      try {
+        const res = await fetch(`${API_URL}/api/users/${username}/comments`);
+        if (res.ok) {
+          const data = await res.json();
+          setUserComments(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch comments:', err);
+      }
+    };
+    fetchComments();
+  }, [isOwnProfile, user?.username, viewingProfile, API_URL]);
 
   // Fetch own classifications count
   useEffect(() => {
@@ -3074,16 +3135,55 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto scrollbar-dark">
         {isOwnProfile ? (
           <>
             {profileSubTab === 'devices' && <DevicesSubView isMobile={isMobile} devices={devices} />}
             {profileSubTab === 'clips' && <ClipsSubView isMobile={isMobile} clips={clips} devices={devices} />}
+            {profileSubTab === 'comments' && <CommentsSubView isMobile={isMobile} comments={userComments} isOwnProfile={true} />}
             {profileSubTab === 'settings' && <SettingsSubView isMobile={isMobile} />}
           </>
         ) : (
-          <PublicClipsView isMobile={isMobile} clips={displayClips} username={displayUser?.username} />
+          <>
+            {profileSubTab === 'clips' && <PublicClipsView isMobile={isMobile} clips={displayClips} username={displayUser?.username} />}
+            {profileSubTab === 'comments' && <CommentsSubView isMobile={isMobile} comments={userComments} isOwnProfile={false} username={displayUser?.username} />}
+          </>
         )}
+      </div>
+    </div>
+  );
+}
+
+function CommentsSubView({ isMobile, comments, isOwnProfile, username }) {
+  if (!comments || comments.length === 0) {
+    return (
+      <div className={`${isMobile ? 'p-4' : 'p-6'} text-center`}>
+        <MessageCircle className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+        <p className="text-gray-400">
+          {isOwnProfile ? "You haven't made any comments yet" : `@${username} hasn't made any comments yet`}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`${isMobile ? 'p-3' : 'p-5'}`}>
+      <p className={`text-gray-400 mb-3 ${isMobile ? 'text-xs' : 'text-sm'}`}>{comments.length} comment{comments.length !== 1 ? 's' : ''}</p>
+      
+      <div className="space-y-3">
+        {comments.map((comment, i) => (
+          <div key={comment.id || i} className={`${isMobile ? 'p-3' : 'p-4'} bg-white/5 rounded-xl`}>
+            {/* Sighting info */}
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin className="w-3 h-3 text-gray-500" />
+              <span className={`text-gray-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>{comment.sightingLocation || 'Unknown location'}</span>
+              <span className="text-gray-600">•</span>
+              <span className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>{comment.createdAt ? getTimeAgo(new Date(comment.createdAt).getTime()) : ''}</span>
+            </div>
+            {/* Comment text */}
+            <p className={`text-white ${isMobile ? 'text-sm' : 'text-base'}`}>{comment.text}</p>
+          </div>
+        ))}
       </div>
     </div>
   );
