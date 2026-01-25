@@ -732,7 +732,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
       const icon = opt?.icon || '◆';
       const customIcon = window.L.divIcon({
         className: 'custom-marker',
-        html: `<div style="color: ${color}; font-size: 24px; text-shadow: 0 0 8px ${color}, 0 0 12px ${color}80; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">${icon}</div>`,
+        html: `<div style="color: ${color}; font-size: 24px; text-shadow: 0 0 4px ${color}80; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));">${icon}</div>`,
         iconSize: [24, 24],
         iconAnchor: [12, 12]
       });
@@ -874,18 +874,24 @@ function GlobalMapView({ isMobile, onViewProfile }) {
         {/* Right Sidebar - Live Sightings Only */}
         <div className="w-72 bg-[#0a0a0a] border-l border-gray-800 flex flex-col">
           {/* Live Sightings Header */}
-          <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-            <h3 className="text-sm font-semibold flex items-center gap-2"><Radio className="w-4 h-4 text-green-400 animate-pulse" />Live Sightings</h3>
-            <span className="text-xs text-gray-400">{filteredSightings.length} total</span>
+          <div className="p-4 border-b border-gray-800">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold flex items-center gap-2"><Radio className="w-4 h-4 text-green-400 animate-pulse" />Live Sightings</h3>
+              <span className="text-xs text-gray-400">{filteredSightings.length} total</span>
+            </div>
+            <button className="flex items-center gap-1 mt-2 text-xs text-gray-500 hover:text-green-400 transition-colors">
+              <span>AI Confidence</span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
           </div>
 
           {/* Sightings List */}
           <div className="flex-1 overflow-y-auto scrollbar-dark">
             {filteredSightings.slice(0, 30).map(s => (
               <div key={s.id} onClick={() => handleSelectSighting(s)} className={`flex items-center gap-3 p-3 border-b border-gray-800/50 cursor-pointer hover:bg-white/5 ${selectedSighting?.id === s.id ? 'bg-green-500/10' : ''}`}>
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-sm" style={{ backgroundColor: `${classificationOptions.find(o => o.id === s.type)?.color}33`, color: classificationOptions.find(o => o.id === s.type)?.color }}>
+                <span className="text-base" style={{ color: classificationOptions.find(o => o.id === s.type)?.color }}>
                   {classificationOptions.find(o => o.id === s.type)?.icon}
-                </div>
+                </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-white truncate">{s.city}</p>
                   <p className="text-xs text-gray-500">{s.type} • {s.time}</p>
