@@ -418,19 +418,12 @@ const generateSightings = () => {
 const allSightings = generateSightings();
 
 function AppContent() {
-  const { user, isAuthenticated, loading, logout } = useAuth();
+  const { user, isAuthenticated, loading, logout, token } = useAuth();
   const [activeTab, setActiveTab] = useState('map');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  
-  // Load notifications from localStorage or use defaults
-  const [notificationsList, setNotificationsList] = useState(() => {
-    const saved = localStorage.getItem('skeye_notifications');
-    if (saved) {
-      return JSON.parse(saved);
-    }
-    return notifications;
-  });
+  const [notificationsList, setNotificationsList] = useState(notifications);
+  const [notificationsLoaded, setNotificationsLoaded] = useState(false);
   
   const [profileSubTab, setProfileSubTab] = useState('devices');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -441,10 +434,47 @@ function AppContent() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const liveDevices = mockDevices.filter(d => d.status === 'online').length;
 
-  // Save notifications to localStorage when they change
+  // Load notifications from user account
   useEffect(() => {
-    localStorage.setItem('skeye_notifications', JSON.stringify(notificationsList));
-  }, [notificationsList]);
+    const loadNotifications = async () => {
+      if (!token || notificationsLoaded) return;
+      try {
+        const res = await fetch(`${API_URL}/api/users/me/notifications`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const saved = await res.json();
+          if (saved && saved.list) {
+            setNotificationsList(saved.list);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load notifications:', err);
+      }
+      setNotificationsLoaded(true);
+    };
+    loadNotifications();
+  }, [token, notificationsLoaded]);
+
+  // Save notifications to user account when they change
+  useEffect(() => {
+    const saveNotifications = async () => {
+      if (!token || !notificationsLoaded) return;
+      try {
+        await fetch(`${API_URL}/api/users/me/notifications`, {
+          method: 'PUT',
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ notifications: { list: notificationsList } })
+        });
+      } catch (err) {
+        console.error('Failed to save notifications:', err);
+      }
+    };
+    saveNotifications();
+  }, [notificationsList, token, notificationsLoaded]);
 
   const handleNotificationClick = (notification) => {
     setNotificationsList(prev => prev.map(n => n.id === notification.id ? {...n, read: true} : n));
