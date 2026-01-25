@@ -667,6 +667,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
         const res = await fetch(`${API_URL}/api/sightings`);
         if (res.ok) {
           const data = await res.json();
+          console.log('Fetched sightings:', data); // Debug log
           // Transform API data to match expected format
           const transformed = data.map(s => ({
             id: s.id,
@@ -685,22 +686,21 @@ function GlobalMapView({ isMobile, onViewProfile }) {
             commentsCount: 0,
             siteComments: [],
           }));
-          setSightings(transformed.length > 0 ? transformed : allSightings); // Fall back to mock if no real data
+          console.log('Transformed sightings:', transformed); // Debug log
+          setSightings(transformed);
         } else {
-          setSightings(allSightings); // Fall back to mock data
+          console.error('Failed to fetch sightings, status:', res.status);
+          setSightings([]);
         }
       } catch (err) {
         console.error('Failed to fetch sightings:', err);
-        setSightings(allSightings); // Fall back to mock data
+        setSightings([]);
       } finally {
         setLoadingSightings(false);
       }
     };
     fetchSightings();
   }, [API_URL]);
-
-  const toggleTypeFilter = (type) => setTypeFilters(prev => ({ ...prev, [type]: !prev[type] }));
-  const handleLikeSighting = (id) => setSightingLikes(prev => ({ ...prev, [id]: !prev[id] }));
 
   const toggleTypeFilter = (type) => setTypeFilters(prev => ({ ...prev, [type]: !prev[type] }));
   const handleLikeSighting = (id) => setSightingLikes(prev => ({ ...prev, [id]: !prev[id] }));
