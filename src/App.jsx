@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, createContext, useContext } from 'react';
-import { Camera, TrendingUp, Users, Bell, Play, Eye, Zap, Globe, Radio, Wifi, MapPin, ThumbsUp, MessageCircle, Share2, Download, X, Settings, ChevronLeft, ChevronRight, Volume2, CreditCard, HardDrive, User, LogOut, ChevronDown, ChevronUp, Send, Film, SkipBack, Plus, Filter, List, Grid, Mail, Lock, EyeOff, Loader, Pencil, Upload, Search } from 'lucide-react';
+import { Camera, TrendingUp, Users, Bell, Play, Eye, Zap, Globe, Radio, Wifi, MapPin, ThumbsUp, MessageCircle, Share2, Download, X, Settings, ChevronLeft, ChevronRight, Volume2, CreditCard, HardDrive, User, LogOut, ChevronDown, ChevronUp, Send, Film, SkipBack, Plus, Filter, List, Grid, Mail, Lock, EyeOff, Loader, Pencil, Upload, Search, ExternalLink } from 'lucide-react';
 import logo from './logo.png';
 import cameraImg from './camera.png';
 import profileImg from './profile.jpg';
@@ -1027,8 +1027,12 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <h3 className="font-semibold">{selectedSighting.city}</h3>
+                    {/* Date on its own line */}
+                    {selectedSighting.utcTime && <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.utcTime.split(' ')[0]}</p>}
+                    {/* UTC time on its own line */}
+                    {selectedSighting.utcTime && <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.utcTime.split(' ').slice(1).join(' ')}</p>}
+                    {/* Precise time ago */}
                     <p className="text-xs text-gray-400">{selectedSighting.timestamp ? getPreciseTimeAgo(selectedSighting.timestamp) : selectedSighting.time}</p>
-                    <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.utcTime || ''}</p>
                     <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat?.toFixed(4)}°, {selectedSighting.lng?.toFixed(4)}°</p>
                   </div>
                   <div className="text-right">
@@ -1040,7 +1044,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                   </div>
                 </div>
                 {/* Owner link */}
-                <button onClick={() => onViewProfile && onViewProfile(selectedSighting.owner.username)} className="flex items-center gap-2 mb-3 hover:bg-white/5 px-2 py-1 rounded-lg -ml-2">
+                <button onClick={() => onViewProfile && onViewProfile(selectedSighting.owner.username)} className="flex items-center gap-2 mb-2 hover:bg-white/5 px-2 py-1 rounded-lg -ml-2">
                   {selectedSighting.owner.avatarUrl ? (
                     <img src={selectedSighting.owner.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
                   ) : (
@@ -1048,6 +1052,11 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                   )}
                   <span className="text-xs text-teal-400">@{selectedSighting.owner.username}</span>
                 </button>
+                {/* Blockchain link */}
+                <a href="https://solscan.io" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 mb-3 text-xs text-gray-500 hover:text-teal-400 transition-colors">
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>View clip on blockchain</span>
+                </a>
                 {/* Likes & Comments */}
                 <div className="flex items-center gap-3 mb-3">
                   <button onClick={() => handleLikeSighting(selectedSighting.id)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${sightingLikes[selectedSighting.id] ? 'bg-teal-500/20 text-teal-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
@@ -1298,7 +1307,11 @@ function GlobalMapView({ isMobile, onViewProfile }) {
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-base truncate">{selectedSighting.city}</h3>
-                  <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.utcTime || ''}</p>
+                  {/* Date on its own line */}
+                  {selectedSighting.utcTime && <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.utcTime.split(' ')[0]}</p>}
+                  {/* UTC time on its own line */}
+                  {selectedSighting.utcTime && <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.utcTime.split(' ').slice(1).join(' ')}</p>}
+                  {/* Precise time ago */}
                   <p className="text-[10px] text-gray-500">{selectedSighting.timestamp ? getPreciseTimeAgo(selectedSighting.timestamp) : selectedSighting.time}</p>
                   <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat?.toFixed(4)}°, {selectedSighting.lng?.toFixed(4)}°</p>
                 </div>
@@ -1316,7 +1329,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                     </div>
                     <span className="text-[9px]">{selectedSighting.commentsCount || 0}</span>
                   </button>
-                  <button className="flex flex-col items-center">
+                  <button onClick={() => navigator.share ? navigator.share({ title: selectedSighting.city, url: window.location.href }) : navigator.clipboard.writeText(window.location.href)} className="flex flex-col items-center">
                     <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
                       <Share2 className="w-4 h-4" />
                     </div>
@@ -1331,8 +1344,8 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 </div>
               </div>
               
-              {/* Owner + Classification badge */}
-              <div className="flex items-center gap-2 mb-2">
+              {/* Owner + Classification badge + Blockchain link */}
+              <div className="flex items-center gap-2 mb-1">
                 <button onClick={() => onViewProfile && onViewProfile(selectedSighting.owner.username)} className="flex items-center gap-1.5">
                   {selectedSighting.owner.avatarUrl ? (
                     <img src={selectedSighting.owner.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
@@ -1347,6 +1360,11 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 </div>
                 <span className="text-[10px] text-gray-400">AI: <span className="text-teal-400 font-bold">{selectedSighting.confidence}%</span></span>
               </div>
+              {/* Blockchain link */}
+              <a href="https://solscan.io" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mb-2 text-[10px] text-gray-500 hover:text-teal-400">
+                <ExternalLink className="w-3 h-3" />
+                <span>View clip on blockchain</span>
+              </a>
               
               {/* Classify buttons */}
               <div className="flex gap-1 mb-2">
@@ -1509,8 +1527,12 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
               {currentClip.confidence && <span className="text-xs text-gray-400">AI Confidence: <span className="text-teal-400 font-bold">{currentClip.confidence}%</span></span>}
             </div>
             <h3 className="font-semibold text-lg">{currentClip.location}</h3>
-            {currentClip.utcTime && <p className="text-xs text-gray-500 font-mono mt-1">{currentClip.utcTime}</p>}
-            {currentClip.timestamp && <p className="text-xs text-gray-500 mt-0.5">{getPreciseTimeAgo(currentClip.timestamp)}</p>}
+            {/* Date on its own line */}
+            {currentClip.utcTime && <p className="text-xs text-gray-500 font-mono mt-1">{currentClip.utcTime.split(' ')[0]}</p>}
+            {/* UTC time on its own line */}
+            {currentClip.utcTime && <p className="text-xs text-gray-500 font-mono">{currentClip.utcTime.split(' ').slice(1).join(' ')}</p>}
+            {/* Precise time ago */}
+            {currentClip.timestamp && <p className="text-xs text-gray-500">{getPreciseTimeAgo(currentClip.timestamp)}</p>}
             {/* Owner link */}
             {currentClip.owner && (
               <button onClick={() => onViewProfile && onViewProfile(currentClip.owner.username)} className="flex items-center gap-2 mt-2 hover:bg-white/5 px-2 py-1 rounded-lg -ml-2">
@@ -1522,6 +1544,11 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                 <span className="text-sm text-teal-400">@{currentClip.owner.username}</span>
               </button>
             )}
+            {/* Blockchain link */}
+            <a href="https://solscan.io" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 mt-2 text-xs text-gray-500 hover:text-teal-400 transition-colors">
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>View clip on blockchain</span>
+            </a>
           </div>
 
           {/* Actions */}
@@ -1534,7 +1561,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
               <MessageCircle className="w-5 h-5" />
               <span>{siteComments.length}</span>
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10">
+            <button onClick={() => navigator.share ? navigator.share({ title: currentClip.location, url: window.location.href }) : navigator.clipboard.writeText(window.location.href)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10">
               <Share2 className="w-5 h-5" />
             </button>
           </div>
@@ -1726,8 +1753,10 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
             </div>
             {/* Location */}
             <h3 className="font-semibold text-sm">{currentClip.location}</h3>
-            {/* UTC time */}
-            {currentClip.utcTime && <p className="text-[10px] text-gray-500 font-mono">{currentClip.utcTime}</p>}
+            {/* Date on its own line */}
+            {currentClip.utcTime && <p className="text-[10px] text-gray-500 font-mono">{currentClip.utcTime.split(' ')[0]}</p>}
+            {/* UTC time on its own line */}
+            {currentClip.utcTime && <p className="text-[10px] text-gray-500 font-mono">{currentClip.utcTime.split(' ').slice(1).join(' ')}</p>}
             {/* Precise time ago */}
             {currentClip.timestamp && <p className="text-[10px] text-gray-500">{getPreciseTimeAgo(currentClip.timestamp)}</p>}
             {/* Owner */}
@@ -1741,6 +1770,11 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                 <span className="text-xs text-teal-400">@{currentClip.owner.username}</span>
               </button>
             )}
+            {/* Blockchain link */}
+            <a href="https://solscan.io" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mt-1 text-[10px] text-gray-500 hover:text-teal-400">
+              <ExternalLink className="w-3 h-3" />
+              <span>View clip on blockchain</span>
+            </a>
           </div>
           
           {/* Actions on right */}
