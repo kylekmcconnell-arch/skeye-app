@@ -1979,7 +1979,7 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
         <div className={`flex ${isMobile ? 'gap-6 mt-4' : 'gap-8 mt-5'}`}>
           <div><p className={`font-bold text-green-400 ${isMobile ? '' : 'text-xl'}`}>{user?.skeyeBalance?.toLocaleString() || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>$SKEYE</p></div>
           <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{clips?.length || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Classified</p></div>
-          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>#{user?.id || '—'}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Rank</p></div>
+          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>#{user?.rank || '—'}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Rank</p></div>
         </div>
       </div>
 
