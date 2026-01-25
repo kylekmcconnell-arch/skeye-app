@@ -1,11 +1,39 @@
 import { useState, useEffect, useRef, createContext, useContext } from 'react';
-import { Camera, TrendingUp, Users, Bell, Play, Eye, Zap, Globe, Radio, Wifi, MapPin, ThumbsUp, MessageCircle, Share2, Download, X, Settings, ChevronLeft, ChevronRight, Volume2, CreditCard, HardDrive, User, LogOut, ChevronDown, ChevronUp, Send, Film, SkipBack, Plus, Filter, List, Grid, Mail, Lock, EyeOff, Loader } from 'lucide-react';
+import { Camera, TrendingUp, Users, Bell, Play, Eye, Zap, Globe, Radio, Wifi, MapPin, ThumbsUp, MessageCircle, Share2, Download, X, Settings, ChevronLeft, ChevronRight, Volume2, CreditCard, HardDrive, User, LogOut, ChevronDown, ChevronUp, Send, Film, SkipBack, Plus, Filter, List, Grid, Mail, Lock, EyeOff, Loader, Pencil, Upload } from 'lucide-react';
 import logo from './logo.png';
 import cameraImg from './camera.png';
 import profileImg from './profile.jpg';
 
 // API Configuration
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+// Supabase Configuration
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// Upload image to Supabase Storage
+const uploadAvatar = async (file, userId) => {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${userId}-${Date.now()}.${fileExt}`;
+  const filePath = `avatars/${fileName}`;
+
+  const response = await fetch(`${SUPABASE_URL}/storage/v1/object/${filePath}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': file.type,
+      'x-upsert': 'true'
+    },
+    body: file
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to upload avatar');
+  }
+
+  // Return public URL
+  return `${SUPABASE_URL}/storage/v1/object/public/${filePath}`;
+};
 
 // Auth Context
 const AuthContext = createContext(null);
@@ -46,11 +74,11 @@ function AuthProvider({ children }) {
     }
   };
 
-  const signup = async (username, email, password) => {
+  const signup = async (username, email, password, avatarUrl) => {
     const res = await fetch(`${API_URL}/api/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, email, password })
+      body: JSON.stringify({ username, email, password, avatarUrl })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Signup failed');
@@ -96,9 +124,31 @@ function AuthModal({ isOpen, onClose, canClose = true }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [avatarPreview, setAvatarPreview] = useState(null);
   const { signin, signup } = useAuth();
 
+  // Default avatar options
+  const defaultAvatars = [
+    'https://api.dicebear.com/7.x/bottts/svg?seed=robot1&backgroundColor=0a5c36',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=robot2&backgroundColor=0a5c36',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=robot3&backgroundColor=0a5c36',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=alien1&backgroundColor=0a5c36',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=alien2&backgroundColor=0a5c36',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=ufo1&backgroundColor=0a5c36',
+  ];
+
   if (!isOpen) return null;
+
+  // Convert data URL to File for upload
+  const dataURLtoFile = (dataurl, filename) => {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while(n--) u8arr[n] = bstr.charCodeAt(n);
+    return new File([u8arr], filename, {type: mime});
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -108,7 +158,15 @@ function AuthModal({ isOpen, onClose, canClose = true }) {
       if (mode === 'signin') {
         await signin(email, password);
       } else {
-        await signup(username, email, password);
+        let finalAvatarUrl = avatarPreview;
+        
+        // If avatar is a data URL (custom upload), upload to Supabase first
+        if (avatarPreview && avatarPreview.startsWith('data:')) {
+          const file = dataURLtoFile(avatarPreview, `avatar-${Date.now()}.jpg`);
+          finalAvatarUrl = await uploadAvatar(file, username);
+        }
+        
+        await signup(username, email, password, finalAvatarUrl);
       }
       if (canClose) onClose();
     } catch (err) {
@@ -136,13 +194,54 @@ function AuthModal({ isOpen, onClose, canClose = true }) {
           )}
 
           {mode === 'signup' && (
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Username</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Choose a username" required minLength={3} className="w-full pl-10 pr-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500/50" />
+            <>
+              {/* Avatar Selection */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Choose Avatar</label>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {/* Upload custom avatar button */}
+                  <label className={`w-12 h-12 rounded-full border-2 border-dashed transition-all cursor-pointer flex items-center justify-center ${avatarPreview && !defaultAvatars.includes(avatarPreview) ? 'border-green-500 bg-green-500/20' : 'border-gray-600 hover:border-gray-500 bg-white/5'}`}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => setAvatarPreview(reader.result);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                    {avatarPreview && !defaultAvatars.includes(avatarPreview) ? (
+                      <img src={avatarPreview} alt="Custom" className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      <Upload className="w-5 h-5 text-gray-400" />
+                    )}
+                  </label>
+                  {defaultAvatars.map((avatar, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setAvatarPreview(avatar)}
+                      className={`w-12 h-12 rounded-full overflow-hidden border-2 transition-all ${avatarPreview === avatar ? 'border-green-500 scale-110' : 'border-gray-700 hover:border-gray-500'}`}
+                    >
+                      <img src={avatar} alt={`Avatar ${i + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Upload your own or choose a preset</p>
               </div>
-            </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Username</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                  <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Choose a username" required minLength={3} className="w-full pl-10 pr-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500/50" />
+                </div>
+              </div>
+            </>
           )}
 
           <div>
@@ -1707,12 +1806,138 @@ function CommunityView({ isMobile }) {
   );
 }
 
+// Avatar Picker Modal Component
+function AvatarPickerModal({ currentAvatar, avatars, onClose }) {
+  const { token, API_URL, user } = useAuth();
+  const [selected, setSelected] = useState(currentAvatar);
+  const [customPreview, setCustomPreview] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  // Convert data URL to File for upload
+  const dataURLtoFile = (dataurl, filename) => {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while(n--) u8arr[n] = bstr.charCodeAt(n);
+    return new File([u8arr], filename, {type: mime});
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCustomPreview(reader.result);
+        setSelected(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!selected || selected === currentAvatar) {
+      onClose();
+      return;
+    }
+    setSaving(true);
+    try {
+      let finalAvatarUrl = selected;
+      
+      // If avatar is a data URL (custom upload), upload to Supabase first
+      if (selected && selected.startsWith('data:')) {
+        const file = dataURLtoFile(selected, `avatar-${user?.id}-${Date.now()}.jpg`);
+        finalAvatarUrl = await uploadAvatar(file, user?.id || 'user');
+      }
+      
+      const res = await fetch(`${API_URL}/api/auth/profile`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ avatarUrl: finalAvatarUrl })
+      });
+      if (res.ok) {
+        window.location.reload(); // Refresh to show new avatar
+      }
+    } catch (err) {
+      console.error('Failed to update avatar:', err);
+    } finally {
+      setSaving(false);
+      onClose();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#141414] rounded-2xl border border-gray-700 w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+          <h3 className="font-semibold text-white">Choose Avatar</h3>
+          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg">
+            <X className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+        <div className="p-4">
+          {/* Upload custom option */}
+          <label className={`mb-4 flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-xl cursor-pointer transition-all ${customPreview ? 'border-green-500 bg-green-500/10' : 'border-gray-700 hover:border-gray-500'}`}>
+            <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+            {customPreview ? (
+              <div className="flex items-center gap-3">
+                <img src={customPreview} alt="Custom" className="w-12 h-12 rounded-full object-cover" />
+                <span className="text-sm text-green-400">Custom image selected</span>
+              </div>
+            ) : (
+              <>
+                <Upload className="w-5 h-5 text-gray-400" />
+                <span className="text-sm text-gray-400">Upload your own image</span>
+              </>
+            )}
+          </label>
+          
+          <p className="text-xs text-gray-500 mb-3 text-center">Or choose a preset</p>
+          
+          <div className="grid grid-cols-3 gap-3">
+            {avatars.map((avatar, i) => (
+              <button
+                key={i}
+                onClick={() => { setSelected(avatar); setCustomPreview(null); }}
+                className={`aspect-square rounded-xl overflow-hidden border-2 transition-all ${selected === avatar && !customPreview ? 'border-green-500 scale-105' : 'border-gray-700 hover:border-gray-500'}`}
+              >
+                <img src={avatar} alt={`Avatar ${i + 1}`} className="w-full h-full object-cover" />
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="p-4 border-t border-gray-800 flex gap-2">
+          <button onClick={onClose} className="flex-1 py-3 bg-white/5 rounded-xl font-medium text-sm text-gray-400 hover:bg-white/10">Cancel</button>
+          <button onClick={handleSave} disabled={saving} className="flex-1 py-3 bg-green-500 rounded-xl font-medium text-sm text-white hover:bg-green-600 disabled:opacity-50">
+            {saving ? 'Saving...' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips }) {
   const { user } = useAuth();
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const subTabs = [
     { id: 'devices', label: 'My Devices', icon: Camera },
     { id: 'clips', label: 'My Clips', icon: Film },
     { id: 'settings', label: 'Settings', icon: Settings },
+  ];
+
+  // Default avatar options
+  const defaultAvatars = [
+    'https://api.dicebear.com/7.x/bottts/svg?seed=robot1&backgroundColor=0a5c36',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=robot2&backgroundColor=0a5c36',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=robot3&backgroundColor=0a5c36',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=alien1&backgroundColor=0a5c36',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=alien2&backgroundColor=0a5c36',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=ufo1&backgroundColor=0a5c36',
   ];
 
   // Generate avatar from username initials if no avatar URL
@@ -1726,12 +1951,24 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
       {/* Header */}
       <div className={`flex-shrink-0 ${isMobile ? 'p-4' : 'p-6'} bg-gradient-to-b from-green-500/10 to-transparent`}>
         <div className="flex items-center gap-4">
-          <div className={`${isMobile ? 'w-16 h-16' : 'w-20 h-20'} rounded-full overflow-hidden border-2 border-green-500/50 flex items-center justify-center bg-green-500/20`}>
-            {user?.avatarUrl ? (
-              <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-            ) : (
-              <span className={`font-bold text-green-400 ${isMobile ? 'text-xl' : 'text-2xl'}`}>{getInitials(user?.username)}</span>
-            )}
+          <div className="relative">
+            <div 
+              onClick={() => setShowAvatarPicker(true)}
+              className={`${isMobile ? 'w-16 h-16' : 'w-20 h-20'} rounded-full overflow-hidden border-2 border-green-500/50 flex items-center justify-center bg-green-500/20 cursor-pointer hover:border-green-400 transition-colors`}
+            >
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <span className={`font-bold text-green-400 ${isMobile ? 'text-xl' : 'text-2xl'}`}>{getInitials(user?.username)}</span>
+              )}
+            </div>
+            {/* Pencil Edit Icon */}
+            <button 
+              onClick={() => setShowAvatarPicker(true)}
+              className="absolute bottom-0 right-0 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center border-2 border-[#0a0a0a] hover:bg-green-400 transition-colors"
+            >
+              <Pencil className="w-3 h-3 text-white" />
+            </button>
           </div>
           <div>
             <h2 className={`font-bold ${isMobile ? 'text-lg' : 'text-2xl'}`}>{user?.username || 'User'}</h2>
@@ -1741,9 +1978,18 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
         <div className={`flex ${isMobile ? 'gap-6 mt-4' : 'gap-8 mt-5'}`}>
           <div><p className={`font-bold text-green-400 ${isMobile ? '' : 'text-xl'}`}>{user?.skeyeBalance?.toLocaleString() || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>$SKEYE</p></div>
           <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{clips?.length || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Classified</p></div>
-          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>#{user?.rank || '—'}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Rank</p></div>
+          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>#{user?.id || '—'}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Rank</p></div>
         </div>
       </div>
+
+      {/* Avatar Picker Modal */}
+      {showAvatarPicker && (
+        <AvatarPickerModal 
+          currentAvatar={user?.avatarUrl} 
+          avatars={defaultAvatars} 
+          onClose={() => setShowAvatarPicker(false)} 
+        />
+      )}
 
       {/* Sub Tabs */}
       <div className={`flex-shrink-0 flex border-b border-gray-800 ${isMobile ? '' : 'px-4'}`}>
