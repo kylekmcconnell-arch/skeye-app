@@ -2821,10 +2821,13 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
             )}
           </div>
         </div>
-        <div className={`flex ${isMobile ? 'gap-6 mt-4' : 'gap-8 mt-5'}`}>
+        <div className={`flex ${isMobile ? 'gap-4 mt-4 flex-wrap' : 'gap-8 mt-5'}`}>
           <div><p className={`font-bold text-teal-400 ${isMobile ? '' : 'text-xl'}`}>{displayUser?.skeyeBalance?.toLocaleString() || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>$SKEYE</p></div>
-          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{displayClips?.length || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Clips</p></div>
+          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{isOwnProfile ? (displayClips?.length || 0) : (displayUser?.stats?.clipsCount || displayClips?.length || 0)}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Clips</p></div>
           <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>#{displayUser?.rank || '—'}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Rank</p></div>
+          {!isOwnProfile && (
+            <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{displayUser?.stats?.devicesCount || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Devices</p></div>
+          )}
           {isOwnProfile && (
             <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{ownClassificationsCount}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Classified</p></div>
           )}
@@ -3056,6 +3059,41 @@ function DevicesSubView({ isMobile, devices }) {
 // Public profile clips view
 function PublicClipsView({ isMobile, clips, username }) {
   const [selectedClip, setSelectedClip] = useState(null);
+  const [thumbnails, setThumbnails] = useState({});
+
+  // Generate thumbnail from video
+  const generateThumbnail = (videoUrl, clipId) => {
+    if (thumbnails[clipId] || !videoUrl) return;
+    
+    const video = document.createElement('video');
+    video.crossOrigin = 'anonymous';
+    video.src = videoUrl;
+    video.muted = true;
+    video.currentTime = 1; // Seek to 1 second
+    
+    video.onloadeddata = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 160;
+      canvas.height = 90;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      try {
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        setThumbnails(prev => ({ ...prev, [clipId]: dataUrl }));
+      } catch (e) {
+        // CORS issue, ignore
+      }
+    };
+  };
+
+  // Generate thumbnails for clips without them
+  useEffect(() => {
+    clips.forEach(clip => {
+      if (!clip.thumbnailUrl && clip.videoUrl) {
+        generateThumbnail(clip.videoUrl, clip.id);
+      }
+    });
+  }, [clips]);
 
   if (!clips || clips.length === 0) {
     return (
@@ -3080,8 +3118,8 @@ function PublicClipsView({ isMobile, clips, username }) {
           >
             {/* Thumbnail */}
             <div className={`${isMobile ? 'w-20 h-14' : 'w-28 h-20'} bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden flex-shrink-0`}>
-              {clip.thumbnailUrl ? (
-                <img src={clip.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+              {(clip.thumbnailUrl || thumbnails[clip.id]) ? (
+                <img src={clip.thumbnailUrl || thumbnails[clip.id]} alt="" className="w-full h-full object-cover" />
               ) : (
                 <Play className="w-6 h-6 text-gray-500" />
               )}
