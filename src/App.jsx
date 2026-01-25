@@ -1534,7 +1534,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
             <div className="absolute inset-0 flex items-center justify-center text-gray-500">
               <Play className="w-16 h-16" />
             </div>
-          )}}
+          )}
           
           {/* Nav Arrows */}
           <button onClick={handlePrev} disabled={isTrending ? false : currentIndex === 0} className={`absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center z-10 transition-all ${!isTrending && currentIndex === 0 ? 'opacity-30' : ''}`}>
