@@ -1105,16 +1105,15 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                     </button>
                   ))}
                 </div>
-                {/* Skip/Submitted + Reward */}
+                {/* Close + Submitted indicator + Reward */}
                 <div className="flex items-center gap-2 mt-3">
-                  {classifiedSightings[selectedSighting.id] ? (
-                    <div className="flex-1 flex items-center justify-center gap-2 py-2 text-green-400">
-                      <span className="text-lg">✓</span>
-                      <span className="text-sm font-medium">Submitted</span>
+                  {classifiedSightings[selectedSighting.id] && (
+                    <div className="flex items-center gap-1 text-green-400">
+                      <span className="text-base">✓</span>
+                      <span className="text-xs font-medium">Submitted</span>
                     </div>
-                  ) : (
-                    <button onClick={() => { setSelectedSighting(null); setShowSightingComments(false); }} className="flex-1 py-2 rounded-lg text-sm text-gray-400 bg-white/5 hover:bg-white/10">Skip</button>
                   )}
+                  <button onClick={() => { setSelectedSighting(null); setShowSightingComments(false); }} className="flex-1 py-2 rounded-lg text-sm text-gray-300 bg-white/5 hover:bg-white/10">Close</button>
                   <div className={`flex items-center gap-1 px-3 py-2 rounded-lg ${classifiedSightings[selectedSighting.id] ? 'bg-green-500' : 'bg-green-500/20'}`}>
                     <Zap className={`w-4 h-4 ${classifiedSightings[selectedSighting.id] ? 'text-white' : 'text-green-400'}`} />
                     <span className={`text-sm font-semibold ${classifiedSightings[selectedSighting.id] ? 'text-white' : 'text-green-400'}`}>+50 $SKEYE</span>
@@ -1365,21 +1364,20 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 ))}
               </div>
               
-              {/* Skip/Submitted + Reward */}
+              {/* Close + Submitted indicator + Reward */}
               <div className="flex items-center gap-2">
-                {classifiedSightings[selectedSighting.id] ? (
-                  <div className="flex-1 flex items-center justify-center gap-2 py-2 text-green-400">
-                    <span className="text-lg">✓</span>
-                    <span className="text-sm font-medium">Submitted</span>
+                {classifiedSightings[selectedSighting.id] && (
+                  <div className="flex items-center gap-1 text-green-400">
+                    <span className="text-base">✓</span>
+                    <span className="text-xs font-medium">Submitted</span>
                   </div>
-                ) : (
-                  <button 
-                    onClick={() => { setSelectedSighting(null); }}
-                    className="flex-1 py-2 rounded-lg text-sm font-medium bg-white/10 text-gray-400"
-                  >
-                    Skip
-                  </button>
                 )}
+                <button 
+                  onClick={() => { setSelectedSighting(null); }}
+                  className="flex-1 py-2 rounded-lg text-sm font-medium bg-white/10 text-gray-300"
+                >
+                  Close
+                </button>
                 <div className={`flex items-center gap-1 px-3 py-2 rounded-lg ${classifiedSightings[selectedSighting.id] ? 'bg-green-500' : 'bg-green-500/20'}`}>
                   <Zap className={`w-4 h-4 ${classifiedSightings[selectedSighting.id] ? 'text-white' : 'text-green-400'}`} />
                   <span className={`text-sm font-semibold ${classifiedSightings[selectedSighting.id] ? 'text-white' : 'text-green-400'}`}>+50 $SKEYE</span>
