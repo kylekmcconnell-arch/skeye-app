@@ -463,13 +463,18 @@ function AppContent() {
     };
   }, []);
 
-  const tabs = [
+  const baseTabs = [
     { id: 'map', label: 'Map', icon: Globe },
     { id: 'trending', label: 'Trending', icon: TrendingUp },
     { id: 'classify', label: 'Classify', icon: Eye },
     { id: 'community', label: 'Community', icon: Users },
     { id: 'profile', label: 'Profile', icon: User },
   ];
+
+  // Add admin tab if user is admin
+  const tabs = user?.role === 'admin' 
+    ? [...baseTabs, { id: 'admin', label: 'Admin', icon: Settings }]
+    : baseTabs;
 
   const utcTime = currentTime.toISOString().slice(11, 19) + ' UTC';
 
@@ -545,6 +550,7 @@ function AppContent() {
         {activeTab === 'classify' && <ClassifyView isMobile={isMobile} onViewProfile={(username) => { setViewingProfile(username); setActiveTab('profile'); }} />}
         {activeTab === 'community' && <CommunityView isMobile={isMobile} />}
         {activeTab === 'profile' && <ProfileView isMobile={isMobile} profileSubTab={profileSubTab} setProfileSubTab={setProfileSubTab} devices={mockDevices} clips={myClips} viewingProfile={viewingProfile} setViewingProfile={setViewingProfile} />}
+        {activeTab === 'admin' && user?.role === 'admin' && <AdminView isMobile={isMobile} />}
       </main>
 
       {/* Notification Detail Modal */}
@@ -1046,56 +1052,77 @@ function GlobalMapView({ isMobile, onViewProfile }) {
 
       {/* Sighting Detail */}
       {selectedSighting && (
-        <div 
-          className="absolute inset-x-0 bottom-0 z-[1001] bg-[#141414] rounded-t-3xl max-h-[80vh] flex flex-col transition-transform"
-          style={{ transform: `translateY(${swipeY}px)` }}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mt-3 mb-1" />
-          <p className="text-center text-[10px] text-gray-500 mb-2">Swipe down to close</p>
-          <div className="aspect-video bg-black relative">
-            <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=0&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Sighting" />
-            {/* Right side actions */}
-            <div className="absolute right-2 bottom-2 flex flex-col gap-2">
-              <button onClick={() => handleLikeSighting(selectedSighting.id)} className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur ${sightingLikes[selectedSighting.id] ? 'bg-green-500' : 'bg-black/50'}`}>
-                <ThumbsUp className="w-4 h-4" />
-              </button>
-              <span className="text-[10px] text-center">{selectedSighting.likes + (sightingLikes[selectedSighting.id] ? 1 : 0)}</span>
-              <button className="w-10 h-10 rounded-full bg-black/50 backdrop-blur flex items-center justify-center">
-                <MessageCircle className="w-4 h-4" />
-              </button>
-              <span className="text-[10px] text-center">{selectedSighting.commentsCount}</span>
-            </div>
-          </div>
-          <div className="p-4">
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <h3 className="font-semibold text-lg">{selectedSighting.city}</h3>
-                <p className="text-sm text-gray-400">{selectedSighting.time}</p>
-                <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat.toFixed(4)}°, {selectedSighting.lng.toFixed(4)}°</p>
-              </div>
-              <button onClick={() => setSelectedSighting(null)} className="p-2"><X className="w-5 h-5 text-gray-400" /></button>
-            </div>
-            {/* Owner link */}
-            <button onClick={() => onViewProfile && onViewProfile(selectedSighting.owner.username)} className="flex items-center gap-2 mb-3 hover:bg-white/5 px-2 py-1 rounded-lg -ml-2">
-              <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-bold text-green-400">{selectedSighting.owner.avatar}</div>
-              <span className="text-sm text-green-400">@{selectedSighting.owner.username}</span>
+        <>
+          {/* Backdrop - tap to close */}
+          <div 
+            className="absolute inset-0 z-[1000] bg-black/40"
+            onClick={() => setSelectedSighting(null)}
+          />
+          <div 
+            className="absolute inset-x-0 bottom-0 z-[1001] bg-[#141414] rounded-t-3xl max-h-[80vh] flex flex-col transition-transform"
+            style={{ transform: `translateY(${swipeY}px)` }}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            {/* Close button - top right */}
+            <button 
+              onClick={() => setSelectedSighting(null)} 
+              className="absolute top-3 right-3 z-10 w-8 h-8 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center"
+            >
+              <X className="w-5 h-5 text-white" />
             </button>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold" style={{ backgroundColor: `${classificationOptions.find(o => o.id === selectedSighting.type)?.color}33`, color: classificationOptions.find(o => o.id === selectedSighting.type)?.color }}>
-                <span>{classificationOptions.find(o => o.id === selectedSighting.type)?.icon}</span>
-                <span>{selectedSighting.type}</span>
-              </div>
-              <span className="text-xs text-gray-400">AI Confidence: <span className="text-green-400 font-bold">{selectedSighting.confidence}%</span></span>
+            
+            {/* Swipe handle */}
+            <div 
+              className="flex flex-col items-center py-3 cursor-grab active:cursor-grabbing"
+              onClick={() => setSelectedSighting(null)}
+            >
+              <div className="w-12 h-1 bg-gray-600 rounded-full" />
+              <p className="text-[10px] text-gray-500 mt-1">Tap or swipe to close</p>
             </div>
-            <p className="text-xs text-gray-400 mb-2">Classify this sighting:</p>
-            <div className="flex gap-1">
-              {classificationOptions.map(opt => (<button key={opt.id} className="flex-1 py-2 rounded-xl active:scale-95 flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}20`, color: opt.color }}><span className="text-base">{opt.icon}</span><span className="text-[8px] font-medium">{opt.label}</span></button>))}
+            
+            <div className="aspect-video bg-black relative">
+              <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=0&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Sighting" />
+              {/* Right side actions */}
+              <div className="absolute right-2 bottom-2 flex flex-col gap-2">
+                <button onClick={() => handleLikeSighting(selectedSighting.id)} className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur ${sightingLikes[selectedSighting.id] ? 'bg-green-500' : 'bg-black/50'}`}>
+                  <ThumbsUp className="w-4 h-4" />
+                </button>
+                <span className="text-[10px] text-center">{selectedSighting.likes + (sightingLikes[selectedSighting.id] ? 1 : 0)}</span>
+                <button className="w-10 h-10 rounded-full bg-black/50 backdrop-blur flex items-center justify-center">
+                  <MessageCircle className="w-4 h-4" />
+                </button>
+                <span className="text-[10px] text-center">{selectedSighting.commentsCount}</span>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <h3 className="font-semibold text-lg">{selectedSighting.city}</h3>
+                  <p className="text-sm text-gray-400">{selectedSighting.time}</p>
+                  <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat.toFixed(4)}°, {selectedSighting.lng.toFixed(4)}°</p>
+                </div>
+              </div>
+              {/* Owner link */}
+              <button onClick={() => onViewProfile && onViewProfile(selectedSighting.owner.username)} className="flex items-center gap-2 mb-3 hover:bg-white/5 px-2 py-1 rounded-lg -ml-2">
+                <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-bold text-green-400">{selectedSighting.owner.avatar}</div>
+                <span className="text-sm text-green-400">@{selectedSighting.owner.username}</span>
+              </button>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold" style={{ backgroundColor: `${classificationOptions.find(o => o.id === selectedSighting.type)?.color}33`, color: classificationOptions.find(o => o.id === selectedSighting.type)?.color }}>
+                  <span>{classificationOptions.find(o => o.id === selectedSighting.type)?.icon}</span>
+                  <span>{selectedSighting.type}</span>
+                </div>
+                <span className="text-xs text-gray-400">AI Confidence: <span className="text-green-400 font-bold">{selectedSighting.confidence}%</span></span>
+              </div>
+              <p className="text-xs text-gray-400 mb-2">Classify this sighting:</p>
+              <div className="flex gap-1">
+                {classificationOptions.map(opt => (<button key={opt.id} className="flex-1 py-2 rounded-xl active:scale-95 flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}20`, color: opt.color }}><span className="text-base">{opt.icon}</span><span className="text-[8px] font-medium">{opt.label}</span></button>))}
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       <style>{`
@@ -2517,6 +2544,369 @@ function SettingsSubView({ isMobile }) {
         </div>
       ))}
       <button onClick={logout} className={`w-full ${isMobile ? 'py-3' : 'py-4'} bg-red-500/10 text-red-400 rounded-xl font-medium hover:bg-red-500/20`}>Sign Out</button>
+    </div>
+  );
+}
+
+// Admin View Component
+function AdminView({ isMobile }) {
+  const { token, API_URL } = useAuth();
+  const [sightings, setSightings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState('');
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    title: '',
+    videoUrl: '',
+    thumbnailUrl: '',
+    location: '',
+    latitude: '',
+    longitude: '',
+    classification: 'UAP',
+    aiConfidence: 85
+  });
+
+  const classificationOptions = [
+    { id: 'UAP', label: 'UAP', icon: '◆', color: '#a855f7' },
+    { id: 'Drone', label: 'Drone', icon: '■', color: '#3b82f6' },
+    { id: 'Aircraft', label: 'Aircraft', icon: '▲', color: '#22c55e' },
+    { id: 'Bird', label: 'Bird', icon: '●', color: '#eab308' },
+    { id: 'Weather', label: 'Weather', icon: '○', color: '#06b6d4' },
+  ];
+
+  // Fetch sightings
+  useEffect(() => {
+    fetchSightings();
+  }, []);
+
+  const fetchSightings = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/sightings`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSightings(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch sightings:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Upload video to Supabase
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setUploading(true);
+    setMessage('Uploading video...');
+    
+    try {
+      const fileName = `sighting-${Date.now()}.${file.name.split('.').pop()}`;
+      const response = await fetch(`${SUPABASE_URL}/storage/v1/object/videos/${fileName}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': file.type,
+          'x-upsert': 'true'
+        },
+        body: file
+      });
+      
+      if (response.ok) {
+        const videoUrl = `${SUPABASE_URL}/storage/v1/object/public/videos/${fileName}`;
+        setFormData(prev => ({ ...prev, videoUrl }));
+        setMessage('Video uploaded!');
+      } else {
+        setMessage('Failed to upload video');
+      }
+    } catch (err) {
+      setMessage('Upload error: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Create sighting
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setMessage('');
+    
+    if (!formData.title || !formData.videoUrl || !formData.location || !formData.latitude || !formData.longitude) {
+      setMessage('Please fill all required fields');
+      return;
+    }
+    
+    try {
+      const res = await fetch(`${API_URL}/api/admin/sightings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formData)
+      });
+      
+      if (res.ok) {
+        setMessage('Sighting created!');
+        setFormData({
+          title: '',
+          videoUrl: '',
+          thumbnailUrl: '',
+          location: '',
+          latitude: '',
+          longitude: '',
+          classification: 'UAP',
+          aiConfidence: 85
+        });
+        setShowAddForm(false);
+        fetchSightings();
+      } else {
+        const data = await res.json();
+        setMessage(data.error || 'Failed to create sighting');
+      }
+    } catch (err) {
+      setMessage('Error: ' + err.message);
+    }
+  };
+
+  // Delete sighting
+  const handleDelete = async (id) => {
+    if (!confirm('Delete this sighting?')) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/admin/sightings/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (res.ok) {
+        setSightings(prev => prev.filter(s => s.id !== id));
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+    }
+  };
+
+  return (
+    <div className={`h-full overflow-y-auto ${isMobile ? 'p-4' : 'p-6'}`}>
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>Admin Panel</h1>
+            <p className="text-sm text-gray-400">Manage sightings and videos</p>
+          </div>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600"
+          >
+            <Plus className="w-5 h-5" />
+            Add Sighting
+          </button>
+        </div>
+
+        {/* Message */}
+        {message && (
+          <div className={`p-3 rounded-xl mb-4 ${message.includes('error') || message.includes('Failed') ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+            {message}
+          </div>
+        )}
+
+        {/* Add Sighting Form */}
+        {showAddForm && (
+          <div className="bg-[#141414] border border-gray-700 rounded-2xl p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-4">Add New Sighting</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Video Upload */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Video File *</label>
+                <div className="flex items-center gap-4">
+                  <label className="flex-1 flex items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-700 rounded-xl cursor-pointer hover:border-green-500/50">
+                    <input type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} disabled={uploading} />
+                    <Upload className="w-5 h-5 text-gray-400" />
+                    <span className="text-sm text-gray-400">{uploading ? 'Uploading...' : 'Upload Video'}</span>
+                  </label>
+                  {formData.videoUrl && (
+                    <span className="text-xs text-green-400">✓ Uploaded</span>
+                  )}
+                </div>
+                {formData.videoUrl && (
+                  <input
+                    type="text"
+                    value={formData.videoUrl}
+                    readOnly
+                    className="w-full mt-2 px-3 py-2 bg-white/5 border border-gray-700 rounded-lg text-xs text-gray-400"
+                  />
+                )}
+              </div>
+
+              {/* Title */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Title *</label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="e.g., Unknown object over Los Angeles"
+                  className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50"
+                />
+              </div>
+
+              {/* Location */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-1">
+                  <label className="block text-sm text-gray-400 mb-2">Location Name *</label>
+                  <input
+                    type="text"
+                    value={formData.location}
+                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                    placeholder="e.g., Los Angeles, CA"
+                    className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Latitude *</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={formData.latitude}
+                    onChange={(e) => setFormData(prev => ({ ...prev, latitude: e.target.value }))}
+                    placeholder="34.0522"
+                    className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Longitude *</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={formData.longitude}
+                    onChange={(e) => setFormData(prev => ({ ...prev, longitude: e.target.value }))}
+                    placeholder="-118.2437"
+                    className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50"
+                  />
+                </div>
+              </div>
+
+              {/* Classification & Confidence */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Classification *</label>
+                  <div className="flex gap-2">
+                    {classificationOptions.map(opt => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, classification: opt.id }))}
+                        className={`flex-1 py-2 rounded-xl flex flex-col items-center gap-1 transition-all ${formData.classification === opt.id ? 'ring-2 ring-green-500' : ''}`}
+                        style={{ backgroundColor: `${opt.color}20`, color: opt.color }}
+                      >
+                        <span className="text-lg">{opt.icon}</span>
+                        <span className="text-[10px]">{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">AI Confidence: {formData.aiConfidence}%</label>
+                  <input
+                    type="range"
+                    min="50"
+                    max="99"
+                    value={formData.aiConfidence}
+                    onChange={(e) => setFormData(prev => ({ ...prev, aiConfidence: parseInt(e.target.value) }))}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+
+              {/* Submit */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowAddForm(false)}
+                  className="flex-1 py-3 bg-white/5 rounded-xl font-medium text-gray-400 hover:bg-white/10"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={uploading}
+                  className="flex-1 py-3 bg-green-500 rounded-xl font-medium text-white hover:bg-green-600 disabled:opacity-50"
+                >
+                  Create Sighting
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Sightings List */}
+        <div className="bg-[#141414] border border-gray-700 rounded-2xl overflow-hidden">
+          <div className="p-4 border-b border-gray-800">
+            <h2 className="font-semibold">Sightings ({sightings.length})</h2>
+          </div>
+          
+          {loading ? (
+            <div className="p-8 text-center">
+              <Loader className="w-8 h-8 text-green-400 animate-spin mx-auto" />
+            </div>
+          ) : sightings.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              No sightings yet. Add your first one!
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-800">
+              {sightings.map(sighting => (
+                <div key={sighting.id} className="p-4 flex items-center gap-4 hover:bg-white/5">
+                  {/* Thumbnail */}
+                  <div className="w-20 h-14 bg-black rounded-lg overflow-hidden flex-shrink-0">
+                    {sighting.thumbnail_url ? (
+                      <img src={sighting.thumbnail_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Play className="w-6 h-6 text-gray-600" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-sm truncate">{sighting.title || sighting.location}</h3>
+                    <p className="text-xs text-gray-500">{sighting.location}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span 
+                        className="px-2 py-0.5 rounded text-[10px] font-bold"
+                        style={{ 
+                          backgroundColor: `${classificationOptions.find(o => o.id === sighting.classification)?.color}30`,
+                          color: classificationOptions.find(o => o.id === sighting.classification)?.color
+                        }}
+                      >
+                        {sighting.classification}
+                      </span>
+                      <span className="text-[10px] text-green-400">{sighting.ai_confidence}%</span>
+                    </div>
+                  </div>
+                  
+                  {/* Actions */}
+                  <button
+                    onClick={() => handleDelete(sighting.id)}
+                    className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
