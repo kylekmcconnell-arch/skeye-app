@@ -4051,7 +4051,9 @@ function SettingsSubView({ isMobile }) {
 function AdminView({ isMobile }) {
   const { token, API_URL } = useAuth();
   const [sightings, setSightings] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeAdminTab, setActiveAdminTab] = useState('sightings');
   const [showAddForm, setShowAddForm] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -4185,9 +4187,10 @@ function AdminView({ isMobile }) {
     fetchSightings();
   };
 
-  // Fetch sightings
+  // Fetch sightings and users
   useEffect(() => {
     fetchSightings();
+    fetchUsers();
   }, []);
 
   const fetchSightings = async () => {
@@ -4203,6 +4206,20 @@ function AdminView({ isMobile }) {
       console.error('Failed to fetch sightings:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/users`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch users:', err);
     }
   };
 
@@ -4390,52 +4407,28 @@ function AdminView({ isMobile }) {
     <div className={`h-full overflow-y-auto ${isMobile ? 'p-4' : 'p-6'}`}>
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>Admin Panel</h1>
-            <p className="text-sm text-gray-400">Manage sightings and videos</p>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={handleGenerateAllThumbnails}
-              disabled={generatingThumbnails}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium ${generatingThumbnails ? 'bg-yellow-500/50 text-yellow-200' : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'}`}
-            >
-              <ImageIcon className="w-5 h-5" />
-              {generatingThumbnails ? `${thumbnailProgress.current}/${thumbnailProgress.total}` : 'Gen Thumbnails'}
-            </button>
-            <button
-              onClick={() => { setShowBulkUpload(!showBulkUpload); setShowAddForm(false); }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium ${showBulkUpload ? 'bg-purple-500 text-white' : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'}`}
-            >
-              <Upload className="w-5 h-5" />
-              Bulk Upload
-            </button>
-            <button
-              onClick={() => { setShowAddForm(!showAddForm); setShowBulkUpload(false); }}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-xl font-medium hover:bg-teal-600"
-            >
-              <Plus className="w-5 h-5" />
-              Add Single
-            </button>
+            <p className="text-sm text-gray-400">Manage sightings, videos, and users</p>
           </div>
         </div>
 
-        {/* Missing Thumbnails Count */}
-        {sightings.filter(s => !s.thumbnail_url).length > 0 && (
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 mb-4 flex items-center justify-between">
-            <span className="text-yellow-400 text-sm">
-              ⚠️ {sightings.filter(s => !s.thumbnail_url).length} videos missing thumbnails
-            </span>
-            <button 
-              onClick={handleGenerateAllThumbnails}
-              disabled={generatingThumbnails}
-              className="text-yellow-400 text-sm underline hover:text-yellow-300"
-            >
-              Generate now
-            </button>
-          </div>
-        )}
+        {/* Tabs */}
+        <div className="flex gap-2 mb-4 border-b border-gray-800 pb-3">
+          <button
+            onClick={() => setActiveAdminTab('sightings')}
+            className={`px-4 py-2 rounded-lg font-medium text-sm ${activeAdminTab === 'sightings' ? 'bg-teal-500 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}
+          >
+            Sightings ({sightings.length})
+          </button>
+          <button
+            onClick={() => setActiveAdminTab('users')}
+            className={`px-4 py-2 rounded-lg font-medium text-sm ${activeAdminTab === 'users' ? 'bg-teal-500 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}
+          >
+            Users ({users.length})
+          </button>
+        </div>
 
         {/* Message */}
         {message && (
@@ -4443,6 +4436,95 @@ function AdminView({ isMobile }) {
             {message}
           </div>
         )}
+
+        {/* Users Tab */}
+        {activeAdminTab === 'users' && (
+          <div>
+            <div className="bg-[#141414] border border-gray-700 rounded-2xl overflow-hidden">
+              <div className="p-4 border-b border-gray-800">
+                <h2 className="font-semibold">Registered Users</h2>
+              </div>
+              <div className="divide-y divide-gray-800">
+                {users.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">No users found</div>
+                ) : (
+                  users.map(u => (
+                    <div key={u.id} className={`${isMobile ? 'p-3' : 'p-4'} flex items-center gap-4`}>
+                      {/* Avatar */}
+                      {u.avatarUrl ? (
+                        <img src={u.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center text-sm font-bold text-teal-400">
+                          {u.username?.[0]?.toUpperCase() || '?'}
+                        </div>
+                      )}
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold">{u.username}</span>
+                          {u.role === 'admin' && (
+                            <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-[10px] rounded font-bold">ADMIN</span>
+                          )}
+                        </div>
+                        <p className={`text-gray-400 truncate ${isMobile ? 'text-xs' : 'text-sm'}`}>{u.email}</p>
+                      </div>
+                      {/* Stats */}
+                      <div className={`text-right ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        <p className="text-gray-400">Joined {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}</p>
+                        <p className="text-teal-400">{u.timeSpent || '0m'} on site</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Sightings Tab */}
+        {activeAdminTab === 'sightings' && (
+          <>
+            {/* Action Buttons */}
+            <div className="flex gap-2 flex-wrap mb-4">
+              <button
+                onClick={handleGenerateAllThumbnails}
+                disabled={generatingThumbnails}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium ${generatingThumbnails ? 'bg-yellow-500/50 text-yellow-200' : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'}`}
+              >
+                <ImageIcon className="w-5 h-5" />
+                {generatingThumbnails ? `${thumbnailProgress.current}/${thumbnailProgress.total}` : 'Gen Thumbnails'}
+              </button>
+              <button
+                onClick={() => { setShowBulkUpload(!showBulkUpload); setShowAddForm(false); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium ${showBulkUpload ? 'bg-purple-500 text-white' : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'}`}
+              >
+                <Upload className="w-5 h-5" />
+                Bulk Upload
+              </button>
+              <button
+                onClick={() => { setShowAddForm(!showAddForm); setShowBulkUpload(false); }}
+                className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-xl font-medium hover:bg-teal-600"
+              >
+                <Plus className="w-5 h-5" />
+                Add Single
+              </button>
+            </div>
+
+            {/* Missing Thumbnails Count */}
+            {sightings.filter(s => !s.thumbnail_url).length > 0 && (
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 mb-4 flex items-center justify-between">
+                <span className="text-yellow-400 text-sm">
+                  ⚠️ {sightings.filter(s => !s.thumbnail_url).length} videos missing thumbnails
+                </span>
+                <button 
+                  onClick={handleGenerateAllThumbnails}
+                  disabled={generatingThumbnails}
+                  className="text-yellow-400 text-sm underline hover:text-yellow-300"
+                >
+                  Generate now
+                </button>
+              </div>
+            )}
 
         {/* Bulk Upload Section */}
         {showBulkUpload && (
@@ -4728,6 +4810,8 @@ function AdminView({ isMobile }) {
             </div>
           )}
         </div>
+          </>
+        )}
       </div>
     </div>
   );
