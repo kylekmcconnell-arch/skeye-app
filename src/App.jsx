@@ -3853,24 +3853,31 @@ function ClipsSubView({ isMobile, clips, devices }) {
 
       {/* Clip Detail Modal */}
       {selectedClip && (
-        <div className="fixed inset-0 z-50 bg-black/90" onClick={() => setSelectedClip(null)}>
+        <div className="fixed inset-0 z-50 bg-black" onClick={() => setSelectedClip(null)}>
           <div className={`h-full flex ${isMobile ? 'flex-col' : 'items-center justify-center p-8'}`} onClick={e => e.stopPropagation()}>
             {isMobile ? (
               <>
-                <div className="flex items-center justify-between p-4">
+                {/* Fixed Header */}
+                <div className="flex-shrink-0 flex items-center justify-between p-4 bg-black">
                   <div><h3 className="font-semibold">{selectedClip.location || selectedClip.device}</h3><p className="text-xs text-gray-400">{selectedClip.time}</p></div>
                   <button onClick={() => setSelectedClip(null)}><X className="w-6 h-6 text-gray-400" /></button>
                 </div>
-                <div className="flex-1 bg-black">
-                  {selectedClip.videoUrl ? (
-                    <video src={selectedClip.videoUrl} className="w-full h-full" controls autoPlay muted />
-                  ) : selectedClip.videoId ? (
-                    <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Clip" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-500"><Play className="w-16 h-16" /></div>
-                  )}
+                
+                {/* Scrollable middle content */}
+                <div className="flex-1 overflow-y-auto bg-black">
+                  <div className="aspect-video bg-black">
+                    {selectedClip.videoUrl ? (
+                      <video src={selectedClip.videoUrl} className="w-full h-full" controls autoPlay muted />
+                    ) : selectedClip.videoId ? (
+                      <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Clip" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-500"><Play className="w-16 h-16" /></div>
+                    )}
+                  </div>
                 </div>
-                <div className="p-4">
+                
+                {/* Fixed bottom controls */}
+                <div className="flex-shrink-0 p-4 bg-[#141414] border-t border-gray-800">
                   <div className="flex justify-between items-center mb-3">
                     <span className="px-3 py-1 rounded-lg text-sm font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === selectedClip.type)?.color + '33', color: classificationOptions.find(o => o.id === selectedClip.type)?.color }}>{classificationOptions.find(o => o.id === selectedClip.type)?.icon} {selectedClip.type}</span>
                     <div className="flex gap-2">
