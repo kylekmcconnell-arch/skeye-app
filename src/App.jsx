@@ -3218,12 +3218,12 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
 
       {/* Sighting Modal from Comment Click */}
       {selectedSighting && (
-        <div className="fixed inset-0 z-50 bg-black/90" onClick={() => setSelectedSighting(null)}>
-          <div className={`h-full flex flex-col ${isMobile ? '' : 'items-center justify-center p-4'}`} onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[60] bg-black" onClick={() => setSelectedSighting(null)}>
+          <div className={`h-full flex flex-col`} onClick={e => e.stopPropagation()}>
             {isMobile ? (
               <>
-                {/* Header */}
-                <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-800 bg-[#141414]">
+                {/* Fixed Header */}
+                <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-800 bg-[#0a0a0a]">
                   <div>
                     <h3 className="font-semibold">{selectedSighting.location || 'Sighting'}</h3>
                     <p className="text-xs text-gray-400">{selectedSighting.created_at ? new Date(selectedSighting.created_at).toLocaleDateString() : ''}</p>
@@ -3234,9 +3234,9 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
                 </div>
                 
                 {/* Scrollable content */}
-                <div className="flex-1 overflow-y-auto bg-[#141414]">
+                <div className="flex-1 overflow-y-auto bg-[#0a0a0a] min-h-0">
                   {/* Video */}
-                  <div className="aspect-video bg-black flex-shrink-0">
+                  <div className="aspect-video bg-black">
                     {selectedSighting.video_url ? (
                       <video src={selectedSighting.video_url} className="w-full h-full object-contain" controls autoPlay muted />
                     ) : (
@@ -3277,7 +3277,7 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
                 </div>
                 
                 {/* Fixed bottom - Comment Input & Close */}
-                <div className="flex-shrink-0 p-4 border-t border-gray-800 bg-[#141414]">
+                <div className="flex-shrink-0 p-4 border-t border-gray-800 bg-[#0a0a0a]">
                   <div className="flex gap-2 mb-3">
                     <input 
                       type="text" 
