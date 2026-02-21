@@ -1,103 +1,11 @@
 import { useState, useEffect, useRef, createContext, useContext } from 'react';
-import { Camera, TrendingUp, Users, Bell, Play, Eye, Zap, Globe, Radio, Wifi, MapPin, ThumbsUp, MessageCircle, Share2, Download, X, Settings, ChevronLeft, ChevronRight, Volume2, CreditCard, HardDrive, User, LogOut, ChevronDown, ChevronUp, Send, Film, SkipBack, Plus, Filter, List, Grid, Mail, Lock, EyeOff, Loader, Pencil, Upload, Search, ExternalLink, Image as ImageIcon } from 'lucide-react';
+import { Camera, TrendingUp, Users, Bell, Play, Eye, Zap, Globe, Radio, Wifi, MapPin, ThumbsUp, MessageCircle, Share2, Download, X, Settings, ChevronLeft, ChevronRight, Volume2, CreditCard, HardDrive, User, LogOut, ChevronDown, ChevronUp, Send, Film, SkipBack, Plus, Filter, List, Grid, Mail, Lock, EyeOff, Loader } from 'lucide-react';
 import logo from './logo.png';
 import cameraImg from './camera.png';
 import profileImg from './profile.jpg';
 
 // API Configuration
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-// Supabase Configuration
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-// Thumbnail generation cache to avoid duplicate processing
-const thumbnailProcessing = new Set();
-
-// Generate and save thumbnail for a sighting
-const generateAndSaveThumbnail = async (sightingId, videoUrl, token) => {
-  // Skip if already processing or no video
-  if (!videoUrl || !sightingId || !token || thumbnailProcessing.has(sightingId)) return null;
-  
-  thumbnailProcessing.add(sightingId);
-  
-  try {
-    // Generate thumbnail from video
-    const thumbnailBase64 = await new Promise((resolve, reject) => {
-      const video = document.createElement('video');
-      video.crossOrigin = 'anonymous';
-      video.src = videoUrl;
-      video.muted = true;
-      video.preload = 'metadata';
-      
-      video.onloadeddata = () => {
-        video.currentTime = 1;
-      };
-      
-      video.onseeked = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = 320;
-          canvas.height = 180;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          resolve(canvas.toDataURL('image/jpeg', 0.8));
-        } catch (e) {
-          reject(e);
-        }
-      };
-      
-      video.onerror = () => reject(new Error('Video load failed'));
-      setTimeout(() => reject(new Error('Timeout')), 15000);
-    });
-    
-    // Save to backend
-    const res = await fetch(`${API_URL}/api/sightings/${sightingId}/thumbnail`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ thumbnailBase64 })
-    });
-    
-    if (res.ok) {
-      const data = await res.json();
-      return data.thumbnailUrl;
-    }
-  } catch (err) {
-    console.log(`Thumbnail generation failed for ${sightingId}:`, err.message);
-  } finally {
-    thumbnailProcessing.delete(sightingId);
-  }
-  
-  return null;
-};
-
-// Upload image to Supabase Storage
-const uploadAvatar = async (file, userId) => {
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${userId}-${Date.now()}.${fileExt}`;
-
-  const response = await fetch(`${SUPABASE_URL}/storage/v1/object/avatars/${fileName}`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      'Content-Type': file.type,
-      'x-upsert': 'true'
-    },
-    body: file
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('Upload error:', error);
-    throw new Error('Failed to upload avatar');
-  }
-
-  // Return public URL
-  return `${SUPABASE_URL}/storage/v1/object/public/avatars/${fileName}`;
-};
 
 // Auth Context
 const AuthContext = createContext(null);
@@ -138,11 +46,11 @@ function AuthProvider({ children }) {
     }
   };
 
-  const signup = async (username, email, password, avatarUrl) => {
+  const signup = async (username, email, password) => {
     const res = await fetch(`${API_URL}/api/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, email, password, avatarUrl })
+      body: JSON.stringify({ username, email, password })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Signup failed');
@@ -188,31 +96,9 @@ function AuthModal({ isOpen, onClose, canClose = true }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [avatarPreview, setAvatarPreview] = useState(null);
   const { signin, signup } = useAuth();
 
-  // Default avatar options
-  const defaultAvatars = [
-    'https://api.dicebear.com/7.x/bottts/svg?seed=robot1&backgroundColor=0a5c36',
-    'https://api.dicebear.com/7.x/bottts/svg?seed=robot2&backgroundColor=0a5c36',
-    'https://api.dicebear.com/7.x/bottts/svg?seed=robot3&backgroundColor=0a5c36',
-    'https://api.dicebear.com/7.x/bottts/svg?seed=alien1&backgroundColor=0a5c36',
-    'https://api.dicebear.com/7.x/bottts/svg?seed=alien2&backgroundColor=0a5c36',
-    'https://api.dicebear.com/7.x/bottts/svg?seed=ufo1&backgroundColor=0a5c36',
-  ];
-
   if (!isOpen) return null;
-
-  // Convert data URL to File for upload
-  const dataURLtoFile = (dataurl, filename) => {
-    const arr = dataurl.split(',');
-    const mime = arr[0].match(/:(.*?);/)[1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while(n--) u8arr[n] = bstr.charCodeAt(n);
-    return new File([u8arr], filename, {type: mime});
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -222,15 +108,7 @@ function AuthModal({ isOpen, onClose, canClose = true }) {
       if (mode === 'signin') {
         await signin(email, password);
       } else {
-        let finalAvatarUrl = avatarPreview;
-        
-        // If avatar is a data URL (custom upload), upload to Supabase first
-        if (avatarPreview && avatarPreview.startsWith('data:')) {
-          const file = dataURLtoFile(avatarPreview, `avatar-${Date.now()}.jpg`);
-          finalAvatarUrl = await uploadAvatar(file, username);
-        }
-        
-        await signup(username, email, password, finalAvatarUrl);
+        await signup(username, email, password);
       }
       if (canClose) onClose();
     } catch (err) {
@@ -246,7 +124,8 @@ function AuthModal({ isOpen, onClose, canClose = true }) {
         {/* Header */}
         <div className="p-6 border-b border-gray-800 text-center">
           <img src={logo} alt="SKEYE.AI" className="h-8 mx-auto mb-4" />
-          <p className="text-xs text-gray-400">
+          <h2 className="text-xl font-bold">{mode === 'signin' ? 'Welcome Back' : 'Join SKEYE.AI'}</h2>
+          <p className="text-sm text-gray-400 mt-1">
             {mode === 'signin' ? 'Sign in to access the global sky-watching network' : 'Create an account to start tracking the skies'}
           </p>
         </div>
@@ -258,61 +137,20 @@ function AuthModal({ isOpen, onClose, canClose = true }) {
           )}
 
           {mode === 'signup' && (
-            <>
-              {/* Avatar Selection */}
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Choose Avatar</label>
-                <div className="flex items-center gap-3 flex-wrap">
-                  {/* Upload custom avatar button */}
-                  <label className={`w-12 h-12 rounded-full border-2 border-dashed transition-all cursor-pointer flex items-center justify-center ${avatarPreview && !defaultAvatars.includes(avatarPreview) ? 'border-teal-500 bg-teal-500/20' : 'border-gray-600 hover:border-gray-500 bg-white/5'}`}>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => setAvatarPreview(reader.result);
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                    />
-                    {avatarPreview && !defaultAvatars.includes(avatarPreview) ? (
-                      <img src={avatarPreview} alt="Custom" className="w-full h-full rounded-full object-cover" />
-                    ) : (
-                      <Upload className="w-5 h-5 text-gray-400" />
-                    )}
-                  </label>
-                  {defaultAvatars.map((avatar, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setAvatarPreview(avatar)}
-                      className={`w-12 h-12 rounded-full overflow-hidden border-2 transition-all ${avatarPreview === avatar ? 'border-teal-500 scale-110' : 'border-gray-700 hover:border-gray-500'}`}
-                    >
-                      <img src={avatar} alt={`Avatar ${i + 1}`} className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-500 mt-2">Upload your own or choose a preset</p>
+            <div>
+              <label className="block text-sm text-gray-400 mb-1">Username</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Choose a username" required minLength={3} className="w-full pl-10 pr-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500/50" />
               </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">Username</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                  <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Choose a username" required minLength={3} className="w-full pl-10 pr-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-teal-500/50" />
-                </div>
-              </div>
-            </>
+            </div>
           )}
 
           <div>
             <label className="block text-sm text-gray-400 mb-1">Email</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email" required className="w-full pl-10 pr-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-teal-500/50" />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email" required className="w-full pl-10 pr-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500/50" />
             </div>
           </div>
 
@@ -320,14 +158,14 @@ function AuthModal({ isOpen, onClose, canClose = true }) {
             <label className="block text-sm text-gray-400 mb-1">Password</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-              <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === 'signup' ? 'Create a password (min 6 chars)' : 'Enter your password'} required minLength={6} className="w-full pl-10 pr-12 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-teal-500/50" />
+              <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === 'signup' ? 'Create a password (min 6 chars)' : 'Enter your password'} required minLength={6} className="w-full pl-10 pr-12 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500/50" />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-300">
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
-          <button type="submit" disabled={loading} className="w-full py-3 bg-teal-500 hover:bg-teal-600 disabled:bg-teal-500/50 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition-colors">
+          <button type="submit" disabled={loading} className="w-full py-3 bg-green-500 hover:bg-green-600 disabled:bg-green-500/50 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition-colors">
             {loading ? (<><Loader className="w-5 h-5 animate-spin" />{mode === 'signin' ? 'Signing in...' : 'Creating account...'}</>) : (mode === 'signin' ? 'Sign In' : 'Create Account')}
           </button>
         </form>
@@ -343,6 +181,14 @@ function AuthModal({ isOpen, onClose, canClose = true }) {
           </button>
         </div>
 
+        {mode === 'signup' && (
+          <div className="px-6 pb-6">
+            <div className="flex items-center justify-center gap-2 py-3 bg-green-500/10 rounded-xl border border-green-500/20">
+              <Zap className="w-4 h-4 text-green-400" />
+              <span className="text-sm text-green-400">Get 100 $SKEYE tokens free when you sign up!</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -414,22 +260,6 @@ const getTimeAgo = (timestamp) => {
   return `${Math.floor(hours / 24)}d ago`;
 };
 
-const getPreciseTimeAgo = (timestamp) => {
-  const totalSeconds = Math.floor((Date.now() - timestamp) / 1000);
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  
-  let parts = [];
-  if (days > 0) parts.push(`${days}d`);
-  if (hours > 0) parts.push(`${hours}h`);
-  if (minutes > 0) parts.push(`${minutes}m`);
-  if (seconds > 0 || parts.length === 0) parts.push(`${seconds}s`);
-  
-  return parts.join(' ') + ' ago';
-};
-
 const generateSightings = () => {
   const cities = [
     { city: 'Los Angeles', lat: 34.0522, lng: -118.2437 }, { city: 'New York', lat: 40.7128, lng: -74.0060 },
@@ -481,97 +311,18 @@ const generateSightings = () => {
 const allSightings = generateSightings();
 
 function AppContent() {
-  const { user, isAuthenticated, loading, logout, token, API_URL } = useAuth();
+  const { user, isAuthenticated, loading, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('map');
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const [notificationsList, setNotificationsList] = useState(notifications);
-  const [notificationsLoaded, setNotificationsLoaded] = useState(false);
-  
   const [profileSubTab, setProfileSubTab] = useState('devices');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [viewingProfile, setViewingProfile] = useState(null);
   const [selectedNotification, setSelectedNotification] = useState(null);
-  const [userClips, setUserClips] = useState([]);
 
   const unreadCount = notificationsList.filter(n => !n.read).length;
   const [currentTime, setCurrentTime] = useState(new Date());
-  const liveDevices = useState(() => Math.floor(Math.random() * (1325 - 1150 + 1)) + 1150)[0];
-
-  // Load user's own clips from the API
-  useEffect(() => {
-    const loadUserClips = async () => {
-      if (!token || !user?.username) return;
-      try {
-        const res = await fetch(`${API_URL}/api/users/${user.username}/clips`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          // Transform clips to match expected format
-          const transformedClips = (data.clips || []).map(clip => ({
-            id: clip.id,
-            device: 'My Device',
-            time: clip.createdAt ? getTimeAgo(new Date(clip.createdAt).getTime()) : 'Recently',
-            type: clip.classification || 'UAP',
-            confidence: clip.confidence || 85,
-            duration: '0:30',
-            videoUrl: clip.videoUrl,
-            thumbnailUrl: clip.thumbnailUrl,
-            location: clip.location,
-            likes: clip.likesCount || 0,
-            commentsCount: clip.commentsCount || 0
-          }));
-          setUserClips(transformedClips);
-        }
-      } catch (err) {
-        console.error('Failed to load user clips:', err);
-      }
-    };
-    loadUserClips();
-  }, [token, user?.username, API_URL]);
-
-  // Load notifications from user account
-  useEffect(() => {
-    const loadNotifications = async () => {
-      if (!token || notificationsLoaded) return;
-      try {
-        const res = await fetch(`${API_URL}/api/users/me/notifications`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const saved = await res.json();
-          if (saved && saved.list) {
-            setNotificationsList(saved.list);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load notifications:', err);
-      }
-      setNotificationsLoaded(true);
-    };
-    loadNotifications();
-  }, [token, notificationsLoaded]);
-
-  // Save notifications to user account when they change
-  useEffect(() => {
-    const saveNotifications = async () => {
-      if (!token || !notificationsLoaded) return;
-      try {
-        await fetch(`${API_URL}/api/users/me/notifications`, {
-          method: 'PUT',
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ notifications: { list: notificationsList } })
-        });
-      } catch (err) {
-        console.error('Failed to save notifications:', err);
-      }
-    };
-    saveNotifications();
-  }, [notificationsList, token, notificationsLoaded]);
+  const liveDevices = mockDevices.filter(d => d.status === 'online').length;
 
   const handleNotificationClick = (notification) => {
     setNotificationsList(prev => prev.map(n => n.id === notification.id ? {...n, read: true} : n));
@@ -621,18 +372,13 @@ function AppContent() {
     };
   }, []);
 
-  const baseTabs = [
+  const tabs = [
     { id: 'map', label: 'Map', icon: Globe },
     { id: 'trending', label: 'Trending', icon: TrendingUp },
     { id: 'classify', label: 'Classify', icon: Eye },
     { id: 'community', label: 'Community', icon: Users },
     { id: 'profile', label: 'Profile', icon: User },
   ];
-
-  // Add admin tab if user is admin
-  const tabs = user?.role === 'admin' 
-    ? [...baseTabs, { id: 'admin', label: 'Admin', icon: Settings }]
-    : baseTabs;
 
   const utcTime = currentTime.toISOString().slice(11, 19) + ' UTC';
 
@@ -642,7 +388,7 @@ function AppContent() {
       <div className="fixed inset-0 bg-[#0a0a0a] flex items-center justify-center">
         <div className="text-center">
           <img src={logo} alt="SKEYE.AI" className="h-10 mx-auto mb-4" />
-          <Loader className="w-8 h-8 text-teal-400 animate-spin mx-auto" />
+          <Loader className="w-8 h-8 text-green-400 animate-spin mx-auto" />
         </div>
       </div>
     );
@@ -656,76 +402,26 @@ function AppContent() {
       {/* Main App - blurred when not authenticated */}
       <div className={`flex flex-col h-full ${!isAuthenticated ? 'blur-sm pointer-events-none' : ''}`}>
       {/* Header */}
-      <header className="relative z-[60] border-b border-teal-500/20 bg-[#0a0a0a] flex-shrink-0">
-        <div className={`flex items-center justify-between ${isMobile ? 'px-3 py-1.5' : 'px-4 py-2 ml-16'}`}>
+      <header className="relative z-[60] border-b border-green-500/20 bg-[#0a0a0a] flex-shrink-0">
+        <div className={`flex items-center justify-between ${isMobile ? 'px-3 py-2' : 'px-4 py-2 ml-16'}`}>
           <img src={logo} alt="SKEYE.AI" className={`${isMobile ? 'h-5' : 'h-6'} w-auto`} />
           
           {/* UTC Time & Live Devices - Centered */}
-          <div className={`flex items-center gap-1.5 ${isMobile ? 'text-[9px]' : 'text-xs'}`}>
+          <div className={`flex items-center gap-2 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
             <span className="text-gray-400 font-mono">{utcTime}</span>
             <span className="text-gray-600">•</span>
             <div className="flex items-center gap-1">
-              <div className={`${isMobile ? 'w-1 h-1' : 'w-1.5 h-1.5'} bg-teal-500 rounded-full animate-pulse`} />
-              <span className="text-teal-400">{liveDevices} devices live</span>
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-green-400">{liveDevices} devices live</span>
             </div>
           </div>
           
-          <div className="flex items-center gap-1">
-            <button onClick={(e) => { e.stopPropagation(); setShowNotifications(!showNotifications); }} className="relative p-2 hover:bg-white/5 rounded-lg z-[10001]">
-              <Bell className={`${isMobile ? 'w-5 h-5' : 'w-5 h-5'} text-gray-400`} />
-              {unreadCount > 0 && <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-[10px] flex items-center justify-center font-bold">{unreadCount}</span>}
-            </button>
-            
-            {/* User Avatar with Dropdown */}
-            <div className="relative">
-              <button 
-                onClick={(e) => { e.stopPropagation(); setShowUserMenu(!showUserMenu); }}
-                className="p-1 hover:bg-white/5 rounded-lg"
-              >
-                {(user?.avatar_url || user?.avatarUrl) ? (
-                  <img src={user.avatar_url || user.avatarUrl} alt="" className="w-7 h-7 rounded-full object-cover" />
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-teal-500/20 flex items-center justify-center text-xs font-bold text-teal-400">
-                    {user?.username?.[0]?.toUpperCase() || 'U'}
-                  </div>
-                )}
-              </button>
-            </div>
-          </div>
+          <button onClick={(e) => { e.stopPropagation(); setShowNotifications(!showNotifications); }} className="relative p-2 hover:bg-white/5 rounded-lg z-[10001]">
+            <Bell className={`${isMobile ? 'w-5 h-5' : 'w-5 h-5'} text-gray-400`} />
+            {unreadCount > 0 && <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-[10px] flex items-center justify-center font-bold">{unreadCount}</span>}
+          </button>
         </div>
       </header>
-
-      {/* User Menu Dropdown */}
-      {showUserMenu && (
-        <div className="fixed inset-0 z-[10000]" onClick={() => setShowUserMenu(false)}>
-          <div className={`absolute ${isMobile ? 'right-2 top-12' : 'right-4 top-12'} w-48 bg-[#141414] border border-gray-700 rounded-xl shadow-2xl overflow-hidden`} onClick={e => e.stopPropagation()}>
-            <div className="p-3 border-b border-gray-800">
-              <p className="text-sm font-semibold text-white">{user?.username}</p>
-              <p className="text-xs text-gray-400">{user?.email}</p>
-            </div>
-            <div className="py-1">
-              <button onClick={() => { setActiveTab('profile'); setShowUserMenu(false); }} className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-white/5 flex items-center gap-2">
-                <User className="w-4 h-4" />
-                My Profile
-              </button>
-              <button onClick={() => { setProfileSubTab('devices'); setActiveTab('profile'); setShowUserMenu(false); }} className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-white/5 flex items-center gap-2">
-                <Camera className="w-4 h-4" />
-                My Devices
-              </button>
-              <button onClick={() => { setProfileSubTab('settings'); setActiveTab('profile'); setShowUserMenu(false); }} className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-white/5 flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                Settings
-              </button>
-            </div>
-            <div className="border-t border-gray-800 py-1">
-              <button onClick={() => { logout(); setShowUserMenu(false); }} className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-white/5 flex items-center gap-2">
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Notifications Dropdown - At root level with highest z-index */}
       {showNotifications && (
@@ -734,13 +430,13 @@ function AppContent() {
             <div className="p-3 border-b border-gray-800 flex justify-between items-center">
               <h3 className="font-semibold">Notifications</h3>
               <div className="flex items-center gap-2">
-                <button onClick={() => setNotificationsList(prev => prev.map(n => ({...n, read: true})))} className="text-xs text-gray-400 hover:text-teal-400">Clear all</button>
+                <button onClick={() => setNotificationsList(prev => prev.map(n => ({...n, read: true})))} className="text-xs text-gray-400 hover:text-green-400">Clear all</button>
                 <button onClick={() => setShowNotifications(false)} className="p-1 hover:bg-white/10 rounded"><X className="w-5 h-5 text-gray-400" /></button>
               </div>
             </div>
             <div className="max-h-80 overflow-y-auto scrollbar-dark">
               {notificationsList.map((n) => (
-                <div key={n.id} onClick={() => handleNotificationClick(n)} className={`p-3 border-b border-gray-800/50 hover:bg-white/5 cursor-pointer ${!n.read ? 'bg-teal-500/5' : ''}`}>
+                <div key={n.id} onClick={() => handleNotificationClick(n)} className={`p-3 border-b border-gray-800/50 hover:bg-white/5 cursor-pointer ${!n.read ? 'bg-green-500/5' : ''}`}>
                   <p className="text-sm text-white font-medium">{n.device}</p>
                   <p className="text-sm text-gray-400">{n.message}</p>
                   <p className="text-xs text-gray-500 mt-1">{n.time}</p>
@@ -757,8 +453,7 @@ function AppContent() {
         {activeTab === 'trending' && <TrendingView isMobile={isMobile} clips={mockClips} onViewProfile={(username) => { setViewingProfile(username); setActiveTab('profile'); }} />}
         {activeTab === 'classify' && <ClassifyView isMobile={isMobile} onViewProfile={(username) => { setViewingProfile(username); setActiveTab('profile'); }} />}
         {activeTab === 'community' && <CommunityView isMobile={isMobile} />}
-        {activeTab === 'profile' && <ProfileView isMobile={isMobile} profileSubTab={profileSubTab} setProfileSubTab={setProfileSubTab} devices={mockDevices} clips={userClips} viewingProfile={viewingProfile} setViewingProfile={setViewingProfile} />}
-        {activeTab === 'admin' && user?.role === 'admin' && <AdminView isMobile={isMobile} />}
+        {activeTab === 'profile' && <ProfileView isMobile={isMobile} profileSubTab={profileSubTab} setProfileSubTab={setProfileSubTab} devices={mockDevices} clips={myClips} viewingProfile={viewingProfile} setViewingProfile={setViewingProfile} />}
       </main>
 
       {/* Notification Detail Modal */}
@@ -781,7 +476,7 @@ function AppContent() {
                     <span>{classificationOptions.find(o => o.id === selectedNotification.classification)?.icon}</span>
                     <span>{selectedNotification.classification}</span>
                   </div>
-                  <p className="text-[10px] text-gray-400 mt-1">AI Confidence: <span className="text-teal-400 font-bold">{selectedNotification.confidence}%</span></p>
+                  <p className="text-[10px] text-gray-400 mt-1">{isMobile ? 'AI:' : 'AI Confidence:'} <span className="text-green-400 font-bold">{selectedNotification.confidence}%</span></p>
                 </div>
               </div>
               <p className="text-xs text-gray-400 mb-2">Classify this detection:</p>
@@ -789,7 +484,11 @@ function AppContent() {
                 {classificationOptions.map(opt => (<button key={opt.id} onClick={() => setSelectedNotification(null)} className="flex-1 py-2 rounded-lg text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-transform flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}20`, color: opt.color }}><span>{opt.icon}</span><span className="text-[8px]">{opt.label}</span></button>))}
               </div>
               <div className="flex items-center gap-2 mt-3">
-                <button onClick={() => setSelectedNotification(null)} className="flex-1 py-2 rounded-lg text-sm text-gray-400 bg-white/5 hover:bg-white/10">Close</button>
+                <button onClick={() => setSelectedNotification(null)} className="flex-1 py-2 rounded-lg text-sm text-gray-400 bg-white/5 hover:bg-white/10">Skip</button>
+                <div className="flex items-center gap-1 bg-green-500/20 px-3 py-2 rounded-lg">
+                  <Zap className="w-4 h-4 text-green-400" />
+                  <span className="text-sm text-green-400 font-semibold">+50 $SKEYE</span>
+                </div>
               </div>
             </div>
           </div>
@@ -798,13 +497,13 @@ function AppContent() {
 
       {/* Side Navigation - Desktop */}
       {!isMobile && (
-        <nav className="fixed left-0 top-12 bottom-0 w-16 border-r border-teal-500/10 bg-[#0a0a0a] flex flex-col items-center pt-4 z-40">
+        <nav className="fixed left-0 top-12 bottom-0 w-16 border-r border-green-500/10 bg-[#0a0a0a] flex flex-col items-center pt-4 z-40">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative w-12 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all mb-1 ${isActive ? 'bg-gradient-to-br from-teal-500/20 to-teal-600/10 text-teal-400' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}>
-                {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-teal-400 to-teal-600 rounded-r-full" />}
+              <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`relative w-12 h-12 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all mb-1 ${isActive ? 'bg-gradient-to-br from-green-500/20 to-green-600/10 text-green-400' : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}`}>
+                {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-green-400 to-green-600 rounded-r-full" />}
                 <Icon className="w-5 h-5" />
                 <span className="text-[8px] font-medium">{tab.label}</span>
               </button>
@@ -815,13 +514,13 @@ function AppContent() {
 
       {/* Bottom Navigation - Mobile */}
       {isMobile && (
-        <nav className="flex-shrink-0 border-t border-teal-500/20 bg-[#0a0a0a] z-50">
+        <nav className="flex-shrink-0 border-t border-green-500/20 bg-[#0a0a0a] z-50">
           <div className="flex items-center justify-around py-1" style={{ paddingBottom: 'max(4px, env(safe-area-inset-bottom))' }}>
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex flex-col items-center py-2 px-3 ${isActive ? 'text-teal-400' : 'text-gray-500'}`}>
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex flex-col items-center py-2 px-3 ${isActive ? 'text-green-400' : 'text-gray-500'}`}>
                   <Icon className="w-5 h-5" />
                   <span className="text-[10px] mt-0.5">{tab.label}</span>
                 </button>
@@ -839,38 +538,17 @@ function AppContent() {
 export default function App() {
   return (
     <AuthProvider>
-      <style>{`
-        .scrollbar-dark::-webkit-scrollbar {
-          width: 8px;
-        }
-        .scrollbar-dark::-webkit-scrollbar-track {
-          background: #1a1a1a;
-        }
-        .scrollbar-dark::-webkit-scrollbar-thumb {
-          background: #333;
-          border-radius: 4px;
-        }
-        .scrollbar-dark::-webkit-scrollbar-thumb:hover {
-          background: #444;
-        }
-        .scrollbar-dark {
-          scrollbar-width: thin;
-          scrollbar-color: #333 #1a1a1a;
-        }
-      `}</style>
       <AppContent />
     </AuthProvider>
   );
 }
 
 function GlobalMapView({ isMobile, onViewProfile }) {
-  const { user, token, API_URL } = useAuth();
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const [selectedSighting, setSelectedSighting] = useState(null);
-  const [sightings, setSightings] = useState([]);
-  const [loadingSightings, setLoadingSightings] = useState(true);
-  const [timeRange, setTimeRange] = useState('24h');
+  const [sightings, setSightings] = useState(allSightings);
+  const [timeRange, setTimeRange] = useState('all');
   const [showSightingsList, setShowSightingsList] = useState(!isMobile);
   const [showFilters, setShowFilters] = useState(!isMobile);
   const [typeFilters, setTypeFilters] = useState({ UAP: true, Drone: true, Aircraft: true, Bird: true, Weather: true });
@@ -880,171 +558,33 @@ function GlobalMapView({ isMobile, onViewProfile }) {
   const [swipeStartY, setSwipeStartY] = useState(null);
   const [showSightingComments, setShowSightingComments] = useState(false);
   const [newSightingComment, setNewSightingComment] = useState('');
-  const [confidenceSort, setConfidenceSort] = useState('desc');
-  const [locationSearch, setLocationSearch] = useState('');
-  const [classifiedSightings, setClassifiedSightings] = useState({});
-  const [showRewardToast, setShowRewardToast] = useState(false);
-
-  // Handle classification - call API
-  const handleClassifySighting = async (sightingId, classification) => {
-    setClassifiedSightings(prev => ({ ...prev, [sightingId]: classification }));
-    // Show reward toast
-    setShowRewardToast(true);
-    setTimeout(() => setShowRewardToast(false), 2000);
-    
-    // Call API to save classification
-    if (token) {
-      try {
-        await fetch(`${API_URL}/api/sightings/${sightingId}/classify`, {
-          method: 'POST',
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ classification })
-        });
-      } catch (err) {
-        console.error('Failed to save classification:', err);
-      }
-    }
-  };
-
-  // Fetch real sightings from API
-  useEffect(() => {
-    const fetchSightings = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/sightings`);
-        if (res.ok) {
-          const data = await res.json();
-          console.log('Fetched sightings:', data); // Debug log
-          // Transform API data to match expected format
-          const transformed = data.map(s => {
-            const createdAt = new Date(s.created_at);
-            return {
-              id: s.id,
-              lat: parseFloat(s.latitude),
-              lng: parseFloat(s.longitude),
-              type: s.classification,
-              confidence: s.ai_confidence || 85,
-              city: s.location,
-              title: s.title,
-              timestamp: createdAt.getTime(),
-              time: getTimeAgo(createdAt.getTime()),
-              utcTime: createdAt.toISOString().slice(0, 19).replace('T', ' ') + ' UTC',
-              videoUrl: s.video_url,
-              thumbnailUrl: s.thumbnail_url,
-              owner: { 
-                username: s.uploader_username || 'Admin', 
-                avatar: (s.uploader_username || 'A')[0].toUpperCase(),
-                avatarUrl: s.uploader_avatar || null
-              },
-              likes: parseInt(s.likes_count) || 0,
-              commentsCount: parseInt(s.comments_count) || 0,
-              siteComments: [],
-            };
-          });
-          console.log('Transformed sightings:', transformed); // Debug log
-          setSightings(transformed);
-        } else {
-          console.error('Failed to fetch sightings, status:', res.status);
-          setSightings([]);
-        }
-      } catch (err) {
-        console.error('Failed to fetch sightings:', err);
-        setSightings([]);
-      } finally {
-        setLoadingSightings(false);
-      }
-    };
-    fetchSightings();
-  }, [API_URL]);
 
   const toggleTypeFilter = (type) => setTypeFilters(prev => ({ ...prev, [type]: !prev[type] }));
-  
-  // Fetch comments when a sighting is selected
-  useEffect(() => {
-    const fetchComments = async () => {
-      if (!selectedSighting?.id) return;
-      try {
-        const res = await fetch(`${API_URL}/api/sightings/${selectedSighting.id}/comments`);
-        if (res.ok) {
-          const comments = await res.json();
-          setSelectedSighting(prev => prev ? { ...prev, siteComments: comments } : null);
-          // Also update in sightings array
-          setSightings(prev => prev.map(s => 
-            s.id === selectedSighting.id ? { ...s, siteComments: comments } : s
-          ));
-        }
-      } catch (err) {
-        console.error('Failed to fetch comments:', err);
-      }
-    };
-    fetchComments();
-  }, [selectedSighting?.id, API_URL]);
-  
-  // Like sighting - call API
-  const handleLikeSighting = async (id) => {
-    // Optimistically update UI
-    setSightingLikes(prev => ({ ...prev, [id]: !prev[id] }));
-    
-    // Call API if authenticated
-    if (token) {
-      try {
-        await fetch(`${API_URL}/api/sightings/${id}/like`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-      } catch (err) {
-        console.error('Failed to like:', err);
-        // Revert on error
-        setSightingLikes(prev => ({ ...prev, [id]: !prev[id] }));
-      }
-    }
-  };
+  const handleLikeSighting = (id) => setSightingLikes(prev => ({ ...prev, [id]: !prev[id] }));
 
-  // Post comment - call API
-  const handlePostSightingComment = async () => {
+  const handlePostSightingComment = () => {
     if (!newSightingComment.trim() || !selectedSighting) return;
-    
-    const commentText = newSightingComment.trim();
     const newComment = {
       id: Date.now(),
-      user: user?.username || 'Anonymous',
-      avatar: user?.username?.[0]?.toUpperCase() || 'A',
-      avatarUrl: user?.avatarUrl || null,
-      text: commentText,
+      user: 'You',
+      avatar: 'Y',
+      text: newSightingComment,
       time: 'Just now',
       likes: 0
     };
-    
-    // Optimistically update UI
+    // Update the sighting's comments
     setSightings(prev => prev.map(s => 
       s.id === selectedSighting.id 
         ? { ...s, siteComments: [...(s.siteComments || []), newComment], commentsCount: (s.commentsCount || 0) + 1 }
         : s
     ));
+    // Update selected sighting to show new comment
     setSelectedSighting(prev => ({
       ...prev,
       siteComments: [...(prev.siteComments || []), newComment],
       commentsCount: (prev.commentsCount || 0) + 1
     }));
     setNewSightingComment('');
-    
-    // Call API if authenticated
-    if (token) {
-      try {
-        await fetch(`${API_URL}/api/sightings/${selectedSighting.id}/comments`, {
-          method: 'POST',
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ text: commentText })
-        });
-      } catch (err) {
-        console.error('Failed to post comment:', err);
-      }
-    }
   };
 
   // Swipe to dismiss handlers
@@ -1067,33 +607,10 @@ function GlobalMapView({ isMobile, onViewProfile }) {
       const cutoff = Date.now() - range.hours * 60 * 60 * 1000;
       filtered = filtered.filter(s => s.timestamp >= cutoff);
     }
-    // Sort by confidence if set, otherwise by timestamp
-    if (confidenceSort === 'desc') {
-      return filtered.sort((a, b) => b.confidence - a.confidence);
-    } else if (confidenceSort === 'asc') {
-      return filtered.sort((a, b) => a.confidence - b.confidence);
-    }
     return filtered.sort((a, b) => b.timestamp - a.timestamp);
   };
 
   const filteredSightings = getFiltered();
-
-  // Handle location search
-  const handleLocationSearch = (e) => {
-    e.preventDefault();
-    if (!locationSearch.trim() || !mapInstanceRef.current) return;
-    
-    // Simple geocoding using Nominatim
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationSearch)}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.length > 0) {
-          const { lat, lon } = data[0];
-          mapInstanceRef.current.flyTo([parseFloat(lat), parseFloat(lon)], 10, { duration: 1.5 });
-        }
-      })
-      .catch(err => console.error('Search error:', err));
-  };
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -1124,7 +641,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
       const icon = opt?.icon || '◆';
       const customIcon = window.L.divIcon({
         className: 'custom-marker',
-        html: `<div style="color: ${color}; font-size: 24px; text-shadow: 0 0 4px ${color}80; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));">${icon}</div>`,
+        html: `<div style="color: ${color}; font-size: 24px; text-shadow: 0 0 8px ${color}, 0 0 12px ${color}80; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">${icon}</div>`,
         iconSize: [24, 24],
         iconAnchor: [12, 12]
       });
@@ -1150,14 +667,14 @@ function GlobalMapView({ isMobile, onViewProfile }) {
           {/* Time Range - Top Center */}
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000]">
             <div className="bg-[#141414]/95 rounded-lg border border-gray-700 p-1 flex gap-1">
-              {timeRanges.map(r => (<button key={r.id} onClick={() => setTimeRange(r.id)} className={`px-4 py-2 text-sm font-medium rounded ${timeRange === r.id ? 'bg-teal-500/20 text-teal-400' : 'text-gray-400 hover:text-white'}`}>{r.label}</button>))}
+              {timeRanges.map(r => (<button key={r.id} onClick={() => setTimeRange(r.id)} className={`px-4 py-2 text-sm font-medium rounded ${timeRange === r.id ? 'bg-green-500/20 text-green-400' : 'text-gray-400 hover:text-white'}`}>{r.label}</button>))}
             </div>
           </div>
 
           {/* Filter Panel - Bottom Left on Map (auto-expanded on desktop) */}
           <div className="absolute bottom-4 left-4 z-[1000]">
             <button onClick={() => setShowFilters(!showFilters)} className="bg-[#141414]/95 border border-gray-700 rounded-lg px-4 py-2 flex items-center gap-2 hover:bg-[#1a1a1a] mb-2">
-              <Filter className="w-4 h-4 text-teal-400" />
+              <Filter className="w-4 h-4 text-green-400" />
               <span className="text-sm">Filters</span>
               <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
             </button>
@@ -1169,7 +686,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                     <button key={opt.id} onClick={() => toggleTypeFilter(opt.id)} className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors ${typeFilters[opt.id] ? 'bg-white/5' : 'opacity-40'}`}>
                       <span className="text-base" style={{ color: opt.color }}>{opt.icon}</span>
                       <span className="flex-1 text-left text-sm">{opt.label}</span>
-                      {typeFilters[opt.id] && <span className="text-teal-400 text-xs">✓</span>}
+                      {typeFilters[opt.id] && <span className="text-green-400 text-xs">✓</span>}
                     </button>
                   ))}
                 </div>
@@ -1177,87 +694,42 @@ function GlobalMapView({ isMobile, onViewProfile }) {
             )}
           </div>
 
-          {/* Search Bar - Bottom Right */}
-          <form onSubmit={handleLocationSearch} className="absolute bottom-4 right-4 z-[1000]">
-            <div className="flex items-center bg-[#141414]/95 border border-gray-700 rounded-lg overflow-hidden">
-              <input
-                type="text"
-                value={locationSearch}
-                onChange={(e) => setLocationSearch(e.target.value)}
-                placeholder="Search location..."
-                className="bg-transparent px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none w-48"
-              />
-              <button type="submit" className="px-3 py-2 hover:bg-white/10 transition-colors">
-                <Search className="w-4 h-4 text-gray-400" />
-              </button>
-            </div>
-          </form>
-
           {/* Sighting Detail Panel - On Map */}
           {selectedSighting && (
             <div className="absolute bottom-4 right-4 z-[1001] w-96 bg-[#141414] rounded-2xl border border-gray-700 shadow-2xl overflow-hidden max-h-[calc(100vh-120px)] overflow-y-auto">
               <div className="aspect-video bg-black relative">
-                {selectedSighting.videoUrl ? (
-                  <video 
-                    key={selectedSighting.id}
-                    src={selectedSighting.videoUrl} 
-                    className="w-full h-full object-contain" 
-                    controls 
-                    autoPlay 
-                    playsInline
-                  />
-                ) : selectedSighting.videoId ? (
-                  <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=0&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Sighting" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-500">
-                    <Play className="w-12 h-12" />
-                  </div>
-                )}
+                <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=0&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Sighting" />
                 <button onClick={() => setSelectedSighting(null)} className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-full"><X className="w-4 h-4" /></button>
               </div>
               <div className="p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <h3 className="font-semibold">{selectedSighting.city}</h3>
-                    {/* Date on its own line */}
-                    {selectedSighting.utcTime && <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.utcTime.split(' ')[0]}</p>}
-                    {/* UTC time on its own line */}
-                    {selectedSighting.utcTime && <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.utcTime.split(' ').slice(1).join(' ')}</p>}
-                    {/* Precise time ago */}
-                    <p className="text-[10px] text-gray-500">{selectedSighting.timestamp ? getPreciseTimeAgo(selectedSighting.timestamp) : selectedSighting.time}</p>
-                    <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat?.toFixed(4)}°, {selectedSighting.lng?.toFixed(4)}°</p>
+                    <p className="text-xs text-gray-400">{selectedSighting.time}</p>
+                    <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat.toFixed(4)}°, {selectedSighting.lng.toFixed(4)}°</p>
                   </div>
                   <div className="text-right">
                     <div className="flex items-center gap-1 px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: `${classificationOptions.find(o => o.id === selectedSighting.type)?.color}33`, color: classificationOptions.find(o => o.id === selectedSighting.type)?.color }}>
                       <span>{classificationOptions.find(o => o.id === selectedSighting.type)?.icon}</span>
                       <span>{selectedSighting.type}</span>
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-1">AI Confidence: <span className="text-teal-400 font-bold">{selectedSighting.confidence}%</span></p>
+                    <p className="text-[10px] text-gray-400 mt-1">AI Confidence: <span className="text-green-400 font-bold">{selectedSighting.confidence}%</span></p>
                   </div>
                 </div>
                 {/* Owner link */}
-                <button onClick={() => onViewProfile && onViewProfile(selectedSighting.owner.username)} className="flex items-center gap-2 mb-2 hover:bg-white/5 px-2 py-1 rounded-lg -ml-2">
-                  {selectedSighting.owner.avatarUrl ? (
-                    <img src={selectedSighting.owner.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center text-[10px] font-bold text-teal-400">{selectedSighting.owner.avatar}</div>
-                  )}
-                  <span className="text-xs text-teal-400">@{selectedSighting.owner.username}</span>
+                <button onClick={() => onViewProfile && onViewProfile(selectedSighting.owner.username)} className="flex items-center gap-2 mb-3 hover:bg-white/5 px-2 py-1 rounded-lg -ml-2">
+                  <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center text-[10px] font-bold text-green-400">{selectedSighting.owner.avatar}</div>
+                  <span className="text-xs text-green-400">@{selectedSighting.owner.username}</span>
                 </button>
-                {/* Blockchain link */}
-                <a href="https://solscan.io" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 mb-3 text-xs text-gray-500 hover:text-teal-400 transition-colors">
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  <span>View clip on blockchain</span>
-                </a>
                 {/* Likes & Comments */}
                 <div className="flex items-center gap-3 mb-3">
-                  <button onClick={() => handleLikeSighting(selectedSighting.id)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${sightingLikes[selectedSighting.id] ? 'bg-teal-500/20 text-teal-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+                  <button onClick={() => handleLikeSighting(selectedSighting.id)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${sightingLikes[selectedSighting.id] ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
                     <ThumbsUp className="w-4 h-4" />
-                    <span className="text-xs font-medium">{(selectedSighting.likes || 0) + (sightingLikes[selectedSighting.id] ? 1 : 0)}</span>
+                    <span className="text-xs font-medium">{selectedSighting.likes + (sightingLikes[selectedSighting.id] ? 1 : 0)}</span>
                   </button>
-                  <button onClick={() => setShowSightingComments(!showSightingComments)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${showSightingComments ? 'bg-teal-500/20 text-teal-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+                  <button onClick={() => setShowSightingComments(!showSightingComments)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${showSightingComments ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
                     <MessageCircle className="w-4 h-4" />
-                    <span className="text-xs font-medium">{selectedSighting.commentsCount || 0}</span>
+                    <span className="text-xs font-medium">{selectedSighting.commentsCount}</span>
                   </button>
                   <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10">
                     <Share2 className="w-4 h-4" />
@@ -1266,22 +738,16 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 {/* Comments Section */}
                 {showSightingComments && (
                   <div className="mb-3 border-t border-gray-700 pt-3">
-                    <h4 className="text-xs font-semibold text-gray-400 mb-2">COMMENTS ({selectedSighting.siteComments?.length || selectedSighting.commentsCount || 0})</h4>
+                    <h4 className="text-xs font-semibold text-gray-400 mb-2">COMMENTS ({selectedSighting.siteComments?.length || 0})</h4>
                     <div className="space-y-2 max-h-32 overflow-y-auto mb-2">
                       {selectedSighting.siteComments && selectedSighting.siteComments.length > 0 ? (
-                        selectedSighting.siteComments.map((c, i) => (
-                          <div key={c.id || i} className="flex gap-2">
-                            {(c.user?.avatarUrl || c.avatarUrl) ? (
-                              <img src={c.user?.avatarUrl || c.avatarUrl} alt="" className="w-6 h-6 rounded-full object-cover flex-shrink-0" />
-                            ) : (
-                              <div className="w-6 h-6 rounded-full bg-teal-500/20 flex items-center justify-center text-[10px] font-bold text-teal-400 flex-shrink-0">
-                                {(c.user?.username || c.user || '?')[0]?.toUpperCase()}
-                              </div>
-                            )}
+                        selectedSighting.siteComments.map(c => (
+                          <div key={c.id} className="flex gap-2">
+                            <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-[10px] font-bold text-green-400 flex-shrink-0">{c.avatar}</div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1">
-                                <span className="text-[10px] font-semibold">{c.user?.username || c.user}</span>
-                                <span className="text-[9px] text-gray-500">{c.time || (c.createdAt ? getTimeAgo(new Date(c.createdAt).getTime()) : '')}</span>
+                                <span className="text-[10px] font-semibold">{c.user}</span>
+                                <span className="text-[9px] text-gray-500">{c.time}</span>
                               </div>
                               <p className="text-[10px] text-gray-300">{c.text}</p>
                             </div>
@@ -1292,43 +758,23 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                       )}
                     </div>
                     <div className="flex gap-1">
-                      <input type="text" value={newSightingComment} onChange={(e) => setNewSightingComment(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handlePostSightingComment()} placeholder="Add comment..." className="flex-1 px-2 py-1 bg-white/5 border border-gray-700 rounded text-[10px] text-white focus:outline-none focus:border-teal-500/50" />
-                      <button onClick={handlePostSightingComment} className="px-2 py-1 bg-teal-500 rounded text-[10px] font-medium hover:bg-teal-600">Post</button>
+                      <input type="text" value={newSightingComment} onChange={(e) => setNewSightingComment(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handlePostSightingComment()} placeholder="Add comment..." className="flex-1 px-2 py-1 bg-white/5 border border-gray-700 rounded text-[10px] text-white focus:outline-none focus:border-green-500/50" />
+                      <button onClick={handlePostSightingComment} className="px-2 py-1 bg-green-500 rounded text-[10px] font-medium hover:bg-green-600">Post</button>
                     </div>
                   </div>
                 )}
                 <p className="text-xs text-gray-400 mb-2">Classify this sighting:</p>
                 <div className="flex gap-1">
-                  {classificationOptions.map(opt => (
-                    <button 
-                      key={opt.id} 
-                      onClick={() => handleClassifySighting(selectedSighting.id, opt.id)}
-                      disabled={!!classifiedSightings[selectedSighting.id]}
-                      className={`flex-1 py-2 rounded-lg text-xs font-bold transition-transform flex flex-col items-center gap-0.5 ${classifiedSightings[selectedSighting.id] === opt.id ? 'ring-2 ring-white scale-105' : ''} ${classifiedSightings[selectedSighting.id] ? 'opacity-50' : 'hover:scale-[1.02] active:scale-[0.98]'}`} 
-                      style={{ backgroundColor: `${opt.color}20`, color: opt.color }}
-                    >
-                      <span>{opt.icon}</span>
-                      <span className="text-[8px]">{opt.label}</span>
-                    </button>
-                  ))}
+                  {classificationOptions.map(opt => (<button key={opt.id} className="flex-1 py-2 rounded-lg text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-transform flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}20`, color: opt.color }}><span>{opt.icon}</span><span className="text-[8px]">{opt.label}</span></button>))}
                 </div>
-                {/* Close + Submitted indicator */}
+                {/* Skip + Reward */}
                 <div className="flex items-center gap-2 mt-3">
-                  {classifiedSightings[selectedSighting.id] && (
-                    <div className="flex items-center gap-1 text-teal-400">
-                      <span className="text-base">✓</span>
-                      <span className="text-xs font-medium">Submitted</span>
-                    </div>
-                  )}
-                  <button onClick={() => { setSelectedSighting(null); setShowSightingComments(false); }} className="flex-1 py-2 rounded-lg text-sm text-gray-300 bg-white/5 hover:bg-white/10">Close</button>
-                </div>
-                {/* Reward indicator below button */}
-                {showRewardToast && (
-                  <div className="flex items-center justify-center gap-1.5 mt-2 text-teal-400 animate-pulse">
-                    <Zap className="w-4 h-4" />
-                    <span className="text-sm font-bold">+50 $SKEYE</span>
+                  <button onClick={() => { setSelectedSighting(null); setShowSightingComments(false); }} className="flex-1 py-2 rounded-lg text-sm text-gray-400 bg-white/5 hover:bg-white/10">Skip</button>
+                  <div className="flex items-center gap-1 bg-green-500/20 px-3 py-2 rounded-lg">
+                    <Zap className="w-4 h-4 text-green-400" />
+                    <span className="text-sm text-green-400 font-semibold">+50 $SKEYE</span>
                   </div>
-                )}
+                </div>
               </div>
             </div>
           )}
@@ -1337,34 +783,23 @@ function GlobalMapView({ isMobile, onViewProfile }) {
         {/* Right Sidebar - Live Sightings Only */}
         <div className="w-72 bg-[#0a0a0a] border-l border-gray-800 flex flex-col">
           {/* Live Sightings Header */}
-          <div className="p-4 border-b border-gray-800">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold flex items-center gap-2"><Radio className="w-4 h-4 text-teal-400 animate-pulse" />Live Sightings</h3>
-              <span className="text-xs text-gray-400">{filteredSightings.length} total</span>
-            </div>
-            <div className="flex items-center justify-end mt-2">
-              <button 
-                onClick={() => setConfidenceSort(prev => prev === 'desc' ? 'asc' : 'desc')}
-                className="flex items-center gap-1 text-xs text-gray-500 hover:text-teal-400 transition-colors"
-              >
-                <span>AI Confidence</span>
-                {confidenceSort === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />}
-              </button>
-            </div>
+          <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+            <h3 className="text-sm font-semibold flex items-center gap-2"><Radio className="w-4 h-4 text-green-400 animate-pulse" />Live Sightings</h3>
+            <span className="text-xs text-gray-400">{filteredSightings.length} total</span>
           </div>
 
           {/* Sightings List */}
           <div className="flex-1 overflow-y-auto scrollbar-dark">
             {filteredSightings.slice(0, 30).map(s => (
-              <div key={s.id} onClick={() => handleSelectSighting(s)} className={`flex items-center gap-3 p-3 border-b border-gray-800/50 cursor-pointer hover:bg-white/5 ${selectedSighting?.id === s.id ? 'bg-teal-500/10' : ''}`}>
-                <span className="text-base" style={{ color: classificationOptions.find(o => o.id === s.type)?.color }}>
+              <div key={s.id} onClick={() => handleSelectSighting(s)} className={`flex items-center gap-3 p-3 border-b border-gray-800/50 cursor-pointer hover:bg-white/5 ${selectedSighting?.id === s.id ? 'bg-green-500/10' : ''}`}>
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-sm" style={{ backgroundColor: `${classificationOptions.find(o => o.id === s.type)?.color}33`, color: classificationOptions.find(o => o.id === s.type)?.color }}>
                   {classificationOptions.find(o => o.id === s.type)?.icon}
-                </span>
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-white truncate">{s.city}</p>
                   <p className="text-xs text-gray-500">{s.type} • {s.time}</p>
                 </div>
-                <span className="text-[10px] text-teal-400 font-bold">{s.confidence}%</span>
+                <span className="text-[10px] text-green-400 font-bold">{s.confidence}%</span>
               </div>
             ))}
           </div>
@@ -1390,32 +825,18 @@ function GlobalMapView({ isMobile, onViewProfile }) {
       {/* Time Range */}
       <div className="absolute top-2 left-2 right-2 z-[1000]">
         <div className="bg-[#141414]/95 rounded-lg border border-gray-700 p-1 flex justify-between">
-          {timeRanges.map(r => (<button key={r.id} onClick={() => setTimeRange(r.id)} className={`flex-1 py-2 text-xs font-medium rounded ${timeRange === r.id ? 'bg-teal-500/20 text-teal-400' : 'text-gray-400'}`}>{r.label}</button>))}
+          {timeRanges.map(r => (<button key={r.id} onClick={() => setTimeRange(r.id)} className={`flex-1 py-2 text-xs font-medium rounded ${timeRange === r.id ? 'bg-green-500/20 text-green-400' : 'text-gray-400'}`}>{r.label}</button>))}
         </div>
       </div>
 
-      {/* Search Bar - Below Time Range */}
-      <form onSubmit={handleLocationSearch} className="absolute top-16 left-2 right-2 z-[1000]">
-        <div className="flex items-center bg-[#141414]/95 border border-gray-700 rounded-lg overflow-hidden">
-          <Search className="w-4 h-4 text-gray-500 ml-3" />
-          <input
-            type="text"
-            value={locationSearch}
-            onChange={(e) => setLocationSearch(e.target.value)}
-            placeholder="Search location..."
-            className="flex-1 bg-transparent px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none"
-          />
-        </div>
-      </form>
-
       {/* Filter Button - Bottom Left */}
       <button onClick={() => setShowFilters(true)} className="absolute bottom-4 left-4 z-[1000] bg-[#141414]/95 border border-gray-700 rounded-full w-12 h-12 flex items-center justify-center active:scale-95">
-        <Filter className="w-5 h-5 text-teal-400" />
+        <Filter className="w-5 h-5 text-green-400" />
       </button>
 
       {/* Sightings List Button */}
       <button onClick={() => setShowSightingsList(true)} className="absolute bottom-4 right-4 z-[1000] bg-[#141414]/95 border border-gray-700 rounded-full px-4 py-2 flex items-center gap-2 active:scale-95">
-        <Radio className="w-4 h-4 text-teal-400 animate-pulse" />
+        <Radio className="w-4 h-4 text-green-400 animate-pulse" />
         <span className="text-sm font-medium">{filteredSightings.length}</span>
         <span className="text-xs text-gray-400">sightings</span>
       </button>
@@ -1434,7 +855,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                 <button key={opt.id} onClick={() => toggleTypeFilter(opt.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${typeFilters[opt.id] ? 'bg-white/5' : 'opacity-40'}`}>
                   <div className="w-6 h-6 rounded flex items-center justify-center font-bold" style={{ backgroundColor: opt.color }}>{opt.icon}</div>
                   <span className="flex-1 text-left">{opt.label}</span>
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${typeFilters[opt.id] ? 'bg-teal-500 border-teal-500' : 'border-gray-600'}`}>
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${typeFilters[opt.id] ? 'bg-green-500 border-green-500' : 'border-gray-600'}`}>
                     {typeFilters[opt.id] && <span className="text-white text-sm">✓</span>}
                   </div>
                 </button>
@@ -1448,7 +869,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
       {showSightingsList && (
         <div className="absolute inset-x-0 bottom-0 z-[1001] bg-[#141414] rounded-t-3xl max-h-[70vh] flex flex-col">
           <div className="flex items-center justify-between p-4 border-b border-gray-800">
-            <h3 className="font-semibold flex items-center gap-2"><Radio className="w-4 h-4 text-teal-400" />Recent Sightings</h3>
+            <h3 className="font-semibold flex items-center gap-2"><Radio className="w-4 h-4 text-green-400" />Recent Sightings</h3>
             <button onClick={() => setShowSightingsList(false)}><X className="w-5 h-5 text-gray-400" /></button>
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -1468,181 +889,56 @@ function GlobalMapView({ isMobile, onViewProfile }) {
 
       {/* Sighting Detail */}
       {selectedSighting && (
-        <>
-          {/* Backdrop - tap to close */}
-          <div 
-            className="absolute inset-0 z-[1000] bg-black/40"
-            onClick={() => setSelectedSighting(null)}
-          />
-          <div 
-            className="absolute inset-x-2 top-2 bottom-2 z-[1001] bg-[#141414] rounded-2xl flex flex-col overflow-hidden"
-            style={{ transform: `translateY(${swipeY}px)` }}
-          >
-            {/* Video - takes most of the space */}
-            <div className="flex-1 bg-black relative min-h-0">
-              {selectedSighting.videoUrl ? (
-                <video 
-                  key={selectedSighting.id}
-                  src={selectedSighting.videoUrl} 
-                  className="w-full h-full object-contain"
-                  style={{ position: 'relative', zIndex: 10 }}
-                  controls 
-                  autoPlay
-                  muted 
-                  loop
-                  playsInline
-                  webkit-playsinline="true"
-                />
-              ) : selectedSighting.videoId ? (
-                <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=1&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Sighting" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-500">
-                  <Play className="w-12 h-12" />
-                </div>
-              )}
-            </div>
-            
-            {/* Compact Info Panel */}
-            <div className="flex-shrink-0 p-3 bg-[#141414]">
-              {/* Top row: Location + Actions + Close */}
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-base truncate">{selectedSighting.city}</h3>
-                  {/* Date on its own line */}
-                  {selectedSighting.utcTime && <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.utcTime.split(' ')[0]}</p>}
-                  {/* UTC time on its own line */}
-                  {selectedSighting.utcTime && <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.utcTime.split(' ').slice(1).join(' ')}</p>}
-                  {/* Precise time ago */}
-                  <p className="text-[10px] text-gray-500">{selectedSighting.timestamp ? getPreciseTimeAgo(selectedSighting.timestamp) : selectedSighting.time}</p>
-                  <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat?.toFixed(4)}°, {selectedSighting.lng?.toFixed(4)}°</p>
-                </div>
-                {/* Actions + Close button */}
-                <div className="flex items-start gap-2 ml-2">
-                  <button onClick={() => handleLikeSighting(selectedSighting.id)} className="flex flex-col items-center">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center ${sightingLikes[selectedSighting.id] ? 'bg-teal-500' : 'bg-white/10'}`}>
-                      <ThumbsUp className="w-4 h-4" />
-                    </div>
-                    <span className="text-[9px]">{(selectedSighting.likes || 0) + (sightingLikes[selectedSighting.id] ? 1 : 0)}</span>
-                  </button>
-                  <button onClick={() => setShowSightingComments(!showSightingComments)} className="flex flex-col items-center">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center ${showSightingComments ? 'bg-teal-500' : 'bg-white/10'}`}>
-                      <MessageCircle className="w-4 h-4" />
-                    </div>
-                    <span className="text-[9px]">{selectedSighting.commentsCount || 0}</span>
-                  </button>
-                  <button onClick={() => navigator.share ? navigator.share({ title: selectedSighting.city, url: window.location.href }) : navigator.clipboard.writeText(window.location.href)} className="flex flex-col items-center">
-                    <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">
-                      <Share2 className="w-4 h-4" />
-                    </div>
-                  </button>
-                  {/* Close button */}
-                  <button 
-                    onClick={() => { setSelectedSighting(null); setShowSightingComments(false); }} 
-                    className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              
-              {/* Owner + Classification badge + Blockchain link */}
-              <div className="flex items-center gap-2 mb-1">
-                <button onClick={() => onViewProfile && onViewProfile(selectedSighting.owner.username)} className="flex items-center gap-1.5">
-                  {selectedSighting.owner.avatarUrl ? (
-                    <img src={selectedSighting.owner.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center text-[10px] font-bold text-teal-400">{selectedSighting.owner.avatar}</div>
-                  )}
-                  <span className="text-xs text-teal-400">@{selectedSighting.owner.username}</span>
-                </button>
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold" style={{ backgroundColor: `${classificationOptions.find(o => o.id === selectedSighting.type)?.color}33`, color: classificationOptions.find(o => o.id === selectedSighting.type)?.color }}>
-                  <span>{classificationOptions.find(o => o.id === selectedSighting.type)?.icon}</span>
-                  <span>{selectedSighting.type}</span>
-                </div>
-                <span className="text-[10px] text-gray-400">AI Confidence: <span className="text-teal-400 font-bold">{selectedSighting.confidence}%</span></span>
-              </div>
-              {/* Blockchain link */}
-              <a href="https://solscan.io" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mb-2 text-[10px] text-gray-500 hover:text-teal-400">
-                <ExternalLink className="w-3 h-3" />
-                <span>View clip on blockchain</span>
-              </a>
-              
-              {/* Classify buttons */}
-              <div className="flex gap-1 mb-2">
-                {classificationOptions.map(opt => (
-                  <button 
-                    key={opt.id} 
-                    onClick={() => handleClassifySighting(selectedSighting.id, opt.id)}
-                    disabled={!!classifiedSightings[selectedSighting.id]}
-                    className={`flex-1 py-1.5 rounded-lg flex flex-col items-center gap-0.5 ${classifiedSightings[selectedSighting.id] === opt.id ? 'ring-2 ring-white scale-105' : ''} ${classifiedSightings[selectedSighting.id] ? 'opacity-50' : 'active:scale-95'}`} 
-                    style={{ backgroundColor: `${opt.color}20`, color: opt.color }}
-                  >
-                    <span className="text-sm">{opt.icon}</span>
-                    <span className="text-[7px] font-medium">{opt.label}</span>
-                  </button>
-                ))}
-              </div>
-              
-              {/* Comments Section - Mobile */}
-              {showSightingComments && (
-                <div className="mb-2 border-t border-gray-700 pt-2">
-                  <h4 className="text-[10px] font-semibold text-gray-400 mb-2">COMMENTS ({selectedSighting.siteComments?.length || selectedSighting.commentsCount || 0})</h4>
-                  <div className="space-y-2 max-h-24 overflow-y-auto mb-2">
-                    {selectedSighting.siteComments && selectedSighting.siteComments.length > 0 ? (
-                      selectedSighting.siteComments.map((c, i) => (
-                        <div key={c.id || i} className="flex gap-2">
-                          {(c.user?.avatarUrl || c.avatarUrl) ? (
-                            <img src={c.user?.avatarUrl || c.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover flex-shrink-0" />
-                          ) : (
-                            <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center text-[8px] font-bold text-teal-400 flex-shrink-0">
-                              {(c.user?.username || c.user || '?')[0]?.toUpperCase()}
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1">
-                              <span className="font-medium text-[10px]">{c.user?.username || c.user}</span>
-                              <span className="text-[8px] text-gray-500">{c.time || (c.createdAt ? getTimeAgo(new Date(c.createdAt).getTime()) : '')}</span>
-                            </div>
-                            <p className="text-[10px] text-gray-300">{c.text}</p>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-center text-[10px] text-gray-500 py-2">No comments yet</p>
-                    )}
-                  </div>
-                  <div className="flex gap-1">
-                    <input type="text" value={newSightingComment} onChange={(e) => setNewSightingComment(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handlePostSightingComment()} placeholder="Add comment..." className="flex-1 px-2 py-1 bg-white/5 border border-gray-700 rounded text-[10px] text-white focus:outline-none focus:border-teal-500/50" />
-                    <button onClick={handlePostSightingComment} className="px-2 py-1 bg-teal-500 rounded text-[10px] font-medium hover:bg-teal-600">Post</button>
-                  </div>
-                </div>
-              )}
-              
-              {/* Close + Submitted indicator + Reward */}
-              <div className="flex items-center gap-2">
-                {classifiedSightings[selectedSighting.id] && (
-                  <div className="flex items-center gap-1 text-teal-400">
-                    <span className="text-base">✓</span>
-                    <span className="text-xs font-medium">Submitted</span>
-                  </div>
-                )}
-                <button 
-                  onClick={() => { setSelectedSighting(null); setShowSightingComments(false); }}
-                  className="flex-1 py-2 rounded-lg text-sm font-medium bg-white/10 text-gray-300"
-                >
-                  Close
-                </button>
-              </div>
-              {/* Reward indicator below button */}
-              {showRewardToast && (
-                <div className="flex items-center justify-center gap-1 mt-2 text-teal-400 animate-pulse">
-                  <Zap className="w-3 h-3" />
-                  <span className="text-[10px] font-bold">+50 $SKEYE</span>
-                </div>
-              )}
+        <div 
+          className="absolute inset-x-0 bottom-0 z-[1001] bg-[#141414] rounded-t-3xl max-h-[80vh] flex flex-col transition-transform"
+          style={{ transform: `translateY(${swipeY}px)` }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mt-3 mb-1" />
+          <p className="text-center text-[10px] text-gray-500 mb-2">Swipe down to close</p>
+          <div className="aspect-video bg-black relative">
+            <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=0&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Sighting" />
+            {/* Right side actions */}
+            <div className="absolute right-2 bottom-2 flex flex-col gap-2">
+              <button onClick={() => handleLikeSighting(selectedSighting.id)} className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur ${sightingLikes[selectedSighting.id] ? 'bg-green-500' : 'bg-black/50'}`}>
+                <ThumbsUp className="w-4 h-4" />
+              </button>
+              <span className="text-[10px] text-center">{selectedSighting.likes + (sightingLikes[selectedSighting.id] ? 1 : 0)}</span>
+              <button className="w-10 h-10 rounded-full bg-black/50 backdrop-blur flex items-center justify-center">
+                <MessageCircle className="w-4 h-4" />
+              </button>
+              <span className="text-[10px] text-center">{selectedSighting.commentsCount}</span>
             </div>
           </div>
-        </>
+          <div className="p-4">
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <h3 className="font-semibold text-lg">{selectedSighting.city}</h3>
+                <p className="text-sm text-gray-400">{selectedSighting.time}</p>
+                <p className="text-[10px] text-gray-500 font-mono">{selectedSighting.lat.toFixed(4)}°, {selectedSighting.lng.toFixed(4)}°</p>
+              </div>
+              <button onClick={() => setSelectedSighting(null)} className="p-2"><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            {/* Owner link */}
+            <button onClick={() => onViewProfile && onViewProfile(selectedSighting.owner.username)} className="flex items-center gap-2 mb-3 hover:bg-white/5 px-2 py-1 rounded-lg -ml-2">
+              <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-bold text-green-400">{selectedSighting.owner.avatar}</div>
+              <span className="text-sm text-green-400">@{selectedSighting.owner.username}</span>
+            </button>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold" style={{ backgroundColor: `${classificationOptions.find(o => o.id === selectedSighting.type)?.color}33`, color: classificationOptions.find(o => o.id === selectedSighting.type)?.color }}>
+                <span>{classificationOptions.find(o => o.id === selectedSighting.type)?.icon}</span>
+                <span>{selectedSighting.type}</span>
+              </div>
+              <span className="text-xs text-gray-400">AI Confidence: <span className="text-green-400 font-bold">{selectedSighting.confidence}%</span></span>
+            </div>
+            <p className="text-xs text-gray-400 mb-2">Classify this sighting:</p>
+            <div className="flex gap-1">
+              {classificationOptions.map(opt => (<button key={opt.id} className="flex-1 py-2 rounded-xl active:scale-95 flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}20`, color: opt.color }}><span className="text-base">{opt.icon}</span><span className="text-[8px] font-medium">{opt.label}</span></button>))}
+            </div>
+          </div>
+        </div>
       )}
 
       <style>{`
@@ -1656,141 +952,24 @@ function GlobalMapView({ isMobile, onViewProfile }) {
   );
 }
 
-function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile = true, onViewProfile, onClassified, mode = "trending", totalClassifications = 0 }) {
-  const { user, token, API_URL } = useAuth();
+function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile = true, onViewProfile }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedClips, setLikedClips] = useState({});
-  const [classifiedClips, setClassifiedClips] = useState({});
+  const [classified, setClassified] = useState(0);
   const [showComments, setShowComments] = useState(false);
   const [newComment, setNewComment] = useState('');
-  const [showRewardToast, setShowRewardToast] = useState(false);
   const currentClip = clips[currentIndex];
 
-  const isTrending = mode === "trending";
-  const isClassifyMode = mode === "classify";
-
   const handlePrev = () => { if (currentIndex > 0) setCurrentIndex(currentIndex - 1); setShowComments(false); };
-  const handleNext = () => { 
-    // For trending, loop infinitely
-    if (isTrending) {
-      setCurrentIndex((currentIndex + 1) % clips.length);
-    } else {
-      if (currentIndex < clips.length - 1) setCurrentIndex(currentIndex + 1); 
-      else setCurrentIndex(0); 
-    }
-    setShowComments(false); 
-  };
-  
-  // Like handler - call API
-  const handleLike = async () => {
-    // Optimistically update UI
-    setLikedClips(prev => ({ ...prev, [currentClip.id]: !prev[currentClip.id] }));
-    
-    // Call API if authenticated
-    if (token) {
-      try {
-        await fetch(`${API_URL}/api/sightings/${currentClip.id}/like`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-      } catch (err) {
-        console.error('Failed to like:', err);
-        // Revert on error
-        setLikedClips(prev => ({ ...prev, [currentClip.id]: !prev[currentClip.id] }));
-      }
-    }
-  };
-  
-  // Classification handler - call API
-  const handleClassify = async (type) => { 
-    setClassifiedClips(prev => ({ ...prev, [currentClip.id]: type }));
-    if (onClassified) onClassified(currentClip.id);
-    // Show reward toast
-    setShowRewardToast(true);
-    setTimeout(() => setShowRewardToast(false), 2000);
-    
-    // Call API to save classification
-    if (token) {
-      try {
-        await fetch(`${API_URL}/api/sightings/${currentClip.id}/classify`, {
-          method: 'POST',
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ classification: type })
-        });
-      } catch (err) {
-        console.error('Failed to save classification:', err);
-      }
-    }
-    
-    // For trending: auto-advance after short delay
-    // For classify: show "Submitted" state
-    if (isTrending) {
-      setTimeout(() => handleNext(), 500);
-    }
-  };
-
-  // Fetch comments for current clip
-  const [clipComments, setClipComments] = useState({});
-  
-  useEffect(() => {
-    const fetchComments = async () => {
-      if (!currentClip?.id || clipComments[currentClip.id]) return;
-      try {
-        const res = await fetch(`${API_URL}/api/sightings/${currentClip.id}/comments`);
-        if (res.ok) {
-          const data = await res.json();
-          setClipComments(prev => ({ ...prev, [currentClip.id]: data }));
-        }
-      } catch (err) {
-        console.error('Failed to fetch comments:', err);
-      }
-    };
-    fetchComments();
-  }, [currentClip?.id, API_URL]);
-
-  // Post comment handler
-  const handlePostComment = async () => {
-    if (!newComment.trim() || !currentClip?.id) return;
-    
-    const commentText = newComment.trim();
-    const newCommentObj = {
-      id: Date.now(),
-      text: commentText,
-      user: { username: user?.username || 'Anonymous', avatar: user?.username?.[0]?.toUpperCase() || 'A', avatarUrl: user?.avatarUrl },
-      createdAt: new Date().toISOString()
-    };
-    
-    // Optimistically update UI
-    setClipComments(prev => ({
-      ...prev,
-      [currentClip.id]: [...(prev[currentClip.id] || []), newCommentObj]
-    }));
-    setNewComment('');
-    
-    // Call API
-    if (token) {
-      try {
-        await fetch(`${API_URL}/api/sightings/${currentClip.id}/comments`, {
-          method: 'POST',
-          headers: { 
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ text: commentText })
-        });
-      } catch (err) {
-        console.error('Failed to post comment:', err);
-      }
-    }
+  const handleNext = () => { if (currentIndex < clips.length - 1) setCurrentIndex(currentIndex + 1); else setCurrentIndex(0); setShowComments(false); };
+  const handleLike = () => setLikedClips(prev => ({ ...prev, [currentClip.id]: !prev[currentClip.id] }));
+  const handleClassify = (type) => { 
+    setClassified(prev => prev + 1);
+    setTimeout(() => handleNext(), 300);
   };
 
   const siteLikes = (currentClip.siteLikes || 0) + (likedClips[currentClip.id] ? 1 : 0);
-  const siteComments = clipComments[currentClip.id] || currentClip.siteComments || [];
-  const commentsCount = (clipComments[currentClip.id]?.length) || currentClip.commentsCount || 0;
-  const isClassified = !!classifiedClips[currentClip.id];
+  const siteComments = currentClip.siteComments || [];
 
   // Desktop Layout
   if (!isMobile) {
@@ -1798,33 +977,17 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
       <div className="h-full flex">
         {/* Main Video Area */}
         <div className="flex-1 relative bg-black">
-          {currentClip.videoUrl ? (
-            <video 
-              key={currentClip.id}
-              src={currentClip.videoUrl} 
-              className="absolute inset-0 w-full h-full object-contain" 
-              controls 
-              autoPlay 
-              loop
-              playsInline
-            />
-          ) : currentClip.videoId ? (
-            <iframe 
-              key={currentClip.id} 
-              src={`https://www.youtube.com/embed/${currentClip.videoId}?autoplay=1&mute=0&rel=0&modestbranding=1&loop=1&playlist=${currentClip.videoId}`} 
-              className="absolute inset-0 w-full h-full" 
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-              allowFullScreen 
-              title={currentClip.title} 
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-gray-500">
-              <Play className="w-16 h-16" />
-            </div>
-          )}
+          <iframe 
+            key={currentClip.id} 
+            src={`https://www.youtube.com/embed/${currentClip.videoId}?autoplay=1&mute=0&rel=0&modestbranding=1`} 
+            className="absolute inset-0 w-full h-full" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowFullScreen 
+            title={currentClip.title} 
+          />
           
           {/* Nav Arrows */}
-          <button onClick={handlePrev} disabled={isTrending ? false : currentIndex === 0} className={`absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center z-10 transition-all ${!isTrending && currentIndex === 0 ? 'opacity-30' : ''}`}>
+          <button onClick={handlePrev} disabled={currentIndex === 0} className={`absolute left-4 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center z-10 transition-all ${currentIndex === 0 ? 'opacity-30' : ''}`}>
             <ChevronLeft className="w-8 h-8" />
           </button>
           <button onClick={handleNext} className="absolute right-4 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center z-10">
@@ -1834,23 +997,21 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
 
         {/* Right Sidebar */}
         <div className="w-80 bg-[#0a0a0a] border-l border-gray-800 flex flex-col overflow-hidden">
-          {/* Progress - only show for classify mode */}
-          {isClassifyMode && (
-            <div className="flex-shrink-0 p-4 border-b border-gray-800">
-              <div className="flex gap-1 mb-3">
-                {clips.map((_, i) => (<div key={i} className={`flex-1 h-1.5 rounded-full transition-all ${i === currentIndex ? 'bg-teal-400' : i < currentIndex ? 'bg-teal-400/50' : 'bg-gray-700'}`} />))}
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-400">{currentIndex + 1} of {clips.length}</span>
-                {showReward && (
-                  <div className="flex items-center gap-1 bg-teal-500/20 px-3 py-1 rounded-full">
-                    <Zap className="w-4 h-4 text-teal-400" />
-                    <span className="text-sm text-teal-400 font-semibold">+50 $SKEYE</span>
-                  </div>
-                )}
-              </div>
+          {/* Progress */}
+          <div className="flex-shrink-0 p-4 border-b border-gray-800">
+            <div className="flex gap-1 mb-3">
+              {clips.map((_, i) => (<div key={i} className={`flex-1 h-1.5 rounded-full transition-all ${i === currentIndex ? 'bg-green-400' : i < currentIndex ? 'bg-green-400/50' : 'bg-gray-700'}`} />))}
             </div>
-          )}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-400">{currentIndex + 1} of {clips.length}</span>
+              {showReward && (
+                <div className="flex items-center gap-1 bg-green-500/20 px-3 py-1 rounded-full">
+                  <Zap className="w-4 h-4 text-green-400" />
+                  <span className="text-sm text-green-400 font-semibold">+50 $SKEYE</span>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Clip Info */}
           <div className="flex-shrink-0 p-4 border-b border-gray-800">
@@ -1860,44 +1021,30 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                   {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.icon} {currentClip.classification || currentClip.type || 'UAP'}
                 </span>
               </div>
-              {currentClip.confidence && <span className="text-xs text-gray-400">AI Confidence: <span className="text-teal-400 font-bold">{currentClip.confidence}%</span></span>}
+              {currentClip.confidence && <span className="text-xs text-gray-400">AI Confidence: <span className="text-green-400 font-bold">{currentClip.confidence}%</span></span>}
             </div>
-            <h3 className="font-semibold text-lg">{currentClip.location}</h3>
-            {/* Date on its own line */}
-            {currentClip.utcTime && <p className="text-xs text-gray-500 font-mono mt-1">{currentClip.utcTime.split(' ')[0]}</p>}
-            {/* UTC time on its own line */}
-            {currentClip.utcTime && <p className="text-xs text-gray-500 font-mono">{currentClip.utcTime.split(' ').slice(1).join(' ')}</p>}
-            {/* Precise time ago */}
-            {currentClip.timestamp && <p className="text-xs text-gray-500">{getPreciseTimeAgo(currentClip.timestamp)}</p>}
+            <h3 className="font-semibold text-lg">{currentClip.title}</h3>
+            <p className="text-sm text-gray-400 flex items-center gap-1 mt-1"><MapPin className="w-4 h-4" />{currentClip.location}</p>
             {/* Owner link */}
             {currentClip.owner && (
               <button onClick={() => onViewProfile && onViewProfile(currentClip.owner.username)} className="flex items-center gap-2 mt-2 hover:bg-white/5 px-2 py-1 rounded-lg -ml-2">
-                {currentClip.owner.avatarUrl ? (
-                  <img src={currentClip.owner.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
-                ) : (
-                  <div className="w-5 h-5 rounded-full bg-teal-500/20 flex items-center justify-center text-[10px] font-bold text-teal-400">{currentClip.owner.avatar}</div>
-                )}
-                <span className="text-sm text-teal-400">@{currentClip.owner.username}</span>
+                <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center text-[10px] font-bold text-green-400">{currentClip.owner.avatar}</div>
+                <span className="text-sm text-green-400">@{currentClip.owner.username}</span>
               </button>
             )}
-            {/* Blockchain link */}
-            <a href="https://solscan.io" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 mt-2 text-xs text-gray-500 hover:text-teal-400 transition-colors">
-              <ExternalLink className="w-3.5 h-3.5" />
-              <span>View clip on blockchain</span>
-            </a>
           </div>
 
           {/* Actions */}
           <div className="flex-shrink-0 p-4 border-b border-gray-800 flex items-center gap-3">
-            <button onClick={handleLike} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${likedClips[currentClip.id] ? 'bg-teal-500 text-white' : 'bg-white/5 hover:bg-white/10'}`}>
+            <button onClick={handleLike} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${likedClips[currentClip.id] ? 'bg-green-500 text-white' : 'bg-white/5 hover:bg-white/10'}`}>
               <ThumbsUp className="w-5 h-5" />
               <span>{siteLikes}</span>
             </button>
-            <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${showComments ? 'bg-teal-500/20 text-teal-400' : 'bg-white/5 hover:bg-white/10'}`}>
+            <button onClick={() => setShowComments(!showComments)} className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${showComments ? 'bg-green-500/20 text-green-400' : 'bg-white/5 hover:bg-white/10'}`}>
               <MessageCircle className="w-5 h-5" />
-              <span>{commentsCount}</span>
+              <span>{siteComments.length}</span>
             </button>
-            <button onClick={() => navigator.share ? navigator.share({ title: currentClip.location, url: window.location.href }) : navigator.clipboard.writeText(window.location.href)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10">
+            <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10">
               <Share2 className="w-5 h-5" />
             </button>
           </div>
@@ -1907,22 +1054,18 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
             {/* Comments Section - Shows when toggled */}
             {showComments && (
               <div className="p-4 border-b border-gray-800">
-                <h4 className="text-sm font-semibold text-gray-400 mb-3">COMMENTS ({commentsCount})</h4>
+                <h4 className="text-sm font-semibold text-gray-400 mb-3">COMMENTS ({siteComments.length})</h4>
                 <div className="space-y-3 mb-3">
-                  {commentsCount === 0 ? (
+                  {siteComments.length === 0 ? (
                     <p className="text-center text-gray-500 py-4 text-sm">No comments yet. Be the first!</p>
                   ) : (
                     siteComments.map((c, i) => (
-                      <div key={c.id || i} className="flex gap-2">
-                        {(c.user?.avatarUrl || c.avatarUrl) ? (
-                          <img src={c.user?.avatarUrl || c.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center text-xs font-bold text-teal-400 flex-shrink-0">{c.user?.avatar || c.avatar || (c.user?.username || c.user)?.[0]?.toUpperCase() || '?'}</div>
-                        )}
+                      <div key={i} className="flex gap-2">
+                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-bold text-green-400 flex-shrink-0">{c.avatar}</div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-semibold text-xs">{c.user?.username || c.user || 'Anonymous'}</span>
-                            <span className="text-[10px] text-gray-500">{c.time || (c.createdAt ? getTimeAgo(new Date(c.createdAt).getTime()) : '')}</span>
+                            <span className="font-semibold text-xs">{c.user}</span>
+                            <span className="text-[10px] text-gray-500">{c.time}</span>
                           </div>
                           <p className="text-xs text-gray-300 mt-0.5">{c.text}</p>
                         </div>
@@ -1931,8 +1074,8 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handlePostComment()} placeholder="Add a comment..." className="flex-1 px-3 py-2 bg-white/5 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-teal-500/50" />
-                  <button onClick={handlePostComment} className="px-3 py-2 bg-teal-500 rounded-lg text-sm font-medium">Post</button>
+                  <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Add a comment..." className="flex-1 px-3 py-2 bg-white/5 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-green-500/50" />
+                  <button className="px-3 py-2 bg-green-500 rounded-lg text-sm font-medium">Post</button>
                 </div>
               </div>
             )}
@@ -1944,9 +1087,8 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                 {classificationOptions.map(opt => (
                   <button 
                     key={opt.id} 
-                    onClick={() => !isClassified && handleClassify(opt.id)} 
-                    disabled={isClassified && isClassifyMode}
-                    className={`w-full py-3 rounded-xl font-semibold transition-transform flex items-center justify-center gap-2 ${isClassified && classifiedClips[currentClip.id] === opt.id ? 'ring-2 ring-white' : ''} ${isClassified && isClassifyMode ? 'opacity-60' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
+                    onClick={() => handleClassify(opt.id)} 
+                    className="w-full py-3 rounded-xl font-semibold hover:scale-[1.02] active:scale-[0.98] transition-transform flex items-center justify-center gap-2" 
                     style={{ backgroundColor: `${opt.color}20`, color: opt.color }}
                   >
                     <span className="text-xl">{opt.icon}</span>
@@ -1954,33 +1096,11 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                   </button>
                 ))}
               </div>
-              {/* Only show Skip/Submitted button for classify mode */}
-              {isClassifyMode && (
-                <button 
-                  onClick={handleNext} 
-                  className={`w-full mt-3 py-3 rounded-xl font-medium ${isClassified ? 'bg-teal-500 text-white' : 'text-gray-400 bg-white/5 hover:bg-white/10'}`}
-                >
-                  {isClassified ? '✓ Submitted - Next' : 'Skip'}
-                </button>
-              )}
-              {/* For trending, just show a simple next button */}
-              {isTrending && (
-                <button 
-                  onClick={handleNext} 
-                  className="w-full mt-3 py-3 rounded-xl font-medium text-gray-400 bg-white/5 hover:bg-white/10"
-                >
-                  Next
-                </button>
-              )}
-              {/* Reward indicator below button */}
-              {showRewardToast && (
-                <div className="flex items-center justify-center gap-1.5 mt-3 text-teal-400 animate-pulse">
-                  <Zap className="w-4 h-4" />
-                  <span className="text-sm font-bold">+50 $SKEYE</span>
-                </div>
-              )}
-              {(totalClassifications > 0) && isClassifyMode && (
-                <p className="text-center text-sm text-gray-500 mt-4">Total classified: <span className="text-teal-400 font-bold">{totalClassifications}</span></p>
+              <button onClick={handleNext} className="w-full mt-3 py-3 rounded-xl text-gray-400 bg-white/5 hover:bg-white/10">
+                Skip
+              </button>
+              {classified > 0 && (
+                <p className="text-center text-sm text-gray-500 mt-4">Classified today: <span className="text-green-400 font-bold">{classified}</span></p>
               )}
             </div>
           </div>
@@ -2016,167 +1136,103 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
   };
 
   return (
-    <div className="h-full flex flex-col bg-black">
-      {/* Top Progress Bar - only for classify mode */}
-      {isClassifyMode && (
-        <div className="flex-shrink-0 p-2 bg-black">
-          <div className="flex gap-1 mb-1">
-            {clips.map((_, i) => (<div key={i} className={`flex-1 h-1 rounded-full transition-all ${i === currentIndex ? 'bg-white' : i < currentIndex ? 'bg-white/50' : 'bg-white/20'}`} />))}
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-400">{currentIndex + 1} / {clips.length}</span>
-            {totalClassifications > 0 && isClassifyMode && <span className="text-xs text-gray-400">Classified: <span className="text-teal-400 font-bold">{totalClassifications}</span></span>}
-          </div>
+    <div 
+      className="h-full relative bg-black overflow-hidden"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Full Screen Video */}
+      <div 
+        className="absolute inset-0 transition-transform duration-200"
+        style={{ transform: `translateX(${swipeOffset * 0.3}px)` }}
+      >
+        <iframe 
+          key={currentClip.id} 
+          src={`https://www.youtube.com/embed/${currentClip.videoId}?autoplay=1&mute=0&playsinline=1&rel=0&modestbranding=1`} 
+          className="absolute inset-0 w-full h-full" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+          allowFullScreen 
+          title={currentClip.title} 
+        />
+      </div>
+
+      {/* Swipe Indicators */}
+      {swipeOffset > 40 && currentIndex > 0 && (
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 backdrop-blur rounded-full p-3">
+          <ChevronLeft className="w-8 h-8" />
         </div>
       )}
+      {swipeOffset < -40 && (
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 backdrop-blur rounded-full p-3">
+          <ChevronRight className="w-8 h-8" />
+        </div>
+      )}
+      
+      {/* Top Bar - Progress & Info */}
+      <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-3 pb-8">
+        <div className="flex gap-1 mb-2">
+          {clips.map((_, i) => (<div key={i} className={`flex-1 h-1 rounded-full transition-all ${i === currentIndex ? 'bg-white' : i < currentIndex ? 'bg-white/50' : 'bg-white/20'}`} />))}
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">{currentIndex + 1} / {clips.length}</div>
+          {classified > 0 && (<div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">Classified: <span className="text-green-400 font-bold">{classified}</span></div>)}
+        </div>
+      </div>
 
-      {/* Video Section - takes about half the screen */}
-      <div 
-        className="flex-1 relative bg-black min-h-0"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        <div 
-          className="absolute inset-0 transition-transform duration-200"
-          style={{ transform: `translateX(${swipeOffset * 0.3}px)` }}
-        >
-          {currentClip.videoUrl ? (
-            <video 
-              key={currentClip.id}
-              src={currentClip.videoUrl} 
-              className="w-full h-full object-contain"
-              style={{ position: 'relative', zIndex: 20 }}
-              controls 
-              autoPlay 
-              muted
-              loop
-              playsInline
-              webkit-playsinline="true"
-            />
-          ) : currentClip.videoId ? (
-            <iframe 
-              key={currentClip.id} 
-              src={`https://www.youtube.com/embed/${currentClip.videoId}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&loop=1&playlist=${currentClip.videoId}`} 
-              className="absolute inset-0 w-full h-full" 
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-              allowFullScreen 
-              title={currentClip.location} 
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-gray-500">
-              <Play className="w-16 h-16" />
-            </div>
+      {/* Nav Arrows */}
+      <button onClick={handlePrev} disabled={currentIndex === 0} className={`absolute left-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center z-10 transition-opacity ${currentIndex === 0 ? 'opacity-30' : 'active:scale-95'}`}><ChevronLeft className="w-6 h-6" /></button>
+      <button onClick={handleNext} className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center z-10 active:scale-95"><ChevronRight className="w-6 h-6" /></button>
+
+      {/* Right Side Actions */}
+      <div className="absolute right-3 bottom-44 flex flex-col items-center gap-4 z-10">
+        <button onClick={handleLike} className="flex flex-col items-center">
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center backdrop-blur transition-colors ${likedClips[currentClip.id] ? 'bg-green-500' : 'bg-black/40'}`}><ThumbsUp className="w-5 h-5" /></div>
+          <span className="text-xs mt-1 drop-shadow">{siteLikes}</span>
+        </button>
+        <button onClick={() => setShowComments(true)} className="flex flex-col items-center">
+          <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center"><MessageCircle className="w-5 h-5" /></div>
+          <span className="text-xs mt-1 drop-shadow">{siteComments.length}</span>
+        </button>
+        <button className="flex flex-col items-center">
+          <div className="w-12 h-12 rounded-full bg-black/40 backdrop-blur flex items-center justify-center"><Share2 className="w-5 h-5" /></div>
+        </button>
+      </div>
+
+      {/* Bottom Bar - Info & Classify */}
+      <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-12 pb-3 px-3">
+        <div className="mb-2 pr-16">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color + '40', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color }}>
+              {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.icon} {currentClip.classification || currentClip.type || 'UAP'}
+            </span>
+            {currentClip.confidence && <span className="text-[10px] text-gray-400">AI: <span className="text-green-400 font-bold">{currentClip.confidence}%</span></span>}
+          </div>
+          <h3 className="font-semibold text-sm line-clamp-1 drop-shadow">{currentClip.title}</h3>
+          <p className="text-xs text-gray-300 flex items-center gap-1 mt-0.5 drop-shadow"><MapPin className="w-3 h-3" />{currentClip.location}</p>
+          {/* Owner link */}
+          {currentClip.owner && (
+            <button onClick={() => onViewProfile && onViewProfile(currentClip.owner.username)} className="flex items-center gap-1.5 mt-1">
+              <div className="w-4 h-4 rounded-full bg-green-500/30 flex items-center justify-center text-[8px] font-bold text-green-400">{currentClip.owner.avatar}</div>
+              <span className="text-xs text-green-400">@{currentClip.owner.username}</span>
+            </button>
           )}
         </div>
 
-        {/* Swipe Indicators */}
-        {swipeOffset > 40 && (isTrending || currentIndex > 0) && (
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 z-30 bg-white/20 backdrop-blur rounded-full p-3">
-            <ChevronLeft className="w-8 h-8" />
-          </div>
-        )}
-        {swipeOffset < -40 && (
-          <div className="absolute right-4 top-1/2 -translate-y-1/2 z-30 bg-white/20 backdrop-blur rounded-full p-3">
-            <ChevronRight className="w-8 h-8" />
-          </div>
-        )}
-
-        {/* Nav Arrows */}
-        <button onClick={handlePrev} disabled={!isTrending && currentIndex === 0} className={`absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center z-30 transition-opacity ${!isTrending && currentIndex === 0 ? 'opacity-30' : 'active:scale-95'}`}><ChevronLeft className="w-5 h-5" /></button>
-        <button onClick={handleNext} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 backdrop-blur flex items-center justify-center z-30 active:scale-95"><ChevronRight className="w-5 h-5" /></button>
-      </div>
-
-      {/* Info Panel Below Video */}
-      <div className="flex-shrink-0 bg-[#0a0a0a] p-3">
-        {/* Top row: Classification badge + AI + Actions */}
-        <div className="flex items-start justify-between mb-2">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color + '40', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color }}>
-                {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.icon} {currentClip.classification || currentClip.type || 'UAP'}
-              </span>
-              {currentClip.confidence && <span className="text-[10px] text-gray-400">AI Confidence: <span className="text-teal-400 font-bold">{currentClip.confidence}%</span></span>}
-            </div>
-            {/* Location */}
-            <h3 className="font-semibold text-sm">{currentClip.location}</h3>
-            {/* Date on its own line */}
-            {currentClip.utcTime && <p className="text-[10px] text-gray-500 font-mono">{currentClip.utcTime.split(' ')[0]}</p>}
-            {/* UTC time on its own line */}
-            {currentClip.utcTime && <p className="text-[10px] text-gray-500 font-mono">{currentClip.utcTime.split(' ').slice(1).join(' ')}</p>}
-            {/* Precise time ago */}
-            {currentClip.timestamp && <p className="text-[10px] text-gray-500">{getPreciseTimeAgo(currentClip.timestamp)}</p>}
-            {/* Owner */}
-            {currentClip.owner && (
-              <button onClick={() => onViewProfile && onViewProfile(currentClip.owner.username)} className="flex items-center gap-1.5 mt-1">
-                {currentClip.owner.avatarUrl ? (
-                  <img src={currentClip.owner.avatarUrl} alt="" className="w-4 h-4 rounded-full object-cover" />
-                ) : (
-                  <div className="w-4 h-4 rounded-full bg-teal-500/30 flex items-center justify-center text-[8px] font-bold text-teal-400">{currentClip.owner.avatar}</div>
-                )}
-                <span className="text-xs text-teal-400">@{currentClip.owner.username}</span>
-              </button>
-            )}
-            {/* Blockchain link */}
-            <a href="https://solscan.io" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mt-1 text-[10px] text-gray-500 hover:text-teal-400">
-              <ExternalLink className="w-3 h-3" />
-              <span>View clip on blockchain</span>
-            </a>
-          </div>
-          
-          {/* Actions on right */}
-          <div className="flex items-start gap-2">
-            <button onClick={handleLike} className="flex flex-col items-center">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${likedClips[currentClip.id] ? 'bg-teal-500' : 'bg-white/10'}`}><ThumbsUp className="w-4 h-4" /></div>
-              <span className="text-[10px] mt-0.5">{siteLikes}</span>
-            </button>
-            <button onClick={() => setShowComments(true)} className="flex flex-col items-center">
-              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"><MessageCircle className="w-4 h-4" /></div>
-              <span className="text-[10px] mt-0.5">{commentsCount}</span>
-            </button>
-            <button onClick={() => navigator.share ? navigator.share({ title: currentClip.location, url: window.location.href }) : navigator.clipboard.writeText(window.location.href)} className="flex flex-col items-center">
-              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"><Share2 className="w-4 h-4" /></div>
-              <span className="text-[10px] mt-0.5">&nbsp;</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Classify Bar */}
+        {/* Classify Bar with Labels */}
         <div className="flex items-stretch gap-1">
           {classificationOptions.map(opt => (
-            <button 
-              key={opt.id} 
-              onClick={() => !(isClassified && isClassifyMode) && handleClassify(opt.id)} 
-              disabled={isClassified && isClassifyMode}
-              className={`flex-1 py-2 rounded-lg transition-transform flex flex-col items-center gap-0.5 ${isClassified && classifiedClips[currentClip.id] === opt.id ? 'ring-2 ring-white' : ''} ${isClassified && isClassifyMode ? 'opacity-60' : 'active:scale-95'}`}
-              style={{ backgroundColor: `${opt.color}30` }}
-            >
+            <button key={opt.id} onClick={() => handleClassify(opt.id)} className="flex-1 py-2 rounded-lg active:scale-95 transition-transform backdrop-blur flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}30` }}>
               <span className="text-base">{opt.icon}</span>
               <span className="text-[8px] font-medium" style={{ color: opt.color }}>{opt.label}</span>
             </button>
           ))}
           <div className="flex flex-col gap-1">
-            {isClassifyMode && (
-              <button 
-                onClick={handleNext} 
-                className={`px-2 py-1.5 rounded-lg text-[10px] active:scale-95 ${isClassified ? 'bg-teal-500 text-white font-medium' : 'text-gray-400 bg-white/10'}`}
-              >
-                {isClassified ? '✓ Next' : 'Skip'}
-              </button>
-            )}
-            {isTrending && (
-              <button 
-                onClick={handleNext} 
-                className="px-2 py-1.5 rounded-lg text-[10px] active:scale-95 text-gray-400 bg-white/10"
-              >
-                Next
-              </button>
-            )}
-            {/* Reward indicator below button */}
-            {showRewardToast && (
-              <div className="flex items-center justify-center gap-1 text-teal-400 animate-pulse">
-                <Zap className="w-3 h-3" />
-                <span className="text-[10px] font-bold">+50 $SKEYE</span>
+            <button onClick={handleNext} className="px-2 py-1.5 rounded-lg text-[10px] text-gray-400 bg-white/10 backdrop-blur active:scale-95">Skip</button>
+            {showReward && (
+              <div className="flex items-center justify-center gap-0.5 bg-green-500/20 backdrop-blur px-2 py-1 rounded-lg">
+                <Zap className="w-3 h-3 text-green-400" />
+                <span className="text-[9px] text-green-400 font-semibold">+50</span>
               </div>
             )}
           </div>
@@ -2189,27 +1245,23 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
           <div className="absolute inset-x-0 bottom-0 bg-[#141414] rounded-t-3xl max-h-[70vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mt-3" />
             <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-              <h3 className="font-semibold">Comments ({commentsCount})</h3>
+              <h3 className="font-semibold">Comments ({siteComments.length})</h3>
               <button onClick={() => setShowComments(false)}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-[200px]">
-              {commentsCount === 0 ? (<p className="text-center text-gray-500 py-8">No comments yet. Be the first!</p>) : (
+              {siteComments.length === 0 ? (<p className="text-center text-gray-500 py-8">No comments yet. Be the first!</p>) : (
                 siteComments.map((c, i) => (
-                  <div key={c.id || i} className="flex gap-3">
-                    {(c.user?.avatarUrl || c.avatarUrl) ? (
-                      <img src={c.user?.avatarUrl || c.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center text-xs font-bold text-teal-400 flex-shrink-0">{c.user?.avatar || c.avatar || (c.user?.username || c.user)?.[0]?.toUpperCase() || '?'}</div>
-                    )}
-                    <div className="flex-1"><div className="flex items-center gap-2"><span className="font-semibold text-sm">{c.user?.username || c.user || 'Anonymous'}</span><span className="text-[10px] text-gray-500">{c.time || (c.createdAt ? getTimeAgo(new Date(c.createdAt).getTime()) : '')}</span></div><p className="text-sm text-gray-300 mt-1">{c.text}</p></div>
+                  <div key={i} className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-bold text-green-400 flex-shrink-0">{c.avatar}</div>
+                    <div className="flex-1"><div className="flex items-center gap-2"><span className="font-semibold text-sm">{c.user}</span><span className="text-[10px] text-gray-500">{c.time}</span></div><p className="text-sm text-gray-300 mt-1">{c.text}</p></div>
                   </div>
                 ))
               )}
             </div>
             <div className="p-4 border-t border-gray-800">
               <div className="flex gap-2">
-                <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handlePostComment()} placeholder="Add a comment..." className="flex-1 px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white text-sm focus:outline-none focus:border-teal-500/50" />
-                <button onClick={handlePostComment} className="px-4 py-3 bg-teal-500 rounded-xl text-sm font-medium">Post</button>
+                <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Add a comment..." className="flex-1 px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white text-sm focus:outline-none focus:border-green-500/50" />
+                <button className="px-4 py-3 bg-green-500 rounded-xl text-sm font-medium">Post</button>
               </div>
             </div>
           </div>
@@ -2220,169 +1272,18 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
 }
 
 function TrendingView({ isMobile, clips, onViewProfile }) {
-  const { API_URL } = useAuth();
-  const [sightings, setSightings] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchSightings = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/sightings`);
-        if (res.ok) {
-          const data = await res.json();
-          // Transform data - use real likes/comments counts from API
-          const transformed = data.map((s) => {
-            const createdAt = new Date(s.created_at);
-            return {
-              id: s.id,
-              videoUrl: s.video_url,
-              location: s.location,
-              title: s.title || s.location,
-              classification: s.classification,
-              confidence: s.ai_confidence,
-              siteLikes: parseInt(s.likes_count) || 0,
-              siteComments: [], // Will be fetched when needed
-              commentsCount: parseInt(s.comments_count) || 0,
-              owner: { 
-                username: s.uploader_username || 'Admin', 
-                avatar: (s.uploader_username || 'A')[0].toUpperCase(),
-                avatarUrl: s.uploader_avatar 
-              },
-              timestamp: createdAt.getTime(),
-              utcTime: createdAt.toISOString().slice(0, 19).replace('T', ' ') + ' UTC',
-              time: getTimeAgo(createdAt.getTime()),
-            };
-          });
-          // Sort by likes (most popular first) for trending
-          const sorted = transformed.sort((a, b) => b.siteLikes - a.siteLikes);
-          setSightings(sorted);
-        }
-      } catch (err) {
-        console.error('Failed to fetch sightings:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSightings();
-  }, [API_URL]);
-
-  if (loading) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <Loader className="w-8 h-8 text-teal-400 animate-spin" />
-      </div>
-    );
-  }
-
-  if (sightings.length === 0) {
-    return (
-      <div className="h-full flex items-center justify-center text-gray-500">
-        <p>No sightings yet</p>
-      </div>
-    );
-  }
-
-  return <VideoFeedView clips={sightings} showReward={false} title="Trending" isMobile={isMobile} onViewProfile={onViewProfile} mode="trending" />;
+  return <VideoFeedView clips={clips} showReward={true} title="Trending" isMobile={isMobile} onViewProfile={onViewProfile} />;
 }
 
 function ClassifyView({ isMobile, onViewProfile }) {
-  const { API_URL, token, user } = useAuth();
-  const [sightings, setSightings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [classifiedIds, setClassifiedIds] = useState(new Set());
-  const [totalClassifications, setTotalClassifications] = useState(0);
-
-  // Load user's previous classifications on mount
-  useEffect(() => {
-    const loadMyClassifications = async () => {
-      if (!token) return;
-      try {
-        const res = await fetch(`${API_URL}/api/sightings/my-classifications`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          // data is an object like { sightingId: classification, ... }
-          const ids = Object.keys(data).map(id => parseInt(id));
-          setClassifiedIds(new Set(ids));
-          setTotalClassifications(ids.length);
-        }
-      } catch (err) {
-        console.error('Failed to load classifications:', err);
-      }
-    };
-    loadMyClassifications();
-  }, [token, API_URL]);
-
-  useEffect(() => {
-    const fetchSightings = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/sightings`);
-        if (res.ok) {
-          const data = await res.json();
-          const transformed = data.map((s) => {
-            const createdAt = new Date(s.created_at);
-            return {
-              id: s.id,
-              videoUrl: s.video_url,
-              location: s.location,
-              title: s.title || s.location,
-              classification: s.classification,
-              confidence: s.ai_confidence,
-              siteLikes: parseInt(s.likes_count) || 0,
-              siteComments: [],
-              commentsCount: parseInt(s.comments_count) || 0,
-              owner: { 
-                username: s.uploader_username || 'Admin', 
-                avatar: (s.uploader_username || 'A')[0].toUpperCase(),
-                avatarUrl: s.uploader_avatar 
-              },
-              timestamp: createdAt.getTime(),
-              utcTime: createdAt.toISOString().slice(0, 19).replace('T', ' ') + ' UTC',
-              time: getTimeAgo(createdAt.getTime()),
-            };
-          });
-          // Shuffle for random order
-          const shuffled = transformed.sort(() => Math.random() - 0.5);
-          setSightings(shuffled);
-        }
-      } catch (err) {
-        console.error('Failed to fetch sightings:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSightings();
-  }, [API_URL]);
-
-  // Filter out already classified sightings
-  const unclassifiedSightings = sightings.filter(s => !classifiedIds.has(s.id));
-
-  const handleClassified = (id) => {
-    setClassifiedIds(prev => new Set([...prev, id]));
-    setTotalClassifications(prev => prev + 1);
-  };
-
-  if (loading) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <Loader className="w-8 h-8 text-teal-400 animate-spin" />
-      </div>
-    );
-  }
-
-  if (unclassifiedSightings.length === 0) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center text-gray-400 p-4">
-        <Eye className="w-16 h-16 mb-4 text-teal-400" />
-        <h2 className="text-xl font-bold text-white mb-2">All Caught Up!</h2>
-        <p className="text-center">You've classified all available sightings. Check back later for more!</p>
-        <p className="text-center mt-4 text-teal-400 font-semibold">Total classifications: {totalClassifications}</p>
-      </div>
-    );
-  }
-
-  return <VideoFeedView clips={unclassifiedSightings} showReward={true} title="Classify" isMobile={isMobile} onViewProfile={onViewProfile} onClassified={handleClassified} mode="classify" totalClassifications={totalClassifications} />;
+  // Convert classifyClips to have same structure as trending clips
+  const clipsWithInfo = classifyClips.map((c, i) => ({
+    ...c,
+    siteLikes: Math.floor(50 + Math.random() * 200),
+    siteComments: i === 0 ? [{user: 'Observer1', text: 'What do you all think?', time: '30m ago', avatar: 'O'}] : [],
+    classification: 'UAP',
+  }));
+  return <VideoFeedView clips={clipsWithInfo} showReward={true} title="Classify" isMobile={isMobile} onViewProfile={onViewProfile} />;
 }
 
 const communityTopics = [
@@ -2478,7 +1379,7 @@ function CommunityView({ isMobile }) {
   const CommentComponent = ({ comment, depth = 0 }) => (
     <div className={`${depth > 0 ? 'ml-8 border-l-2 border-gray-700 pl-4' : ''}`}>
       <div className="flex gap-3 py-3">
-        <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center text-xs font-bold text-teal-400 flex-shrink-0">{comment.avatar}</div>
+        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-bold text-green-400 flex-shrink-0">{comment.avatar}</div>
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <span className="font-semibold text-sm">{comment.user}</span>
@@ -2486,7 +1387,7 @@ function CommunityView({ isMobile }) {
           </div>
           <p className="text-sm text-gray-300 mb-2">{comment.text}</p>
           <div className="flex items-center gap-4">
-            <button onClick={() => handleLikeComment(comment.id)} className={`flex items-center gap-1 text-xs ${likedComments[comment.id] ? 'text-teal-400' : 'text-gray-500 hover:text-white'}`}>
+            <button onClick={() => handleLikeComment(comment.id)} className={`flex items-center gap-1 text-xs ${likedComments[comment.id] ? 'text-green-400' : 'text-gray-500 hover:text-white'}`}>
               <ThumbsUp className="w-3 h-3" />
               <span>{comment.likes + (likedComments[comment.id] ? 1 : 0)}</span>
             </button>
@@ -2494,8 +1395,8 @@ function CommunityView({ isMobile }) {
           </div>
           {replyingTo === comment.id && (
             <div className="mt-2 flex gap-2">
-              <input type="text" value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Write a reply..." className="flex-1 px-3 py-2 bg-white/5 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-teal-500/50" />
-              <button onClick={() => { setReplyingTo(null); setReplyText(''); }} className="px-3 py-2 bg-teal-500 rounded-lg text-sm font-medium">Reply</button>
+              <input type="text" value={replyText} onChange={(e) => setReplyText(e.target.value)} placeholder="Write a reply..." className="flex-1 px-3 py-2 bg-white/5 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-green-500/50" />
+              <button onClick={() => { setReplyingTo(null); setReplyText(''); }} className="px-3 py-2 bg-green-500 rounded-lg text-sm font-medium">Reply</button>
             </div>
           )}
         </div>
@@ -2517,14 +1418,14 @@ function CommunityView({ isMobile }) {
           </div>
           <div className="p-3 space-y-1">
             {communityTopics.map(topic => (
-              <button key={topic.id} onClick={() => setActiveTopic(topic.id)} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${activeTopic === topic.id ? 'bg-teal-500/10 text-teal-400' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}>
+              <button key={topic.id} onClick={() => setActiveTopic(topic.id)} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${activeTopic === topic.id ? 'bg-green-500/10 text-green-400' : 'text-gray-400 hover:bg-white/5 hover:text-white'}`}>
                 <span>{topic.icon}</span>
                 <span className="font-medium">{topic.label}</span>
               </button>
             ))}
           </div>
           <div className="mt-auto p-3 border-t border-gray-800">
-            <button onClick={() => setShowNewPost(true)} className="w-full py-3 bg-teal-500 rounded-xl font-semibold hover:bg-teal-600 flex items-center justify-center gap-2">
+            <button onClick={() => setShowNewPost(true)} className="w-full py-3 bg-green-500 rounded-xl font-semibold hover:bg-green-600 flex items-center justify-center gap-2">
               <Plus className="w-5 h-5" />
               New Post
             </button>
@@ -2537,7 +1438,7 @@ function CommunityView({ isMobile }) {
           <div className="p-4 border-b border-gray-800 flex items-center gap-4">
             <span className="text-sm text-gray-500">Sort by:</span>
             {['hot', 'new', 'top'].map(s => (
-              <button key={s} onClick={() => setSortBy(s)} className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${sortBy === s ? 'bg-teal-500/20 text-teal-400' : 'text-gray-400 hover:text-white'}`}>{s}</button>
+              <button key={s} onClick={() => setSortBy(s)} className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${sortBy === s ? 'bg-green-500/20 text-green-400' : 'text-gray-400 hover:text-white'}`}>{s}</button>
             ))}
           </div>
 
@@ -2547,16 +1448,16 @@ function CommunityView({ isMobile }) {
               <div key={post.id} onClick={() => setSelectedPost(post)} className="flex gap-4 p-4 border-b border-gray-800 hover:bg-white/5 cursor-pointer">
                 {/* Vote */}
                 <div className="flex flex-col items-center gap-1">
-                  <button onClick={(e) => handleVote(post.id, e)} className={`p-1 rounded hover:bg-white/10 ${votedPosts[post.id] ? 'text-teal-400' : 'text-gray-500'}`}>
+                  <button onClick={(e) => handleVote(post.id, e)} className={`p-1 rounded hover:bg-white/10 ${votedPosts[post.id] ? 'text-green-400' : 'text-gray-500'}`}>
                     <ChevronUp className="w-6 h-6" />
                   </button>
-                  <span className={`text-sm font-bold ${votedPosts[post.id] ? 'text-teal-400' : ''}`}>{post.upvotes + (votedPosts[post.id] ? 1 : 0)}</span>
+                  <span className={`text-sm font-bold ${votedPosts[post.id] ? 'text-green-400' : ''}`}>{post.upvotes + (votedPosts[post.id] ? 1 : 0)}</span>
                 </div>
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-gray-400">{communityTopics.find(t => t.id === post.topic)?.label}</span>
-                    {post.hasVideo && <span className="text-xs px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-400">📹 Video</span>}
+                    {post.hasVideo && <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">📹 Video</span>}
                   </div>
                   <h3 className="font-semibold text-white mb-1">{post.title}</h3>
                   <p className="text-sm text-gray-400 line-clamp-2 mb-2">{post.content}</p>
@@ -2591,7 +1492,7 @@ function CommunityView({ isMobile }) {
                   </div>
                 )}
                 <div className="flex items-center gap-4 pb-4 border-b border-gray-800">
-                  <button onClick={(e) => handleVote(selectedPost.id, e)} className={`flex items-center gap-2 px-4 py-2 rounded-lg ${votedPosts[selectedPost.id] ? 'bg-teal-500/20 text-teal-400' : 'bg-white/5 hover:bg-white/10'}`}>
+                  <button onClick={(e) => handleVote(selectedPost.id, e)} className={`flex items-center gap-2 px-4 py-2 rounded-lg ${votedPosts[selectedPost.id] ? 'bg-green-500/20 text-green-400' : 'bg-white/5 hover:bg-white/10'}`}>
                     <ChevronUp className="w-5 h-5" />
                     <span className="font-semibold">{selectedPost.upvotes + (votedPosts[selectedPost.id] ? 1 : 0)}</span>
                   </button>
@@ -2606,12 +1507,12 @@ function CommunityView({ isMobile }) {
                 </div>
                 <div className="pt-4">
                   <div className="flex gap-3 mb-4">
-                    <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Add a comment..." className="flex-1 px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-teal-500/50" />
-                    <button className="px-6 py-3 bg-teal-500 rounded-xl font-medium">Post</button>
+                    <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Add a comment..." className="flex-1 px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" />
+                    <button className="px-6 py-3 bg-green-500 rounded-xl font-medium">Post</button>
                   </div>
                   {/* Comments */}
                   <div className="space-y-1">
-                    {selectedPost.siteComments && selectedPost.commentsCount > 0 ? (
+                    {selectedPost.siteComments && selectedPost.siteComments.length > 0 ? (
                       selectedPost.siteComments.map(comment => (
                         <CommentComponent key={comment.id} comment={comment} />
                       ))
@@ -2639,7 +1540,7 @@ function CommunityView({ isMobile }) {
                     <label className="block text-sm text-gray-400 mb-2">Topic</label>
                     <div className="flex flex-wrap gap-2">
                       {communityTopics.filter(t => t.id !== 'all').map(topic => (
-                        <button key={topic.id} onClick={() => setNewPostTopic(topic.id)} className={`px-3 py-1.5 rounded-full text-sm ${newPostTopic === topic.id ? 'bg-teal-500/20 text-teal-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+                        <button key={topic.id} onClick={() => setNewPostTopic(topic.id)} className={`px-3 py-1.5 rounded-full text-sm ${newPostTopic === topic.id ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
                           {topic.icon} {topic.label}
                         </button>
                       ))}
@@ -2647,15 +1548,15 @@ function CommunityView({ isMobile }) {
                   </div>
                   <div>
                     <label className="block text-sm text-gray-400 mb-2">Title</label>
-                    <input type="text" value={newPostTitle} onChange={(e) => setNewPostTitle(e.target.value)} placeholder="Enter a descriptive title..." className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-teal-500/50" />
+                    <input type="text" value={newPostTitle} onChange={(e) => setNewPostTitle(e.target.value)} placeholder="Enter a descriptive title..." className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" />
                   </div>
                   <div>
                     <label className="block text-sm text-gray-400 mb-2">Content</label>
-                    <textarea value={newPostContent} onChange={(e) => setNewPostContent(e.target.value)} placeholder="Share your sighting, question, or analysis..." rows={5} className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-teal-500/50 resize-none" />
+                    <textarea value={newPostContent} onChange={(e) => setNewPostContent(e.target.value)} placeholder="Share your sighting, question, or analysis..." rows={5} className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50 resize-none" />
                   </div>
                   <div className="flex gap-3 pt-2">
                     <button onClick={() => setShowNewPost(false)} className="flex-1 py-3 bg-white/5 rounded-xl font-medium hover:bg-white/10">Cancel</button>
-                    <button onClick={() => { setShowNewPost(false); setNewPostTitle(''); setNewPostContent(''); }} className="flex-1 py-3 bg-teal-500 rounded-xl font-medium hover:bg-teal-600">Post</button>
+                    <button onClick={() => { setShowNewPost(false); setNewPostTitle(''); setNewPostContent(''); }} className="flex-1 py-3 bg-green-500 rounded-xl font-medium hover:bg-green-600">Post</button>
                   </div>
                 </div>
               </div>
@@ -2673,7 +1574,7 @@ function CommunityView({ isMobile }) {
       <div className="flex-shrink-0 border-b border-gray-800">
         <div className="flex overflow-x-auto scrollbar-hide px-2 py-2 gap-2">
           {communityTopics.map(topic => (
-            <button key={topic.id} onClick={() => setActiveTopic(topic.id)} className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm ${activeTopic === topic.id ? 'bg-teal-500/20 text-teal-400' : 'bg-white/5 text-gray-400'}`}>
+            <button key={topic.id} onClick={() => setActiveTopic(topic.id)} className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm ${activeTopic === topic.id ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-400'}`}>
               <span>{topic.icon}</span>
               <span>{topic.label}</span>
             </button>
@@ -2684,7 +1585,7 @@ function CommunityView({ isMobile }) {
       {/* Sort Bar */}
       <div className="flex-shrink-0 px-3 py-2 flex items-center gap-2 border-b border-gray-800/50">
         {['hot', 'new', 'top'].map(s => (
-          <button key={s} onClick={() => setSortBy(s)} className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${sortBy === s ? 'bg-teal-500/20 text-teal-400' : 'text-gray-500'}`}>{s}</button>
+          <button key={s} onClick={() => setSortBy(s)} className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${sortBy === s ? 'bg-green-500/20 text-green-400' : 'text-gray-500'}`}>{s}</button>
         ))}
       </div>
 
@@ -2694,16 +1595,16 @@ function CommunityView({ isMobile }) {
           <div key={post.id} onClick={() => setSelectedPost(post)} className="flex gap-3 p-3 border-b border-gray-800/50 active:bg-white/5">
             {/* Vote */}
             <div className="flex flex-col items-center">
-              <button onClick={(e) => handleVote(post.id, e)} className={votedPosts[post.id] ? 'text-teal-400' : 'text-gray-500'}>
+              <button onClick={(e) => handleVote(post.id, e)} className={votedPosts[post.id] ? 'text-green-400' : 'text-gray-500'}>
                 <ChevronUp className="w-5 h-5" />
               </button>
-              <span className={`text-xs font-bold ${votedPosts[post.id] ? 'text-teal-400' : ''}`}>{post.upvotes + (votedPosts[post.id] ? 1 : 0)}</span>
+              <span className={`text-xs font-bold ${votedPosts[post.id] ? 'text-green-400' : ''}`}>{post.upvotes + (votedPosts[post.id] ? 1 : 0)}</span>
             </div>
             {/* Content */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-1">
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-gray-400">{communityTopics.find(t => t.id === post.topic)?.label}</span>
-                {post.hasVideo && <span className="text-[10px] text-teal-400">📹</span>}
+                {post.hasVideo && <span className="text-[10px] text-green-400">📹</span>}
               </div>
               <h3 className="font-semibold text-sm text-white mb-1 line-clamp-2">{post.title}</h3>
               <div className="flex items-center gap-2 text-[10px] text-gray-500">
@@ -2717,7 +1618,7 @@ function CommunityView({ isMobile }) {
       </div>
 
       {/* FAB */}
-      <button onClick={() => setShowNewPost(true)} className="fixed bottom-20 right-4 w-14 h-14 bg-teal-500 rounded-full shadow-lg flex items-center justify-center active:scale-95 z-40">
+      <button onClick={() => setShowNewPost(true)} className="fixed bottom-20 right-4 w-14 h-14 bg-green-500 rounded-full shadow-lg flex items-center justify-center active:scale-95 z-40">
         <Plus className="w-6 h-6" />
       </button>
 
@@ -2749,7 +1650,7 @@ function CommunityView({ isMobile }) {
                 <div className="aspect-video bg-black rounded-xl mb-4 flex items-center justify-center"><Play className="w-12 h-12 text-gray-500" /></div>
               )}
               <div className="flex items-center gap-3 pb-4 border-b border-gray-800">
-                <button onClick={(e) => handleVote(selectedPost.id, e)} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg ${votedPosts[selectedPost.id] ? 'bg-teal-500/20 text-teal-400' : 'bg-white/5'}`}>
+                <button onClick={(e) => handleVote(selectedPost.id, e)} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg ${votedPosts[selectedPost.id] ? 'bg-green-500/20 text-green-400' : 'bg-white/5'}`}>
                   <ChevronUp className="w-4 h-4" />
                   <span className="text-sm font-semibold">{selectedPost.upvotes + (votedPosts[selectedPost.id] ? 1 : 0)}</span>
                 </button>
@@ -2763,7 +1664,7 @@ function CommunityView({ isMobile }) {
               </div>
               {/* Comments */}
               <div className="pt-4 space-y-1">
-                {selectedPost.siteComments && selectedPost.commentsCount > 0 ? (
+                {selectedPost.siteComments && selectedPost.siteComments.length > 0 ? (
                   selectedPost.siteComments.map(comment => (
                     <CommentComponent key={comment.id} comment={comment} />
                   ))
@@ -2775,7 +1676,7 @@ function CommunityView({ isMobile }) {
             <div className="p-3 border-t border-gray-800">
               <div className="flex gap-2">
                 <input type="text" value={newComment} onChange={(e) => setNewComment(e.target.value)} placeholder="Add a comment..." className="flex-1 px-3 py-2 bg-white/5 border border-gray-700 rounded-xl text-white text-sm" />
-                <button className="px-4 py-2 bg-teal-500 rounded-xl text-sm font-medium">Post</button>
+                <button className="px-4 py-2 bg-green-500 rounded-xl text-sm font-medium">Post</button>
               </div>
             </div>
           </div>
@@ -2794,7 +1695,7 @@ function CommunityView({ isMobile }) {
                   <label className="block text-xs text-gray-400 mb-2">Topic</label>
                   <div className="flex flex-wrap gap-2">
                     {communityTopics.filter(t => t.id !== 'all').map(topic => (
-                      <button key={topic.id} onClick={() => setNewPostTopic(topic.id)} className={`px-2 py-1 rounded-full text-xs ${newPostTopic === topic.id ? 'bg-teal-500/20 text-teal-400' : 'bg-white/5 text-gray-400'}`}>
+                      <button key={topic.id} onClick={() => setNewPostTopic(topic.id)} className={`px-2 py-1 rounded-full text-xs ${newPostTopic === topic.id ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-gray-400'}`}>
                         {topic.icon} {topic.label}
                       </button>
                     ))}
@@ -2804,7 +1705,7 @@ function CommunityView({ isMobile }) {
                 <textarea value={newPostContent} onChange={(e) => setNewPostContent(e.target.value)} placeholder="Share your sighting..." rows={4} className="w-full px-3 py-2 bg-white/5 border border-gray-700 rounded-xl text-white text-sm resize-none" />
                 <div className="flex gap-2">
                   <button onClick={() => setShowNewPost(false)} className="flex-1 py-3 bg-white/5 rounded-xl font-medium text-sm">Cancel</button>
-                  <button onClick={() => { setShowNewPost(false); setNewPostTitle(''); setNewPostContent(''); }} className="flex-1 py-3 bg-teal-500 rounded-xl font-medium text-sm">Post</button>
+                  <button onClick={() => { setShowNewPost(false); setNewPostTitle(''); setNewPostContent(''); }} className="flex-1 py-3 bg-green-500 rounded-xl font-medium text-sm">Post</button>
                 </div>
               </div>
             </div>
@@ -2815,615 +1716,51 @@ function CommunityView({ isMobile }) {
   );
 }
 
-// Avatar Picker Modal Component
-function AvatarPickerModal({ currentAvatar, avatars, onClose }) {
-  const { token, API_URL, user } = useAuth();
-  const [selected, setSelected] = useState(currentAvatar);
-  const [customPreview, setCustomPreview] = useState(null);
-  const [saving, setSaving] = useState(false);
-
-  // Convert data URL to File for upload
-  const dataURLtoFile = (dataurl, filename) => {
-    const arr = dataurl.split(',');
-    const mime = arr[0].match(/:(.*?);/)[1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while(n--) u8arr[n] = bstr.charCodeAt(n);
-    return new File([u8arr], filename, {type: mime});
-  };
-
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCustomPreview(reader.result);
-        setSelected(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!selected || selected === currentAvatar) {
-      onClose();
-      return;
-    }
-    setSaving(true);
-    try {
-      let finalAvatarUrl = selected;
-      
-      // If avatar is a data URL (custom upload), upload to Supabase first
-      if (selected && selected.startsWith('data:')) {
-        const file = dataURLtoFile(selected, `avatar-${user?.id}-${Date.now()}.jpg`);
-        finalAvatarUrl = await uploadAvatar(file, user?.id || 'user');
-      }
-      
-      const res = await fetch(`${API_URL}/api/auth/profile`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ avatarUrl: finalAvatarUrl })
-      });
-      if (res.ok) {
-        window.location.reload(); // Refresh to show new avatar
-      }
-    } catch (err) {
-      console.error('Failed to update avatar:', err);
-    } finally {
-      setSaving(false);
-      onClose();
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#141414] rounded-2xl border border-gray-700 w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-          <h3 className="font-semibold text-white">Choose Avatar</h3>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg">
-            <X className="w-5 h-5 text-gray-400" />
-          </button>
-        </div>
-        <div className="p-4">
-          {/* Upload custom option */}
-          <label className={`mb-4 flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-xl cursor-pointer transition-all ${customPreview ? 'border-teal-500 bg-teal-500/10' : 'border-gray-700 hover:border-gray-500'}`}>
-            <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
-            {customPreview ? (
-              <div className="flex items-center gap-3">
-                <img src={customPreview} alt="Custom" className="w-12 h-12 rounded-full object-cover" />
-                <span className="text-sm text-teal-400">Custom image selected</span>
-              </div>
-            ) : (
-              <>
-                <Upload className="w-5 h-5 text-gray-400" />
-                <span className="text-sm text-gray-400">Upload your own image</span>
-              </>
-            )}
-          </label>
-          
-          <p className="text-xs text-gray-500 mb-3 text-center">Or choose a preset</p>
-          
-          <div className="grid grid-cols-3 gap-3">
-            {avatars.map((avatar, i) => (
-              <button
-                key={i}
-                onClick={() => { setSelected(avatar); setCustomPreview(null); }}
-                className={`aspect-square rounded-xl overflow-hidden border-2 transition-all ${selected === avatar && !customPreview ? 'border-teal-500 scale-105' : 'border-gray-700 hover:border-gray-500'}`}
-              >
-                <img src={avatar} alt={`Avatar ${i + 1}`} className="w-full h-full object-cover" />
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="p-4 border-t border-gray-800 flex gap-2">
-          <button onClick={onClose} className="flex-1 py-3 bg-white/5 rounded-xl font-medium text-sm text-gray-400 hover:bg-white/10">Cancel</button>
-          <button onClick={handleSave} disabled={saving} className="flex-1 py-3 bg-teal-500 rounded-xl font-medium text-sm text-white hover:bg-teal-600 disabled:opacity-50">
-            {saving ? 'Saving...' : 'Save'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips, viewingProfile, setViewingProfile }) {
-  const { user, token, API_URL } = useAuth();
-  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
-  const [publicProfile, setPublicProfile] = useState(null);
-  const [publicClips, setPublicClips] = useState([]);
-  const [loadingProfile, setLoadingProfile] = useState(false);
-  const [ownClassificationsCount, setOwnClassificationsCount] = useState(0);
-  const [userComments, setUserComments] = useState([]);
-  const [selectedSighting, setSelectedSighting] = useState(null);
-  const [sightingComments, setSightingComments] = useState([]);
-  const [newComment, setNewComment] = useState('');
-  const [ownStats, setOwnStats] = useState(null);
-  
-  // Determine if viewing own profile or another user's
-  const isOwnProfile = !viewingProfile || viewingProfile === user?.username;
-  
-  const subTabs = isOwnProfile ? [
+function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips }) {
+  const subTabs = [
     { id: 'devices', label: 'My Devices', icon: Camera },
     { id: 'clips', label: 'My Clips', icon: Film },
-    { id: 'comments', label: 'My Comments', icon: MessageCircle },
     { id: 'settings', label: 'Settings', icon: Settings },
-  ] : [
-    { id: 'clips', label: 'Clips', icon: Film },
-    { id: 'comments', label: 'Comments', icon: MessageCircle },
   ];
-
-  // Fetch own profile stats
-  useEffect(() => {
-    if (isOwnProfile && user?.username) {
-      fetch(`${API_URL}/api/users/${user.username}`)
-        .then(res => res.json())
-        .then(data => setOwnStats(data))
-        .catch(err => console.error('Failed to load own stats:', err));
-    }
-  }, [isOwnProfile, user?.username, API_URL]);
-
-  // View sighting from comment click
-  const handleViewSighting = async (sightingId) => {
-    if (!sightingId) return;
-    try {
-      // Fetch the sighting details
-      const res = await fetch(`${API_URL}/api/sightings/${sightingId}`);
-      if (res.ok) {
-        const sighting = await res.json();
-        setSelectedSighting(sighting);
-        // Fetch comments for this sighting
-        const commentsRes = await fetch(`${API_URL}/api/sightings/${sightingId}/comments`);
-        if (commentsRes.ok) {
-          const comments = await commentsRes.json();
-          setSightingComments(comments);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch sighting:', err);
-    }
-  };
-
-  // Post comment on sighting
-  const handlePostComment = async () => {
-    if (!newComment.trim() || !selectedSighting || !token) return;
-    const commentText = newComment.trim();
-    const tempComment = {
-      id: Date.now(),
-      text: commentText,
-      user: { username: user?.username, avatarUrl: user?.avatarUrl },
-      createdAt: new Date().toISOString()
-    };
-    setSightingComments(prev => [...prev, tempComment]);
-    setNewComment('');
-    
-    try {
-      await fetch(`${API_URL}/api/sightings/${selectedSighting.id}/comments`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: commentText })
-      });
-    } catch (err) {
-      console.error('Failed to post comment:', err);
-    }
-  };
-
-  // Fetch user's comments
-  useEffect(() => {
-    const fetchComments = async () => {
-      const username = isOwnProfile ? user?.username : viewingProfile;
-      if (!username) return;
-      try {
-        const res = await fetch(`${API_URL}/api/users/${username}/comments`);
-        if (res.ok) {
-          const data = await res.json();
-          setUserComments(data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch comments:', err);
-      }
-    };
-    fetchComments();
-  }, [isOwnProfile, user?.username, viewingProfile, API_URL]);
-
-  // Fetch own classifications count
-  useEffect(() => {
-    if (isOwnProfile && token) {
-      fetch(`${API_URL}/api/sightings/my-classifications`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-        .then(res => res.json())
-        .then(data => {
-          const count = Object.keys(data).length;
-          setOwnClassificationsCount(count);
-        })
-        .catch(err => console.error('Failed to load classifications count:', err));
-    }
-  }, [isOwnProfile, token, API_URL]);
-
-  // Fetch public profile when viewing another user
-  useEffect(() => {
-    if (viewingProfile && viewingProfile !== user?.username) {
-      setLoadingProfile(true);
-      // Fetch public profile data
-      fetch(`${API_URL}/api/users/${viewingProfile}`)
-        .then(res => res.json())
-        .then(data => {
-          setPublicProfile(data);
-          setLoadingProfile(false);
-        })
-        .catch(err => {
-          console.error('Failed to load profile:', err);
-          setLoadingProfile(false);
-        });
-      
-      // Fetch user's public clips
-      fetch(`${API_URL}/api/users/${viewingProfile}/clips`)
-        .then(res => res.json())
-        .then(data => {
-          setPublicClips(data.clips || []);
-        })
-        .catch(err => console.error('Failed to load clips:', err));
-    }
-  }, [viewingProfile, user?.username]);
-
-  // Default avatar options
-  const defaultAvatars = [
-    'https://api.dicebear.com/7.x/bottts/svg?seed=robot1&backgroundColor=0a5c36',
-    'https://api.dicebear.com/7.x/bottts/svg?seed=robot2&backgroundColor=0a5c36',
-    'https://api.dicebear.com/7.x/bottts/svg?seed=robot3&backgroundColor=0a5c36',
-    'https://api.dicebear.com/7.x/bottts/svg?seed=alien1&backgroundColor=0a5c36',
-    'https://api.dicebear.com/7.x/bottts/svg?seed=alien2&backgroundColor=0a5c36',
-    'https://api.dicebear.com/7.x/bottts/svg?seed=ufo1&backgroundColor=0a5c36',
-  ];
-
-  // Generate avatar from username initials if no avatar URL
-  const getInitials = (name) => {
-    if (!name) return '?';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  };
-
-  // Profile data - use publicProfile when viewing others, merge ownStats for own profile
-  const displayUser = isOwnProfile ? { ...user, ...ownStats } : publicProfile;
-  const displayClips = isOwnProfile ? clips : publicClips;
-
-  if (loadingProfile) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <Loader className="w-8 h-8 text-teal-400 animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      {/* Back button when viewing another profile */}
-      {!isOwnProfile && (
-        <div className="flex-shrink-0 p-3 border-b border-gray-800">
-          <button 
-            onClick={() => setViewingProfile(null)} 
-            className="flex items-center gap-2 text-gray-400 hover:text-white"
-          >
-            <ChevronLeft className="w-5 h-5" />
-            <span className="text-sm">Back to my profile</span>
-          </button>
-        </div>
-      )}
-      
       {/* Header */}
-      <div className={`flex-shrink-0 ${isMobile ? 'p-4' : 'p-6'} bg-gradient-to-b from-teal-500/10 to-transparent`}>
+      <div className={`flex-shrink-0 ${isMobile ? 'p-4' : 'p-6'} bg-gradient-to-b from-green-500/10 to-transparent`}>
         <div className="flex items-center gap-4">
-          <div className="relative">
-            <div 
-              onClick={() => isOwnProfile && setShowAvatarPicker(true)}
-              className={`${isMobile ? 'w-16 h-16' : 'w-20 h-20'} rounded-full overflow-hidden border-2 border-teal-500/50 flex items-center justify-center bg-teal-500/20 ${isOwnProfile ? 'cursor-pointer hover:border-teal-400' : ''} transition-colors`}
-            >
-              {displayUser?.avatarUrl ? (
-                <img src={displayUser.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <span className={`font-bold text-teal-400 ${isMobile ? 'text-xl' : 'text-2xl'}`}>{getInitials(displayUser?.username)}</span>
-              )}
-            </div>
-            {/* Pencil Edit Icon - only on own profile */}
-            {isOwnProfile && (
-              <button 
-                onClick={() => setShowAvatarPicker(true)}
-                className="absolute bottom-0 right-0 w-6 h-6 bg-teal-500 rounded-full flex items-center justify-center border-2 border-[#0a0a0a] hover:bg-teal-400 transition-colors"
-              >
-                <Pencil className="w-3 h-3 text-white" />
-              </button>
-            )}
+          <div className={`${isMobile ? 'w-16 h-16' : 'w-20 h-20'} rounded-full overflow-hidden border-2 border-green-500/50`}>
+            <img src={profileImg} alt="Profile" className="w-full h-full object-cover" />
           </div>
           <div>
-            <h2 className={`font-bold ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-              {isOwnProfile ? (displayUser?.username || 'User') : `@${displayUser?.username || 'User'}`}
-            </h2>
-            {isOwnProfile && <p className={`text-gray-400 ${isMobile ? 'text-sm' : ''}`}>{displayUser?.email || ''}</p>}
-            {!isOwnProfile && displayUser?.location && (
-              <p className={`text-gray-400 flex items-center gap-1 ${isMobile ? 'text-sm' : ''}`}>
-                <MapPin className="w-3 h-3" />
-                {displayUser.location}
-              </p>
-            )}
-            {!isOwnProfile && displayUser?.bio && (
-              <p className={`text-gray-300 mt-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>{displayUser.bio}</p>
-            )}
+            <h2 className={`font-bold ${isMobile ? 'text-lg' : 'text-2xl'}`}>John Doe</h2>
+            <p className={`text-gray-400 ${isMobile ? 'text-sm' : ''}`}>john@example.com</p>
           </div>
         </div>
-        <div className={`flex ${isMobile ? 'gap-3 mt-4 flex-wrap' : 'gap-6 mt-5'}`}>
-          <div><p className={`font-bold text-teal-400 ${isMobile ? '' : 'text-xl'}`}>{displayUser?.skeyeBalance?.toLocaleString() || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>$SKEYE</p></div>
-          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{isOwnProfile ? (clips?.length || 0) : (displayUser?.stats?.clipsCount || displayClips?.length || 0)}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Clips</p></div>
-          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>#{displayUser?.rank || '—'}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Rank</p></div>
-          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{isOwnProfile ? ownClassificationsCount : (displayUser?.stats?.classificationsCount || 0)}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Classified</p></div>
-          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{isOwnProfile ? (userComments?.length || 0) : (displayUser?.stats?.commentsCount || 0)}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Comments</p></div>
-          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>{displayUser?.stats?.likesCount || 0}</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Likes</p></div>
+        <div className={`flex ${isMobile ? 'gap-6 mt-4' : 'gap-8 mt-5'}`}>
+          <div><p className={`font-bold text-green-400 ${isMobile ? '' : 'text-xl'}`}>12,450</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>$SKEYE</p></div>
+          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>156</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Classified</p></div>
+          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>#47</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Rank</p></div>
         </div>
-        {/* Member since - for public profiles */}
-        {!isOwnProfile && displayUser?.createdAt && (
-          <p className={`text-gray-500 mt-3 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-            Member since {new Date(displayUser.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-          </p>
-        )}
       </div>
-
-      {/* Avatar Picker Modal - only for own profile */}
-      {isOwnProfile && showAvatarPicker && (
-        <AvatarPickerModal 
-          currentAvatar={displayUser?.avatarUrl} 
-          avatars={defaultAvatars} 
-          onClose={() => setShowAvatarPicker(false)} 
-        />
-      )}
 
       {/* Sub Tabs */}
       <div className={`flex-shrink-0 flex border-b border-gray-800 ${isMobile ? '' : 'px-4'}`}>
-        {subTabs.map((tab, index) => {
+        {subTabs.map(tab => {
           const Icon = tab.icon;
           return (
-            <div key={tab.id} className="flex-1 flex items-center">
-              <button 
-                onClick={() => setProfileSubTab(tab.id)} 
-                className={`flex-1 flex items-center justify-center ${isMobile ? 'gap-1 py-2.5' : 'gap-2 py-4'} border-b-2 ${profileSubTab === tab.id ? 'border-teal-400 text-teal-400' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
-              >
-                <Icon className={`${isMobile ? 'w-3.5 h-3.5' : 'w-5 h-5'}`} />
-                <span className={`font-medium whitespace-nowrap ${isMobile ? 'text-[10px]' : 'text-sm'}`}>{tab.label}</span>
-              </button>
-              {index < subTabs.length - 1 && (
-                <div className={`${isMobile ? 'h-4' : 'h-5'} w-px bg-gray-700`} />
-              )}
-            </div>
+            <button key={tab.id} onClick={() => setProfileSubTab(tab.id)} className={`flex-1 flex items-center justify-center gap-2 ${isMobile ? 'py-3' : 'py-4'} border-b-2 ${profileSubTab === tab.id ? 'border-green-400 text-green-400' : 'border-transparent text-gray-500 hover:text-gray-300'}`}>
+              <Icon className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`} />
+              <span className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>{tab.label}</span>
+            </button>
           );
         })}
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto scrollbar-dark">
-        {isOwnProfile ? (
-          <>
-            {profileSubTab === 'devices' && <DevicesSubView isMobile={isMobile} devices={devices} />}
-            {profileSubTab === 'clips' && <ClipsSubView isMobile={isMobile} clips={clips} devices={devices} />}
-            {profileSubTab === 'comments' && <CommentsSubView isMobile={isMobile} comments={userComments} isOwnProfile={true} onViewSighting={handleViewSighting} />}
-            {profileSubTab === 'settings' && <SettingsSubView isMobile={isMobile} />}
-          </>
-        ) : (
-          <>
-            {profileSubTab === 'clips' && <PublicClipsView isMobile={isMobile} clips={displayClips} username={displayUser?.username} />}
-            {profileSubTab === 'comments' && <CommentsSubView isMobile={isMobile} comments={userComments} isOwnProfile={false} username={displayUser?.username} onViewSighting={handleViewSighting} />}
-          </>
-        )}
-      </div>
-
-      {/* Sighting Modal from Comment Click */}
-      {selectedSighting && (
-        <div className="fixed inset-0 z-[60] bg-black" onClick={() => setSelectedSighting(null)}>
-          <div className={`h-full flex flex-col`} onClick={e => e.stopPropagation()}>
-            {isMobile ? (
-              <>
-                {/* Fixed Header */}
-                <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-800 bg-[#0a0a0a]">
-                  <div>
-                    <h3 className="font-semibold">{selectedSighting.location || 'Sighting'}</h3>
-                    <p className="text-xs text-gray-400">{selectedSighting.created_at ? new Date(selectedSighting.created_at).toLocaleDateString() : ''}</p>
-                  </div>
-                  <button onClick={() => setSelectedSighting(null)} className="p-2 hover:bg-white/10 rounded-lg">
-                    <X className="w-5 h-5 text-gray-400" />
-                  </button>
-                </div>
-                
-                {/* Scrollable content */}
-                <div className="flex-1 overflow-y-auto bg-[#0a0a0a] min-h-0">
-                  {/* Video */}
-                  <div className="aspect-video bg-black">
-                    {selectedSighting.video_url ? (
-                      <video src={selectedSighting.video_url} className="w-full h-full object-contain" controls autoPlay muted />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-500">
-                        <Play className="w-16 h-16" />
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Comments Section */}
-                  <div className="p-4">
-                    <h4 className="text-sm font-semibold text-gray-400 mb-3">COMMENTS ({sightingComments.length})</h4>
-                    <div className="space-y-3">
-                      {sightingComments.length === 0 ? (
-                        <p className="text-gray-500 text-sm">No comments yet</p>
-                      ) : (
-                        sightingComments.map((c, i) => (
-                          <div key={c.id || i} className="flex gap-2">
-                            {c.user?.avatarUrl ? (
-                              <img src={c.user.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center text-xs font-bold text-teal-400 flex-shrink-0">
-                                {(c.user?.username || '?')[0].toUpperCase()}
-                              </div>
-                            )}
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-xs">{c.user?.username || 'Anonymous'}</span>
-                                <span className="text-[10px] text-gray-500">{c.createdAt ? getTimeAgo(new Date(c.createdAt).getTime()) : ''}</span>
-                              </div>
-                              <p className="text-sm text-gray-300">{c.text}</p>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Fixed bottom - Comment Input & Close */}
-                <div className="flex-shrink-0 p-4 border-t border-gray-800 bg-[#0a0a0a]">
-                  <div className="flex gap-2 mb-3">
-                    <input 
-                      type="text" 
-                      value={newComment} 
-                      onChange={(e) => setNewComment(e.target.value)} 
-                      onKeyPress={(e) => e.key === 'Enter' && handlePostComment()}
-                      placeholder="Add a comment..." 
-                      className="flex-1 px-4 py-2 bg-white/5 border border-gray-700 rounded-xl text-white text-sm focus:outline-none focus:border-teal-500/50" 
-                    />
-                    <button onClick={handlePostComment} className="px-4 py-2 bg-teal-500 rounded-xl text-sm font-medium">Post</button>
-                  </div>
-                  <button onClick={() => setSelectedSighting(null)} className="w-full py-3 bg-white/10 rounded-xl text-sm font-medium text-gray-300">Close</button>
-                </div>
-              </>
-            ) : (
-              <div className="bg-[#141414] rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-800">
-                  <div>
-                    <h3 className="font-semibold">{selectedSighting.location || 'Sighting'}</h3>
-                    <p className="text-xs text-gray-400">{selectedSighting.created_at ? new Date(selectedSighting.created_at).toLocaleDateString() : ''}</p>
-                  </div>
-                  <button onClick={() => setSelectedSighting(null)} className="p-2 hover:bg-white/10 rounded-lg">
-                    <X className="w-5 h-5 text-gray-400" />
-                  </button>
-                </div>
-                
-                {/* Video */}
-                <div className="aspect-video bg-black flex-shrink-0">
-                  {selectedSighting.video_url ? (
-                    <video src={selectedSighting.video_url} className="w-full h-full object-contain" controls autoPlay muted />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-500">
-                      <Play className="w-16 h-16" />
-                    </div>
-                  )}
-                </div>
-                
-                {/* Comments Section */}
-                <div className="flex-1 overflow-y-auto p-4 min-h-0">
-                  <h4 className="text-sm font-semibold text-gray-400 mb-3">COMMENTS ({sightingComments.length})</h4>
-                  <div className="space-y-3 mb-4">
-                    {sightingComments.length === 0 ? (
-                      <p className="text-gray-500 text-sm">No comments yet</p>
-                    ) : (
-                      sightingComments.map((c, i) => (
-                        <div key={c.id || i} className="flex gap-2">
-                          {c.user?.avatarUrl ? (
-                            <img src={c.user.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center text-xs font-bold text-teal-400 flex-shrink-0">
-                              {(c.user?.username || '?')[0].toUpperCase()}
-                            </div>
-                          )}
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-xs">{c.user?.username || 'Anonymous'}</span>
-                              <span className="text-[10px] text-gray-500">{c.createdAt ? getTimeAgo(new Date(c.createdAt).getTime()) : ''}</span>
-                            </div>
-                            <p className="text-sm text-gray-300">{c.text}</p>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-                
-                {/* Comment Input */}
-                <div className="p-4 border-t border-gray-800">
-                  <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      value={newComment} 
-                      onChange={(e) => setNewComment(e.target.value)} 
-                      onKeyPress={(e) => e.key === 'Enter' && handlePostComment()}
-                      placeholder="Add a comment..." 
-                      className="flex-1 px-4 py-2 bg-white/5 border border-gray-700 rounded-xl text-white text-sm focus:outline-none focus:border-teal-500/50" 
-                    />
-                    <button onClick={handlePostComment} className="px-4 py-2 bg-teal-500 rounded-xl text-sm font-medium">Post</button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CommentsSubView({ isMobile, comments, isOwnProfile, username, onViewSighting }) {
-  if (!comments || comments.length === 0) {
-    return (
-      <div className={`${isMobile ? 'p-4' : 'p-6'} text-center`}>
-        <MessageCircle className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-        <p className="text-gray-400">
-          {isOwnProfile ? "You haven't made any comments yet" : `@${username} hasn't made any comments yet`}
-        </p>
-      </div>
-    );
-  }
-
-  const handleCommentClick = (comment) => {
-    if (comment.type === 'sighting' && comment.sightingId && onViewSighting) {
-      onViewSighting(comment.sightingId);
-    } else if (comment.type === 'thread' && comment.threadId) {
-      // TODO: Navigate to thread when community feature is built
-      console.log('View thread:', comment.threadId);
-    }
-  };
-
-  return (
-    <div className={`${isMobile ? 'p-3' : 'p-5'}`}>
-      <p className={`text-gray-400 mb-3 ${isMobile ? 'text-xs' : 'text-sm'}`}>{comments.length} comment{comments.length !== 1 ? 's' : ''}</p>
-      
-      <div className="space-y-3">
-        {comments.map((comment, i) => (
-          <div 
-            key={comment.id || i} 
-            onClick={() => handleCommentClick(comment)}
-            className={`${isMobile ? 'p-3' : 'p-4'} bg-white/5 rounded-xl hover:bg-white/10 cursor-pointer transition-colors`}
-          >
-            {/* Location/Thread info */}
-            <div className="flex items-center gap-2 mb-2">
-              {comment.type === 'sighting' ? (
-                <>
-                  <MapPin className="w-3 h-3 text-gray-500" />
-                  <span className={`text-gray-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>{comment.sightingLocation || 'Unknown location'}</span>
-                </>
-              ) : (
-                <>
-                  <MessageCircle className="w-3 h-3 text-gray-500" />
-                  <span className={`text-gray-400 ${isMobile ? 'text-xs' : 'text-sm'}`}>{comment.threadTitle || 'Community thread'}</span>
-                </>
-              )}
-              <span className="text-gray-600">•</span>
-              <span className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>{comment.createdAt ? getTimeAgo(new Date(comment.createdAt).getTime()) : ''}</span>
-            </div>
-            {/* Comment text */}
-            <p className={`text-white ${isMobile ? 'text-sm' : 'text-base'}`}>{comment.text}</p>
-            {/* View indicator */}
-            <p className={`text-teal-400 mt-2 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-              {comment.type === 'sighting' ? 'Tap to view sighting →' : 'Tap to view thread →'}
-            </p>
-          </div>
-        ))}
+      <div className="flex-1 overflow-y-auto">
+        {profileSubTab === 'devices' && <DevicesSubView isMobile={isMobile} devices={devices} />}
+        {profileSubTab === 'clips' && <ClipsSubView isMobile={isMobile} clips={clips} devices={devices} />}
+        {profileSubTab === 'settings' && <SettingsSubView isMobile={isMobile} />}
       </div>
     </div>
   );
@@ -3440,7 +1777,7 @@ function DevicesSubView({ isMobile, devices }) {
   return (
     <div className={`${isMobile ? 'p-3 space-y-3' : 'p-5'}`}>
       {/* Add Device Button */}
-      <button onClick={() => setShowAddDevice(true)} className={`w-full ${isMobile ? 'py-3' : 'py-4 mb-4'} border-2 border-dashed border-gray-700 rounded-2xl text-gray-400 flex items-center justify-center gap-2 hover:border-teal-500/50 hover:text-teal-400 transition-colors`}>
+      <button onClick={() => setShowAddDevice(true)} className={`w-full ${isMobile ? 'py-3' : 'py-4 mb-4'} border-2 border-dashed border-gray-700 rounded-2xl text-gray-400 flex items-center justify-center gap-2 hover:border-green-500/50 hover:text-green-400 transition-colors`}>
         <Plus className="w-5 h-5" />
         <span className="font-medium">Add New Device</span>
       </button>
@@ -3448,7 +1785,7 @@ function DevicesSubView({ isMobile, devices }) {
       {/* Device Cards */}
       <div className={`${isMobile ? 'space-y-3' : 'grid grid-cols-1 lg:grid-cols-2 gap-4'}`}>
         {devices.map(device => (
-          <div key={device.id} className={`${isMobile ? 'p-3' : 'p-5'} rounded-2xl border ${device.status === 'online' ? 'bg-gradient-to-br from-teal-500/5 to-transparent border-teal-500/20 hover:border-teal-500/40' : 'bg-gradient-to-br from-gray-800/30 to-transparent border-gray-700/50'} transition-colors`}>
+          <div key={device.id} className={`${isMobile ? 'p-3' : 'p-5'} rounded-2xl border ${device.status === 'online' ? 'bg-gradient-to-br from-green-500/5 to-transparent border-green-500/20 hover:border-green-500/40' : 'bg-gradient-to-br from-gray-800/30 to-transparent border-gray-700/50'} transition-colors`}>
             <div className="flex items-start gap-3">
               <div className={`${isMobile ? 'w-12 h-12' : 'w-20 h-20'} flex items-center justify-center`}>
                 <img src={cameraImg} alt="Camera" className="w-full h-full object-contain" />
@@ -3456,8 +1793,8 @@ function DevicesSubView({ isMobile, devices }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <h3 className={`font-semibold truncate ${isMobile ? 'text-sm' : 'text-lg'}`}>{device.name}</h3>
-                  <span className={`px-2 py-0.5 rounded-full flex items-center gap-1 ${device.status === 'online' ? 'bg-teal-500/20 text-teal-400' : 'bg-red-500/20 text-red-400'} ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-                    <div className={`w-1.5 h-1.5 rounded-full ${device.status === 'online' ? 'bg-teal-400 animate-pulse' : 'bg-red-400'}`} />
+                  <span className={`px-2 py-0.5 rounded-full flex items-center gap-1 ${device.status === 'online' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'} ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${device.status === 'online' ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
                     {device.status === 'online' ? 'Live' : 'Offline'}
                   </span>
                 </div>
@@ -3465,13 +1802,13 @@ function DevicesSubView({ isMobile, devices }) {
                 <p className={`text-gray-500 font-mono ${isMobile ? 'text-[9px]' : 'text-[11px]'}`}>{device.lat.toFixed(4)}°, {device.lng.toFixed(4)}°</p>
                 <p className={`text-gray-500 font-mono mt-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>S/N: {device.serial}</p>
                 <div className={`flex items-center gap-4 mt-2 ${isMobile ? 'text-[10px]' : 'text-xs'} text-gray-500`}>
-                  <span className="flex items-center gap-1"><Wifi className={`w-3 h-3 ${device.signal > 80 ? 'text-teal-400' : device.signal > 0 ? 'text-yellow-400' : 'text-red-400'}`} />{device.signal > 0 ? `${device.signal}%` : 'N/A'}</span>
-                  <span className="flex items-center gap-1"><Eye className="w-3 h-3 text-teal-400" />{device.detections} detections</span>
+                  <span className="flex items-center gap-1"><Wifi className={`w-3 h-3 ${device.signal > 80 ? 'text-green-400' : device.signal > 0 ? 'text-yellow-400' : 'text-red-400'}`} />{device.signal > 0 ? `${device.signal}%` : 'N/A'}</span>
+                  <span className="flex items-center gap-1"><Eye className="w-3 h-3 text-green-400" />{device.detections} detections</span>
                 </div>
               </div>
             </div>
             <div className={`flex gap-2 ${isMobile ? 'mt-3' : 'mt-4 pt-4 border-t border-gray-800/50'}`}>
-              <button onClick={() => openModal('feed', device)} disabled={device.status !== 'online'} className={`flex-1 ${isMobile ? 'py-2 text-xs' : 'py-2.5 text-sm'} font-medium rounded-lg ${device.status === 'online' ? 'bg-teal-500/10 text-teal-400 hover:bg-teal-500/20' : 'bg-gray-800/50 text-gray-500 cursor-not-allowed'}`}>View Feed</button>
+              <button onClick={() => openModal('feed', device)} disabled={device.status !== 'online'} className={`flex-1 ${isMobile ? 'py-2 text-xs' : 'py-2.5 text-sm'} font-medium rounded-lg ${device.status === 'online' ? 'bg-green-500/10 text-green-400 hover:bg-green-500/20' : 'bg-gray-800/50 text-gray-500 cursor-not-allowed'}`}>View Feed</button>
               <button onClick={() => openModal('settings', device)} className={`flex-1 ${isMobile ? 'py-2 text-xs' : 'py-2.5 text-sm'} font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-lg`}>Settings</button>
               <button onClick={() => openModal('history', device)} className={`flex-1 ${isMobile ? 'py-2 text-xs' : 'py-2.5 text-sm'} font-medium text-gray-400 hover:text-white hover:bg-white/5 rounded-lg`}>History</button>
             </div>
@@ -3482,7 +1819,7 @@ function DevicesSubView({ isMobile, devices }) {
       {/* View Feed Modal */}
       {activeModal === 'feed' && selectedDevice && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeModal}>
-          <div className={`bg-[#141414] rounded-2xl border border-teal-500/20 ${isMobile ? 'w-full' : 'w-full max-w-4xl'} overflow-hidden`} onClick={e => e.stopPropagation()}>
+          <div className={`bg-[#141414] rounded-2xl border border-green-500/20 ${isMobile ? 'w-full' : 'w-full max-w-4xl'} overflow-hidden`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-gray-800">
               <div><h3 className="font-semibold text-white">{selectedDevice.name} - Live Feed</h3><p className="text-xs text-gray-400">{selectedDevice.location}</p></div>
               <div className="flex items-center gap-2">
@@ -3493,7 +1830,7 @@ function DevicesSubView({ isMobile, devices }) {
             <div className="aspect-video bg-black relative">
               <div className="absolute inset-0 flex items-center justify-center"><Camera className="w-16 h-16 text-gray-700" /><p className="text-gray-500 ml-4">Live feed streaming...</p></div>
               <div className="absolute top-4 left-4 bg-black/60 px-2 py-1 rounded text-xs text-white font-mono">{new Date().toLocaleTimeString()}</div>
-              <div className="absolute top-4 right-4 bg-black/60 px-2 py-1 rounded text-xs text-teal-400">1080p • 30fps</div>
+              <div className="absolute top-4 right-4 bg-black/60 px-2 py-1 rounded text-xs text-green-400">1080p • 30fps</div>
             </div>
             <div className="p-4">
               <p className="text-xs text-gray-400 text-center mb-3">Pan / Tilt / Zoom Controls</p>
@@ -3521,13 +1858,13 @@ function DevicesSubView({ isMobile, devices }) {
       {/* Settings Modal */}
       {activeModal === 'settings' && selectedDevice && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeModal}>
-          <div className={`bg-[#141414] rounded-2xl border border-teal-500/20 ${isMobile ? 'w-full max-h-[90vh]' : 'w-full max-w-lg'} overflow-hidden flex flex-col`} onClick={e => e.stopPropagation()}>
+          <div className={`bg-[#141414] rounded-2xl border border-green-500/20 ${isMobile ? 'w-full max-h-[90vh]' : 'w-full max-w-lg'} overflow-hidden flex flex-col`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-gray-800">
-              <h3 className="font-semibold text-white flex items-center gap-2"><Settings className="w-5 h-5 text-teal-400" />Device Settings</h3>
+              <h3 className="font-semibold text-white flex items-center gap-2"><Settings className="w-5 h-5 text-green-400" />Device Settings</h3>
               <button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              <div><label className="block text-xs text-gray-400 mb-2">Device Name</label><input type="text" defaultValue={selectedDevice.name} className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-teal-500/50" /></div>
+              <div><label className="block text-xs text-gray-400 mb-2">Device Name</label><input type="text" defaultValue={selectedDevice.name} className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" /></div>
               <div>
                 <label className="block text-xs text-gray-400 mb-2">Location</label>
                 <div className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-gray-400">{selectedDevice.location}</div>
@@ -3536,8 +1873,8 @@ function DevicesSubView({ isMobile, devices }) {
               <div className="border-t border-gray-800 pt-4">
                 <h4 className="text-sm font-semibold text-white mb-3">WiFi Settings</h4>
                 <div className="space-y-3">
-                  <div><label className="block text-xs text-gray-400 mb-2">WiFi Network</label><input type="text" defaultValue="Home_Network_5G" className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-teal-500/50" /></div>
-                  <div><label className="block text-xs text-gray-400 mb-2">WiFi Password</label><input type="password" defaultValue="password123" className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-teal-500/50" /></div>
+                  <div><label className="block text-xs text-gray-400 mb-2">WiFi Network</label><input type="text" defaultValue="Home_Network_5G" className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" /></div>
+                  <div><label className="block text-xs text-gray-400 mb-2">WiFi Password</label><input type="password" defaultValue="password123" className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50" /></div>
                 </div>
               </div>
               <div className="border-t border-gray-800 pt-4">
@@ -3546,10 +1883,10 @@ function DevicesSubView({ isMobile, devices }) {
               </div>
               <div className="border-t border-gray-800 pt-4 space-y-3">
                 <h4 className="text-sm font-semibold text-white mb-3">Features</h4>
-                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Motion Detection</p><p className="text-xs text-gray-400">Trigger recording on movement</p></div><div className="w-12 h-6 bg-teal-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
-                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Starlight Vision</p><p className="text-xs text-gray-400">Enhanced low-light capture</p></div><div className="w-12 h-6 bg-teal-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Motion Detection</p><p className="text-xs text-gray-400">Trigger recording on movement</p></div><div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Starlight Vision</p><p className="text-xs text-gray-400">Enhanced low-light capture</p></div><div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
                 <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Audio Recording</p><p className="text-xs text-gray-400">Capture sound with video</p></div><div className="w-12 h-6 bg-gray-600 rounded-full relative cursor-pointer"><div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
-                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Auto-Upload Clips</p><p className="text-xs text-gray-400">Upload detections to cloud</p></div><div className="w-12 h-6 bg-teal-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Auto-Upload Clips</p><p className="text-xs text-gray-400">Upload detections to cloud</p></div><div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
               </div>
               <div className="border-t border-gray-800 pt-4">
                 <button className="w-full py-3 bg-red-500/10 text-red-400 rounded-xl font-medium hover:bg-red-500/20 transition-colors">Delete This Device</button>
@@ -3558,7 +1895,7 @@ function DevicesSubView({ isMobile, devices }) {
             </div>
             <div className="p-4 border-t border-gray-800 flex justify-end gap-2">
               <button onClick={closeModal} className="px-4 py-2 text-gray-400 hover:bg-white/5 rounded-lg text-sm">Cancel</button>
-              <button className="px-6 py-2 bg-teal-500 text-white rounded-lg text-sm font-medium hover:bg-teal-600">Save Changes</button>
+              <button className="px-6 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600">Save Changes</button>
             </div>
           </div>
         </div>
@@ -3567,14 +1904,14 @@ function DevicesSubView({ isMobile, devices }) {
       {/* History Modal */}
       {activeModal === 'history' && selectedDevice && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeModal}>
-          <div className={`bg-[#141414] rounded-2xl border border-teal-500/20 ${isMobile ? 'w-full max-h-[80vh]' : 'w-full max-w-2xl max-h-[80vh]'} overflow-hidden flex flex-col`} onClick={e => e.stopPropagation()}>
+          <div className={`bg-[#141414] rounded-2xl border border-green-500/20 ${isMobile ? 'w-full max-h-[80vh]' : 'w-full max-w-2xl max-h-[80vh]'} overflow-hidden flex flex-col`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-gray-800"><h3 className="font-semibold text-white">{selectedDevice.name} - Detection History</h3><button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button></div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {[{ time: 'Today, 9:34 PM', type: 'UAP', duration: '0:32', confidence: 87 }, { time: 'Today, 8:12 PM', type: 'Aircraft', duration: '0:18', confidence: 94 }, { time: 'Today, 6:45 PM', type: 'Drone', duration: '1:24', confidence: 91 }, { time: 'Yesterday, 11:23 PM', type: 'UAP', duration: '0:45', confidence: 76 }, { time: 'Yesterday, 9:15 PM', type: 'Bird', duration: '0:12', confidence: 89 }].map((clip, i) => (
                 <div key={i} className="flex items-center gap-4 p-3 bg-white/5 rounded-xl hover:bg-white/10 cursor-pointer">
                   <div className="w-20 h-14 bg-gray-800 rounded-lg flex items-center justify-center relative"><Play className="w-5 h-5 text-gray-500" /><span className="absolute bottom-1 right-1 text-[10px] bg-black/60 px-1 rounded">{clip.duration}</span></div>
                   <div className="flex-1"><span className={`px-2 py-0.5 rounded text-[10px] font-bold`} style={{ backgroundColor: classificationOptions.find(o => o.id === clip.type)?.color + '30', color: classificationOptions.find(o => o.id === clip.type)?.color }}>{classificationOptions.find(o => o.id === clip.type)?.icon} {clip.type}</span><p className="text-xs text-gray-400 mt-1">{clip.time}</p></div>
-                  <span className="text-xs text-teal-400 font-medium">{clip.confidence}%</span>
+                  <span className="text-xs text-green-400 font-medium">{clip.confidence}%</span>
                   <div className="flex gap-1"><button className="p-2 hover:bg-white/10 rounded-lg"><Download className="w-4 h-4 text-gray-400" /></button><button className="p-2 hover:bg-white/10 rounded-lg"><Share2 className="w-4 h-4 text-gray-400" /></button></div>
                 </div>
               ))}
@@ -3586,154 +1923,16 @@ function DevicesSubView({ isMobile, devices }) {
       {/* Add Device Modal */}
       {showAddDevice && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowAddDevice(false)}>
-          <div className={`bg-[#141414] rounded-2xl border border-teal-500/20 ${isMobile ? 'w-full' : 'w-full max-w-md'} overflow-hidden`} onClick={e => e.stopPropagation()}>
+          <div className={`bg-[#141414] rounded-2xl border border-green-500/20 ${isMobile ? 'w-full' : 'w-full max-w-md'} overflow-hidden`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-gray-800"><h3 className="font-semibold text-white">Add New Device</h3><button onClick={() => setShowAddDevice(false)} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button></div>
             <div className="p-6 text-center">
-              <div className="w-20 h-20 bg-teal-500/10 rounded-full flex items-center justify-center mx-auto mb-4"><Camera className="w-10 h-10 text-teal-400" /></div>
+              <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4"><Camera className="w-10 h-10 text-green-400" /></div>
               <h4 className="text-lg font-semibold text-white mb-2">Connect Your Skeye Camera</h4>
               <p className="text-sm text-gray-400 mb-6">Make sure your camera is powered on and in pairing mode (blue LED blinking)</p>
               <div className="space-y-3">
-                <button className="w-full py-3 bg-teal-500/10 text-teal-400 rounded-xl font-medium hover:bg-teal-500/20">Scan QR Code</button>
+                <button className="w-full py-3 bg-green-500/10 text-green-400 rounded-xl font-medium hover:bg-green-500/20">Scan QR Code</button>
                 <button className="w-full py-3 bg-white/5 text-gray-400 rounded-xl font-medium hover:bg-white/10">Enter Serial Number Manually</button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Public profile clips view
-function PublicClipsView({ isMobile, clips, username }) {
-  const { token } = useAuth();
-  const [selectedClip, setSelectedClip] = useState(null);
-  const [localThumbnails, setLocalThumbnails] = useState({});
-
-  // Auto-generate thumbnails for clips missing them
-  useEffect(() => {
-    if (!token) return;
-    
-    clips.forEach(clip => {
-      if (!clip.thumbnailUrl && clip.videoUrl && !localThumbnails[clip.id]) {
-        generateAndSaveThumbnail(clip.id, clip.videoUrl, token).then(url => {
-          if (url) {
-            setLocalThumbnails(prev => ({ ...prev, [clip.id]: url }));
-          }
-        });
-      }
-    });
-  }, [clips, token]);
-
-  if (!clips || clips.length === 0) {
-    return (
-      <div className={`${isMobile ? 'p-4' : 'p-6'} text-center`}>
-        <Film className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-        <p className="text-gray-400">@{username} hasn't uploaded any clips yet</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className={`${isMobile ? 'p-3' : 'p-5'}`}>
-      <p className={`text-gray-400 mb-3 ${isMobile ? 'text-xs' : 'text-sm'}`}>{clips.length} clip{clips.length !== 1 ? 's' : ''}</p>
-      
-      {/* Clips List */}
-      <div className="space-y-2">
-        {clips.map((clip, i) => (
-          <div 
-            key={clip.id || i} 
-            onClick={() => setSelectedClip(clip)}
-            className={`flex items-center gap-3 ${isMobile ? 'p-2' : 'p-3'} bg-white/5 rounded-xl hover:bg-white/10 cursor-pointer transition-colors`}
-          >
-            {/* Thumbnail */}
-            <div className={`${isMobile ? 'w-20 h-14' : 'w-28 h-20'} bg-gray-800 rounded-lg flex items-center justify-center relative overflow-hidden flex-shrink-0`}>
-              {(clip.thumbnailUrl || localThumbnails[clip.id]) ? (
-                <img src={clip.thumbnailUrl || localThumbnails[clip.id]} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <Play className="w-6 h-6 text-gray-500" />
-              )}
-              {clip.duration && (
-                <span className="absolute bottom-1 right-1 text-[10px] bg-black/60 px-1 rounded">{clip.duration}</span>
-              )}
-            </div>
-            
-            {/* Info */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span 
-                  className="px-2 py-0.5 rounded text-[10px] font-bold"
-                  style={{ 
-                    backgroundColor: classificationOptions.find(o => o.id === clip.classification)?.color + '30', 
-                    color: classificationOptions.find(o => o.id === clip.classification)?.color 
-                  }}
-                >
-                  {classificationOptions.find(o => o.id === clip.classification)?.icon} {clip.classification || 'UAP'}
-                </span>
-                {clip.confidence && (
-                  <span className="text-[10px] text-gray-400">AI Confidence: <span className="text-teal-400 font-bold">{clip.confidence}%</span></span>
-                )}
-              </div>
-              <p className={`text-gray-300 truncate ${isMobile ? 'text-xs' : 'text-sm'}`}>{clip.location || 'Unknown location'}</p>
-              <p className="text-[10px] text-gray-500">{clip.createdAt ? new Date(clip.createdAt).toLocaleDateString() : ''}</p>
-            </div>
-            
-            {/* Stats */}
-            <div className="flex items-center gap-3 text-gray-400">
-              <div className="flex items-center gap-1">
-                <ThumbsUp className="w-3 h-3" />
-                <span className="text-xs">{clip.likesCount || 0}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <MessageCircle className="w-3 h-3" />
-                <span className="text-xs">{clip.commentsCount || 0}</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Clip Detail Modal */}
-      {selectedClip && (
-        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={() => setSelectedClip(null)}>
-          <div className={`bg-[#141414] rounded-2xl ${isMobile ? 'w-full max-h-[90vh]' : 'w-full max-w-2xl'} overflow-hidden`} onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-3 border-b border-gray-800">
-              <h3 className="font-semibold text-sm">{selectedClip.location || 'Clip'}</h3>
-              <button onClick={() => setSelectedClip(null)} className="p-2 hover:bg-white/10 rounded-lg">
-                <X className="w-5 h-5 text-gray-400" />
-              </button>
-            </div>
-            <div className="aspect-video bg-black">
-              {selectedClip.videoUrl ? (
-                <video src={selectedClip.videoUrl} className="w-full h-full" controls autoPlay muted />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-500">
-                  <Play className="w-16 h-16" />
-                </div>
-              )}
-            </div>
-            <div className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span 
-                  className="px-2 py-1 rounded text-xs font-bold"
-                  style={{ 
-                    backgroundColor: classificationOptions.find(o => o.id === selectedClip.classification)?.color + '30', 
-                    color: classificationOptions.find(o => o.id === selectedClip.classification)?.color 
-                  }}
-                >
-                  {classificationOptions.find(o => o.id === selectedClip.classification)?.icon} {selectedClip.classification || 'UAP'}
-                </span>
-                {selectedClip.confidence && (
-                  <span className="text-xs text-gray-400">AI Confidence: <span className="text-teal-400 font-bold">{selectedClip.confidence}%</span></span>
-                )}
-              </div>
-              <p className="text-sm text-gray-300">{selectedClip.location}</p>
-              <p className="text-xs text-gray-500 mt-1">{selectedClip.createdAt ? new Date(selectedClip.createdAt).toLocaleString() : ''}</p>
-              {/* Blockchain link */}
-              <a href="https://solscan.io" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mt-2 text-xs text-gray-500 hover:text-teal-400">
-                <ExternalLink className="w-3 h-3" />
-                <span>View clip on blockchain</span>
-              </a>
             </div>
           </div>
         </div>
@@ -3749,23 +1948,6 @@ function ClipsSubView({ isMobile, clips, devices }) {
 
   const filteredClips = deviceFilter === 'all' ? clips : clips.filter(c => c.device === deviceFilter);
   const uniqueDevices = [...new Set(clips.map(c => c.device))];
-
-  // Helper to get thumbnail URL
-  const getThumbnail = (clip) => {
-    if (clip.thumbnailUrl) return clip.thumbnailUrl;
-    if (clip.videoId) return `https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`;
-    return null;
-  };
-
-  if (clips.length === 0) {
-    return (
-      <div className={`${isMobile ? 'p-4' : 'p-6'} text-center`}>
-        <Film className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-        <p className="text-gray-400">You haven't uploaded any clips yet</p>
-        <p className="text-gray-500 text-sm mt-2">Clips from your devices will appear here</p>
-      </div>
-    );
-  }
 
   return (
     <div className={`${isMobile ? 'p-3' : 'p-5'}`}>
@@ -3791,23 +1973,19 @@ function ClipsSubView({ isMobile, clips, devices }) {
         <div className="space-y-2">
           {filteredClips.map(clip => (
             <div key={clip.id} onClick={() => setSelectedClip(clip)} className={`flex items-center gap-3 ${isMobile ? 'p-2' : 'p-3'} bg-white/5 rounded-xl hover:bg-white/10 cursor-pointer`}>
-              <div className={`${isMobile ? 'w-20 h-14' : 'w-32 h-20'} bg-gray-800 rounded-lg relative flex-shrink-0 overflow-hidden flex items-center justify-center`}>
-                {getThumbnail(clip) ? (
-                  <img src={getThumbnail(clip)} alt="Clip" className="w-full h-full object-cover" />
-                ) : (
-                  <Play className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} text-gray-500`} />
-                )}
-                {getThumbnail(clip) && <Play className={`absolute inset-0 m-auto ${isMobile ? 'w-6 h-6' : 'w-8 h-8'} text-white/80`} />}
-                {clip.duration && <span className="absolute bottom-1 right-1 text-[10px] bg-black/70 px-1 rounded">{clip.duration}</span>}
+              <div className={`${isMobile ? 'w-20 h-14' : 'w-32 h-20'} bg-black rounded-lg relative flex-shrink-0 overflow-hidden`}>
+                <img src={`https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`} alt="Clip" className="w-full h-full object-cover" />
+                <Play className={`absolute inset-0 m-auto ${isMobile ? 'w-6 h-6' : 'w-8 h-8'} text-white/80`} />
+                <span className="absolute bottom-1 right-1 text-[10px] bg-black/70 px-1 rounded">{clip.duration}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`px-2 py-0.5 rounded font-bold ${isMobile ? 'text-[10px]' : 'text-xs'}`} style={{ backgroundColor: classificationOptions.find(o => o.id === clip.type)?.color + '30', color: classificationOptions.find(o => o.id === clip.type)?.color }}>
                     {classificationOptions.find(o => o.id === clip.type)?.icon} {clip.type}
                   </span>
-                  <span className={`text-teal-400 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>{clip.confidence}%</span>
+                  <span className={`text-green-400 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>{clip.confidence}%</span>
                 </div>
-                <p className={`text-white truncate ${isMobile ? 'text-xs' : 'text-sm font-medium'}`}>{clip.location || clip.device}</p>
+                <p className={`text-white truncate ${isMobile ? 'text-xs' : 'text-sm font-medium'}`}>{clip.device}</p>
                 <p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>{clip.time}</p>
                 {!isMobile && (
                   <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
@@ -3828,18 +2006,14 @@ function ClipsSubView({ isMobile, clips, devices }) {
         <div className="grid grid-cols-3 gap-4">
           {filteredClips.map(clip => (
             <div key={clip.id} onClick={() => setSelectedClip(clip)} className="rounded-xl overflow-hidden bg-white/5 hover:bg-white/10 cursor-pointer">
-              <div className="aspect-video bg-gray-800 relative flex items-center justify-center">
-                {getThumbnail(clip) ? (
-                  <img src={getThumbnail(clip)} alt="Clip" className="w-full h-full object-cover" />
-                ) : (
-                  <Play className="w-10 h-10 text-gray-500" />
-                )}
-                {getThumbnail(clip) && <Play className="absolute inset-0 m-auto w-10 h-10 text-white/80" />}
+              <div className="aspect-video bg-black relative">
+                <img src={`https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`} alt="Clip" className="w-full h-full object-cover" />
+                <Play className="absolute inset-0 m-auto w-10 h-10 text-white/80" />
                 <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === clip.type)?.color, color: 'white' }}>{classificationOptions.find(o => o.id === clip.type)?.icon} {clip.type}</span>
-                {clip.duration && <span className="absolute bottom-2 right-2 text-xs bg-black/70 px-1.5 py-0.5 rounded">{clip.duration}</span>}
+                <span className="absolute bottom-2 right-2 text-xs bg-black/70 px-1.5 py-0.5 rounded">{clip.duration}</span>
               </div>
               <div className="p-3">
-                <p className="text-sm font-medium truncate">{clip.location || clip.device}</p>
+                <p className="text-sm font-medium truncate">{clip.device}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{clip.time}</p>
                 <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                   <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3" />{clip.likes || 0}</span>
@@ -3853,57 +2027,35 @@ function ClipsSubView({ isMobile, clips, devices }) {
 
       {/* Clip Detail Modal */}
       {selectedClip && (
-        <div className="fixed inset-0 z-50 bg-black" onClick={() => setSelectedClip(null)}>
+        <div className="fixed inset-0 z-50 bg-black/90" onClick={() => setSelectedClip(null)}>
           <div className={`h-full flex ${isMobile ? 'flex-col' : 'items-center justify-center p-8'}`} onClick={e => e.stopPropagation()}>
             {isMobile ? (
               <>
-                {/* Fixed Header */}
-                <div className="flex-shrink-0 flex items-center justify-between p-4 bg-black">
-                  <div><h3 className="font-semibold">{selectedClip.location || selectedClip.device}</h3><p className="text-xs text-gray-400">{selectedClip.time}</p></div>
+                <div className="flex items-center justify-between p-4">
+                  <div><h3 className="font-semibold">{selectedClip.device}</h3><p className="text-xs text-gray-400">{selectedClip.time}</p></div>
                   <button onClick={() => setSelectedClip(null)}><X className="w-6 h-6 text-gray-400" /></button>
                 </div>
-                
-                {/* Scrollable middle content */}
-                <div className="flex-1 overflow-y-auto bg-black">
-                  <div className="aspect-video bg-black">
-                    {selectedClip.videoUrl ? (
-                      <video src={selectedClip.videoUrl} className="w-full h-full" controls autoPlay muted />
-                    ) : selectedClip.videoId ? (
-                      <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Clip" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-500"><Play className="w-16 h-16" /></div>
-                    )}
-                  </div>
+                <div className="flex-1 bg-black">
+                  <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Clip" />
                 </div>
-                
-                {/* Fixed bottom controls */}
-                <div className="flex-shrink-0 p-4 bg-[#141414] border-t border-gray-800">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="px-3 py-1 rounded-lg text-sm font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === selectedClip.type)?.color + '33', color: classificationOptions.find(o => o.id === selectedClip.type)?.color }}>{classificationOptions.find(o => o.id === selectedClip.type)?.icon} {selectedClip.type}</span>
-                    <div className="flex gap-2">
-                      <button className="p-3 bg-white/5 rounded-full"><Download className="w-5 h-5" /></button>
-                      <button className="p-3 bg-white/5 rounded-full"><Share2 className="w-5 h-5" /></button>
-                    </div>
+                <div className="p-4 flex justify-between items-center">
+                  <span className="px-3 py-1 rounded-lg text-sm font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === selectedClip.type)?.color + '33', color: classificationOptions.find(o => o.id === selectedClip.type)?.color }}>{classificationOptions.find(o => o.id === selectedClip.type)?.icon} {selectedClip.type}</span>
+                  <div className="flex gap-2">
+                    <button className="p-3 bg-white/5 rounded-full"><Download className="w-5 h-5" /></button>
+                    <button className="p-3 bg-white/5 rounded-full"><Share2 className="w-5 h-5" /></button>
                   </div>
-                  <button onClick={() => setSelectedClip(null)} className="w-full py-3 bg-white/10 rounded-xl text-sm font-medium text-gray-300">Close</button>
                 </div>
               </>
             ) : (
               <div className="bg-[#141414] rounded-2xl overflow-hidden max-w-5xl w-full flex">
                 <div className="flex-1 aspect-video bg-black">
-                  {selectedClip.videoUrl ? (
-                    <video src={selectedClip.videoUrl} className="w-full h-full" controls autoPlay muted />
-                  ) : selectedClip.videoId ? (
-                    <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Clip" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-500"><Play className="w-16 h-16" /></div>
-                  )}
+                  <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Clip" />
                 </div>
                 <div className="w-80 border-l border-gray-800 flex flex-col">
                   <div className="p-4 border-b border-gray-800 flex justify-between items-start">
                     <div>
                       <span className="px-2 py-1 rounded text-xs font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === selectedClip.type)?.color + '30', color: classificationOptions.find(o => o.id === selectedClip.type)?.color }}>{classificationOptions.find(o => o.id === selectedClip.type)?.icon} {selectedClip.type}</span>
-                      <h3 className="font-semibold mt-2">{selectedClip.location || selectedClip.device}</h3>
+                      <h3 className="font-semibold mt-2">{selectedClip.device}</h3>
                       <p className="text-sm text-gray-400">{selectedClip.time}</p>
                     </div>
                     <button onClick={() => setSelectedClip(null)} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button>
@@ -3915,7 +2067,7 @@ function ClipsSubView({ isMobile, clips, devices }) {
                     </div>
                   </div>
                   <div className="flex-1 p-4">
-                    <p className="text-sm text-gray-400">Confidence: <span className="text-teal-400 font-semibold">{selectedClip.confidence}%</span></p>
+                    <p className="text-sm text-gray-400">Confidence: <span className="text-green-400 font-semibold">{selectedClip.confidence}%</span></p>
                   </div>
                   <div className="p-4 border-t border-gray-800 flex gap-2">
                     <button className="flex-1 py-2 bg-white/5 rounded-lg text-sm hover:bg-white/10 flex items-center justify-center gap-2"><Download className="w-4 h-4" />Download</button>
@@ -3932,105 +2084,14 @@ function ClipsSubView({ isMobile, clips, devices }) {
 }
 
 function SettingsSubView({ isMobile }) {
-  const { user, logout, token, API_URL } = useAuth();
-  const [editing, setEditing] = useState(false);
-  const [username, setUsername] = useState(user?.username || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [bio, setBio] = useState(user?.bio || '');
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState('');
-
-  const handleSaveProfile = async () => {
-    setSaving(true);
-    setMessage('');
-    try {
-      const res = await fetch(`${API_URL}/api/auth/profile`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ username, bio })
-      });
-      if (res.ok) {
-        setMessage('Profile updated!');
-        setEditing(false);
-      } else {
-        const data = await res.json();
-        setMessage(data.error || 'Failed to update');
-      }
-    } catch (err) {
-      setMessage('Failed to save');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const settingsGroups = [
-    { title: 'Account', items: [{ icon: CreditCard, label: 'Subscription', badge: 'Free' }, { icon: HardDrive, label: 'Storage', badge: '0/10GB' }] },
+    { title: 'Account', items: [{ icon: User, label: 'Edit Profile' }, { icon: CreditCard, label: 'Subscription', badge: 'Pro' }, { icon: HardDrive, label: 'Storage', badge: '45/100GB' }] },
     { title: 'Preferences', items: [{ icon: Bell, label: 'Notifications' }, { icon: Globe, label: 'Language' }] },
     { title: 'Support', items: [{ icon: MessageCircle, label: 'Help Center' }, { icon: Settings, label: 'About' }] },
   ];
 
   return (
-    <div className={`${isMobile ? 'p-3 space-y-4' : 'p-5 space-y-6 max-w-2xl mx-auto'}`}>
-      {/* Edit Profile Section */}
-      <div>
-        <h4 className={`text-gray-500 uppercase font-semibold mb-2 px-2 ${isMobile ? 'text-xs' : 'text-xs'}`}>Profile</h4>
-        <div className="bg-white/5 rounded-2xl overflow-hidden p-4 space-y-4">
-          {message && <div className={`p-2 rounded-lg text-sm ${message.includes('Failed') ? 'bg-red-500/20 text-red-400' : 'bg-teal-500/20 text-teal-400'}`}>{message}</div>}
-          
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Username</label>
-            <input 
-              type="text" 
-              value={username} 
-              onChange={(e) => setUsername(e.target.value)}
-              disabled={!editing}
-              className={`w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-teal-500/50 ${!editing ? 'opacity-60' : ''}`}
-            />
-          </div>
-          
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Email</label>
-            <input 
-              type="email" 
-              value={email} 
-              disabled
-              className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white opacity-60"
-            />
-            <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
-          </div>
-          
-          <div>
-            <label className="block text-xs text-gray-400 mb-1">Bio</label>
-            <textarea 
-              value={bio} 
-              onChange={(e) => setBio(e.target.value)}
-              disabled={!editing}
-              placeholder="Tell us about yourself..."
-              rows={3}
-              className={`w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-teal-500/50 resize-none ${!editing ? 'opacity-60' : ''}`}
-            />
-          </div>
-          
-          <div className="flex gap-2">
-            {editing ? (
-              <>
-                <button onClick={() => setEditing(false)} className="flex-1 py-3 bg-white/5 rounded-xl font-medium text-sm text-gray-400 hover:bg-white/10">Cancel</button>
-                <button onClick={handleSaveProfile} disabled={saving} className="flex-1 py-3 bg-teal-500 rounded-xl font-medium text-sm text-white hover:bg-teal-600 disabled:opacity-50">
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-              </>
-            ) : (
-              <button onClick={() => setEditing(true)} className="w-full py-3 bg-teal-500/10 text-teal-400 rounded-xl font-medium text-sm hover:bg-teal-500/20">
-                Edit Profile
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
+    <div className={`${isMobile ? 'p-3 space-y-4' : 'p-5 space-y-6 max-w-2xl'}`}>
       {settingsGroups.map(group => (
         <div key={group.title}>
           <h4 className={`text-gray-500 uppercase font-semibold mb-2 px-2 ${isMobile ? 'text-xs' : 'text-xs'}`}>{group.title}</h4>
@@ -4041,7 +2102,7 @@ function SettingsSubView({ isMobile }) {
                 <button key={item.label} className={`w-full flex items-center gap-3 ${isMobile ? 'px-4 py-3' : 'px-4 py-4'} hover:bg-white/5 ${i > 0 ? 'border-t border-gray-800' : ''}`}>
                   <Icon className="w-5 h-5 text-gray-400" />
                   <span className="flex-1 text-left text-white">{item.label}</span>
-                  {item.badge && <span className="text-xs text-teal-400">{item.badge}</span>}
+                  {item.badge && <span className="text-xs text-green-400">{item.badge}</span>}
                   <ChevronRight className="w-4 h-4 text-gray-600" />
                 </button>
               );
@@ -4049,777 +2110,7 @@ function SettingsSubView({ isMobile }) {
           </div>
         </div>
       ))}
-      <button onClick={logout} className={`w-full ${isMobile ? 'py-3' : 'py-4'} bg-red-500/10 text-red-400 rounded-xl font-medium hover:bg-red-500/20`}>Sign Out</button>
-    </div>
-  );
-}
-
-// Admin View Component
-function AdminView({ isMobile }) {
-  const { token, API_URL } = useAuth();
-  const [sightings, setSightings] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeAdminTab, setActiveAdminTab] = useState('sightings');
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [showBulkUpload, setShowBulkUpload] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [bulkClassification, setBulkClassification] = useState('UAP');
-  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
-  const [generatingThumbnails, setGeneratingThumbnails] = useState(false);
-  const [thumbnailProgress, setThumbnailProgress] = useState({ current: 0, total: 0 });
-  
-  // Random locations for bulk upload
-  const randomLocations = [
-    { city: 'Los Angeles, CA', lat: 34.0522, lng: -118.2437 },
-    { city: 'New York, NY', lat: 40.7128, lng: -74.0060 },
-    { city: 'Chicago, IL', lat: 41.8781, lng: -87.6298 },
-    { city: 'Miami, FL', lat: 25.7617, lng: -80.1918 },
-    { city: 'Seattle, WA', lat: 47.6062, lng: -122.3321 },
-    { city: 'Denver, CO', lat: 39.7392, lng: -104.9903 },
-    { city: 'Phoenix, AZ', lat: 33.4484, lng: -112.0740 },
-    { city: 'London, UK', lat: 51.5074, lng: -0.1278 },
-    { city: 'Paris, France', lat: 48.8566, lng: 2.3522 },
-    { city: 'Berlin, Germany', lat: 52.5200, lng: 13.4050 },
-    { city: 'Tokyo, Japan', lat: 35.6762, lng: 139.6503 },
-    { city: 'Sydney, Australia', lat: -33.8688, lng: 151.2093 },
-    { city: 'Toronto, Canada', lat: 43.6532, lng: -79.3832 },
-    { city: 'Dubai, UAE', lat: 25.2048, lng: 55.2708 },
-    { city: 'Singapore', lat: 1.3521, lng: 103.8198 },
-    { city: 'Mumbai, India', lat: 19.0760, lng: 72.8777 },
-    { city: 'São Paulo, Brazil', lat: -23.5505, lng: -46.6333 },
-    { city: 'Mexico City, Mexico', lat: 19.4326, lng: -99.1332 },
-    { city: 'Cape Town, South Africa', lat: -33.9249, lng: 18.4241 },
-    { city: 'Auckland, New Zealand', lat: -36.8509, lng: 174.7645 },
-  ];
-  
-  // Form state
-  const [formData, setFormData] = useState({
-    title: '',
-    videoUrl: '',
-    thumbnailUrl: '',
-    location: '',
-    latitude: '',
-    longitude: '',
-    classification: 'UAP',
-    aiConfidence: 85
-  });
-
-  const classificationOptions = [
-    { id: 'UAP', label: 'UAP', icon: '◆', color: '#a855f7' },
-    { id: 'Drone', label: 'Drone', icon: '■', color: '#3b82f6' },
-    { id: 'Aircraft', label: 'Aircraft', icon: '▲', color: '#22c55e' },
-    { id: 'Bird', label: 'Bird', icon: '●', color: '#eab308' },
-    { id: 'Weather', label: 'Weather', icon: '○', color: '#06b6d4' },
-  ];
-
-  // Generate thumbnail from video URL
-  const generateThumbnailFromVideo = (videoUrl) => {
-    return new Promise((resolve, reject) => {
-      const video = document.createElement('video');
-      video.crossOrigin = 'anonymous';
-      video.src = videoUrl;
-      video.muted = true;
-      video.preload = 'metadata';
-      
-      video.onloadeddata = () => {
-        video.currentTime = 1; // Seek to 1 second
-      };
-      
-      video.onseeked = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          canvas.width = 320;
-          canvas.height = 180;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-          resolve(dataUrl);
-        } catch (e) {
-          reject(e);
-        }
-      };
-      
-      video.onerror = () => reject(new Error('Failed to load video'));
-      
-      // Timeout after 10 seconds
-      setTimeout(() => reject(new Error('Timeout')), 10000);
-    });
-  };
-
-  // Generate thumbnails for all sightings missing them
-  const handleGenerateAllThumbnails = async () => {
-    setGeneratingThumbnails(true);
-    const missing = sightings.filter(s => !s.thumbnail_url && s.video_url);
-    setThumbnailProgress({ current: 0, total: missing.length });
-    setMessage(`Generating thumbnails for ${missing.length} videos...`);
-    
-    let successCount = 0;
-    for (let i = 0; i < missing.length; i++) {
-      const sighting = missing[i];
-      setThumbnailProgress({ current: i + 1, total: missing.length });
-      setMessage(`Processing ${i + 1}/${missing.length}: ${sighting.location}`);
-      
-      try {
-        // Generate thumbnail
-        const thumbnailBase64 = await generateThumbnailFromVideo(sighting.video_url);
-        
-        // Upload to backend
-        const res = await fetch(`${API_URL}/api/admin/sightings/${sighting.id}/thumbnail`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ thumbnailBase64 })
-        });
-        
-        if (res.ok) {
-          successCount++;
-          const result = await res.json();
-          // Update local state
-          setSightings(prev => prev.map(s => 
-            s.id === sighting.id ? { ...s, thumbnail_url: result.thumbnailUrl } : s
-          ));
-        }
-      } catch (err) {
-        console.error(`Failed to generate thumbnail for ${sighting.id}:`, err);
-      }
-    }
-    
-    setMessage(`✓ Generated ${successCount}/${missing.length} thumbnails!`);
-    setGeneratingThumbnails(false);
-    setThumbnailProgress({ current: 0, total: 0 });
-    fetchSightings();
-  };
-
-  // Fetch sightings and users
-  useEffect(() => {
-    fetchSightings();
-    fetchUsers();
-  }, []);
-
-  const fetchSightings = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/admin/sightings`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSightings(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch sightings:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const res = await fetch(`${API_URL}/api/admin/users`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch users:', err);
-    }
-  };
-
-  // Bulk upload videos
-  const handleBulkUpload = async (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-    
-    setUploading(true);
-    setBulkProgress({ current: 0, total: files.length });
-    setMessage(`Uploading ${files.length} videos...`);
-    
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      setBulkProgress({ current: i + 1, total: files.length });
-      setMessage(`Uploading ${i + 1}/${files.length}: ${file.name}`);
-      
-      try {
-        // Upload video to Supabase
-        const fileName = `sighting-${Date.now()}-${i}.${file.name.split('.').pop()}`;
-        const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/videos/${fileName}`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            'Content-Type': file.type,
-            'x-upsert': 'true'
-          },
-          body: file
-        });
-        
-        if (!uploadRes.ok) {
-          console.error(`Failed to upload ${file.name}`);
-          continue;
-        }
-        
-        const videoUrl = `${SUPABASE_URL}/storage/v1/object/public/videos/${fileName}`;
-        
-        // Pick random location and time
-        const randomLoc = randomLocations[Math.floor(Math.random() * randomLocations.length)];
-        const randomHoursAgo = Math.floor(Math.random() * 72); // 0-72 hours ago
-        const randomConfidence = 70 + Math.floor(Math.random() * 25); // 70-95%
-        
-        // Create sighting
-        const createRes = await fetch(`${API_URL}/api/admin/sightings`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            videoUrl,
-            location: randomLoc.city,
-            latitude: randomLoc.lat + (Math.random() - 0.5) * 0.1, // Small random offset
-            longitude: randomLoc.lng + (Math.random() - 0.5) * 0.1,
-            classification: bulkClassification,
-            aiConfidence: randomConfidence
-          })
-        });
-        
-        // Generate and upload thumbnail for the new sighting
-        if (createRes.ok) {
-          const newSighting = await createRes.json();
-          try {
-            const thumbnailBase64 = await generateThumbnailFromVideo(videoUrl);
-            await fetch(`${API_URL}/api/admin/sightings/${newSighting.id}/thumbnail`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({ thumbnailBase64 })
-            });
-          } catch (thumbErr) {
-            console.log(`Thumbnail generation failed for ${file.name}, will retry later`);
-          }
-        }
-        
-      } catch (err) {
-        console.error(`Error processing ${file.name}:`, err);
-      }
-    }
-    
-    setMessage(`✓ Uploaded ${files.length} videos with thumbnails!`);
-    setUploading(false);
-    setBulkProgress({ current: 0, total: 0 });
-    fetchSightings();
-  };
-
-  // Upload video to Supabase
-  const handleVideoUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    setUploading(true);
-    setMessage('Uploading video...');
-    
-    try {
-      const fileName = `sighting-${Date.now()}.${file.name.split('.').pop()}`;
-      const response = await fetch(`${SUPABASE_URL}/storage/v1/object/videos/${fileName}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Content-Type': file.type,
-          'x-upsert': 'true'
-        },
-        body: file
-      });
-      
-      if (response.ok) {
-        const videoUrl = `${SUPABASE_URL}/storage/v1/object/public/videos/${fileName}`;
-        setFormData(prev => ({ ...prev, videoUrl }));
-        setMessage('Video uploaded!');
-      } else {
-        setMessage('Failed to upload video');
-      }
-    } catch (err) {
-      setMessage('Upload error: ' + err.message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  // Create sighting
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setMessage('');
-    
-    if (!formData.title || !formData.videoUrl || !formData.location || !formData.latitude || !formData.longitude) {
-      setMessage('Please fill all required fields');
-      return;
-    }
-    
-    try {
-      const res = await fetch(`${API_URL}/api/admin/sightings`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-      
-      if (res.ok) {
-        setMessage('Sighting created!');
-        setFormData({
-          title: '',
-          videoUrl: '',
-          thumbnailUrl: '',
-          location: '',
-          latitude: '',
-          longitude: '',
-          classification: 'UAP',
-          aiConfidence: 85
-        });
-        setShowAddForm(false);
-        fetchSightings();
-      } else {
-        const data = await res.json();
-        setMessage(data.error || 'Failed to create sighting');
-      }
-    } catch (err) {
-      setMessage('Error: ' + err.message);
-    }
-  };
-
-  // Delete sighting
-  const handleDelete = async (id) => {
-    if (!confirm('Delete this sighting?')) return;
-    
-    try {
-      const res = await fetch(`${API_URL}/api/admin/sightings/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (res.ok) {
-        setSightings(prev => prev.filter(s => s.id !== id));
-      }
-    } catch (err) {
-      console.error('Delete error:', err);
-    }
-  };
-
-  return (
-    <div className={`h-full overflow-y-auto ${isMobile ? 'p-4' : 'p-6'}`}>
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>Admin Panel</h1>
-            <p className="text-sm text-gray-400">Manage sightings, videos, and users</p>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-2 mb-4 border-b border-gray-800 pb-3">
-          <button
-            onClick={() => setActiveAdminTab('sightings')}
-            className={`px-4 py-2 rounded-lg font-medium text-sm ${activeAdminTab === 'sightings' ? 'bg-teal-500 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}
-          >
-            Sightings ({sightings.length})
-          </button>
-          <button
-            onClick={() => setActiveAdminTab('users')}
-            className={`px-4 py-2 rounded-lg font-medium text-sm ${activeAdminTab === 'users' ? 'bg-teal-500 text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}
-          >
-            Users ({users.length})
-          </button>
-        </div>
-
-        {/* Message */}
-        {message && (
-          <div className={`p-3 rounded-xl mb-4 ${message.includes('error') || message.includes('Failed') ? 'bg-red-500/20 text-red-400' : 'bg-teal-500/20 text-teal-400'}`}>
-            {message}
-          </div>
-        )}
-
-        {/* Users Tab */}
-        {activeAdminTab === 'users' && (
-          <div>
-            <div className="bg-[#141414] border border-gray-700 rounded-2xl overflow-hidden">
-              <div className="p-4 border-b border-gray-800">
-                <h2 className="font-semibold">Registered Users</h2>
-              </div>
-              <div className="divide-y divide-gray-800">
-                {users.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500">No users found</div>
-                ) : (
-                  users.map(u => (
-                    <div key={u.id} className={`${isMobile ? 'p-3' : 'p-4'} flex items-center gap-4`}>
-                      {/* Avatar */}
-                      {u.avatarUrl ? (
-                        <img src={u.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center text-sm font-bold text-teal-400">
-                          {u.username?.[0]?.toUpperCase() || '?'}
-                        </div>
-                      )}
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold">{u.username}</span>
-                          {u.role === 'admin' && (
-                            <span className="px-2 py-0.5 bg-purple-500/20 text-purple-400 text-[10px] rounded font-bold">ADMIN</span>
-                          )}
-                        </div>
-                        <p className={`text-gray-400 truncate ${isMobile ? 'text-xs' : 'text-sm'}`}>{u.email}</p>
-                      </div>
-                      {/* Stats */}
-                      <div className={`text-right ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                        <p className="text-gray-400">Joined {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}</p>
-                        <p className="text-teal-400">{u.timeSpent || '0m'} on site</p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Sightings Tab */}
-        {activeAdminTab === 'sightings' && (
-          <>
-            {/* Action Buttons */}
-            <div className="flex gap-2 flex-wrap mb-4">
-              <button
-                onClick={handleGenerateAllThumbnails}
-                disabled={generatingThumbnails}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium ${generatingThumbnails ? 'bg-yellow-500/50 text-yellow-200' : 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'}`}
-              >
-                <ImageIcon className="w-5 h-5" />
-                {generatingThumbnails ? `${thumbnailProgress.current}/${thumbnailProgress.total}` : 'Gen Thumbnails'}
-              </button>
-              <button
-                onClick={() => { setShowBulkUpload(!showBulkUpload); setShowAddForm(false); }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium ${showBulkUpload ? 'bg-purple-500 text-white' : 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30'}`}
-              >
-                <Upload className="w-5 h-5" />
-                Bulk Upload
-              </button>
-              <button
-                onClick={() => { setShowAddForm(!showAddForm); setShowBulkUpload(false); }}
-                className="flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-xl font-medium hover:bg-teal-600"
-              >
-                <Plus className="w-5 h-5" />
-                Add Single
-              </button>
-            </div>
-
-            {/* Missing Thumbnails Count */}
-            {sightings.filter(s => !s.thumbnail_url).length > 0 && (
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 mb-4 flex items-center justify-between">
-                <span className="text-yellow-400 text-sm">
-                  ⚠️ {sightings.filter(s => !s.thumbnail_url).length} videos missing thumbnails
-                </span>
-                <button 
-                  onClick={handleGenerateAllThumbnails}
-                  disabled={generatingThumbnails}
-                  className="text-yellow-400 text-sm underline hover:text-yellow-300"
-                >
-                  Generate now
-                </button>
-              </div>
-            )}
-
-        {/* Bulk Upload Section */}
-        {showBulkUpload && (
-          <div className="bg-[#141414] border border-gray-700 rounded-2xl p-6 mb-6">
-            <h2 className="text-lg font-semibold mb-4">Bulk Upload Videos</h2>
-            <p className="text-sm text-gray-400 mb-4">
-              Select multiple videos at once. Location and timestamp will be randomly assigned.
-            </p>
-            
-            {/* Classification Selection */}
-            <div className="mb-4">
-              <label className="block text-sm text-gray-400 mb-2">Classification for all videos</label>
-              <div className="flex gap-2">
-                {classificationOptions.map(opt => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => setBulkClassification(opt.id)}
-                    className={`flex-1 py-3 rounded-xl flex flex-col items-center gap-1 transition-all ${bulkClassification === opt.id ? 'ring-2 ring-white' : ''}`}
-                    style={{ backgroundColor: `${opt.color}20`, color: opt.color }}
-                  >
-                    <span className="text-xl">{opt.icon}</span>
-                    <span className="text-xs">{opt.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            {/* Upload Area */}
-            <label className={`flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all ${uploading ? 'border-teal-500 bg-teal-500/10' : 'border-gray-700 hover:border-teal-500/50'}`}>
-              <input 
-                type="file" 
-                accept="video/*" 
-                multiple 
-                className="hidden" 
-                onChange={handleBulkUpload}
-                disabled={uploading}
-              />
-              {uploading ? (
-                <>
-                  <Loader className="w-10 h-10 text-teal-400 animate-spin mb-2" />
-                  <p className="text-sm text-teal-400">Uploading {bulkProgress.current}/{bulkProgress.total}</p>
-                  <div className="w-full max-w-xs bg-gray-700 rounded-full h-2 mt-2">
-                    <div 
-                      className="bg-teal-500 h-2 rounded-full transition-all" 
-                      style={{ width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }}
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <Upload className="w-10 h-10 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-400">Click to select multiple videos</p>
-                  <p className="text-xs text-gray-500 mt-1">or drag and drop</p>
-                </>
-              )}
-            </label>
-          </div>
-        )}
-
-        {/* Add Sighting Form */}
-        {showAddForm && (
-          <div className="bg-[#141414] border border-gray-700 rounded-2xl p-6 mb-6">
-            <h2 className="text-lg font-semibold mb-4">Add New Sighting</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Video Upload */}
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Video File *</label>
-                <div className="flex items-center gap-4">
-                  <label className="flex-1 flex items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-700 rounded-xl cursor-pointer hover:border-teal-500/50">
-                    <input type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} disabled={uploading} />
-                    <Upload className="w-5 h-5 text-gray-400" />
-                    <span className="text-sm text-gray-400">{uploading ? 'Uploading...' : 'Upload Video'}</span>
-                  </label>
-                  {formData.videoUrl && (
-                    <span className="text-xs text-teal-400">✓ Uploaded</span>
-                  )}
-                </div>
-                {formData.videoUrl && (
-                  <input
-                    type="text"
-                    value={formData.videoUrl}
-                    readOnly
-                    className="w-full mt-2 px-3 py-2 bg-white/5 border border-gray-700 rounded-lg text-xs text-gray-400"
-                  />
-                )}
-              </div>
-
-              {/* Title */}
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Title *</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="e.g., Unknown object over Los Angeles"
-                  className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-teal-500/50"
-                />
-              </div>
-
-              {/* Location Search */}
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Search Location *</label>
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <input
-                      type="text"
-                      value={formData.location}
-                      onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                      placeholder="Search city or address..."
-                      className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-teal-500/50"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!formData.location) return;
-                      try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(formData.location)}`);
-                        const data = await res.json();
-                        if (data && data.length > 0) {
-                          setFormData(prev => ({
-                            ...prev,
-                            location: data[0].display_name.split(',').slice(0, 2).join(','),
-                            latitude: data[0].lat,
-                            longitude: data[0].lon
-                          }));
-                          setMessage('Location found!');
-                        } else {
-                          setMessage('Location not found');
-                        }
-                      } catch (err) {
-                        setMessage('Search failed');
-                      }
-                    }}
-                    className="px-4 py-3 bg-teal-500/20 text-teal-400 rounded-xl font-medium hover:bg-teal-500/30"
-                  >
-                    <Search className="w-5 h-5" />
-                  </button>
-                </div>
-                {(formData.latitude && formData.longitude) && (
-                  <p className="text-xs text-teal-400 mt-2">
-                    📍 {formData.latitude}, {formData.longitude}
-                  </p>
-                )}
-              </div>
-
-              {/* Hidden lat/lng inputs for manual override if needed */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Latitude</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={formData.latitude}
-                    onChange={(e) => setFormData(prev => ({ ...prev, latitude: e.target.value }))}
-                    placeholder="Auto-filled"
-                    className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-teal-500/50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Longitude</label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={formData.longitude}
-                    onChange={(e) => setFormData(prev => ({ ...prev, longitude: e.target.value }))}
-                    placeholder="Auto-filled"
-                    className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-teal-500/50"
-                  />
-                </div>
-              </div>
-
-              {/* Classification & Confidence */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Classification *</label>
-                  <div className="flex gap-2">
-                    {classificationOptions.map(opt => (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, classification: opt.id }))}
-                        className={`flex-1 py-2 rounded-xl flex flex-col items-center gap-1 transition-all ${formData.classification === opt.id ? 'ring-2 ring-teal-500' : ''}`}
-                        style={{ backgroundColor: `${opt.color}20`, color: opt.color }}
-                      >
-                        <span className="text-lg">{opt.icon}</span>
-                        <span className="text-[10px]">{opt.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">AI Confidence: {formData.aiConfidence}%</label>
-                  <input
-                    type="range"
-                    min="50"
-                    max="99"
-                    value={formData.aiConfidence}
-                    onChange={(e) => setFormData(prev => ({ ...prev, aiConfidence: parseInt(e.target.value) }))}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-
-              {/* Submit */}
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowAddForm(false)}
-                  className="flex-1 py-3 bg-white/5 rounded-xl font-medium text-gray-400 hover:bg-white/10"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={uploading}
-                  className="flex-1 py-3 bg-teal-500 rounded-xl font-medium text-white hover:bg-teal-600 disabled:opacity-50"
-                >
-                  Create Sighting
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* Sightings List */}
-        <div className="bg-[#141414] border border-gray-700 rounded-2xl overflow-hidden">
-          <div className="p-4 border-b border-gray-800">
-            <h2 className="font-semibold">Sightings ({sightings.length})</h2>
-          </div>
-          
-          {loading ? (
-            <div className="p-8 text-center">
-              <Loader className="w-8 h-8 text-teal-400 animate-spin mx-auto" />
-            </div>
-          ) : sightings.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              No sightings yet. Add your first one!
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-800">
-              {sightings.map(sighting => (
-                <div key={sighting.id} className="p-4 flex items-center gap-4 hover:bg-white/5">
-                  {/* Thumbnail */}
-                  <div className="w-20 h-14 bg-black rounded-lg overflow-hidden flex-shrink-0">
-                    {sighting.thumbnail_url ? (
-                      <img src={sighting.thumbnail_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Play className="w-6 h-6 text-gray-600" />
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-sm truncate">{sighting.title || sighting.location}</h3>
-                    <p className="text-xs text-gray-500">{sighting.location}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span 
-                        className="px-2 py-0.5 rounded text-[10px] font-bold"
-                        style={{ 
-                          backgroundColor: `${classificationOptions.find(o => o.id === sighting.classification)?.color}30`,
-                          color: classificationOptions.find(o => o.id === sighting.classification)?.color
-                        }}
-                      >
-                        {sighting.classification}
-                      </span>
-                      <span className="text-[10px] text-teal-400">{sighting.ai_confidence}%</span>
-                    </div>
-                  </div>
-                  
-                  {/* Actions */}
-                  <button
-                    onClick={() => handleDelete(sighting.id)}
-                    className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-          </>
-        )}
-      </div>
+      <button className={`w-full ${isMobile ? 'py-3' : 'py-4'} bg-red-500/10 text-red-400 rounded-xl font-medium hover:bg-red-500/20`}>Sign Out</button>
     </div>
   );
 }
