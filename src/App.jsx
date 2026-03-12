@@ -1766,6 +1766,239 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
   );
 }
 
+function LiveFeedModal({ device, isMobile, onClose }) {
+  const { API_URL } = useAuth();
+  const [camStatus, setCamStatus] = useState(null);
+  const [streamError, setStreamError] = useState(false);
+  const [nightVision, setNightVision] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [streamTime, setStreamTime] = useState(new Date());
+  const imgRef = useRef(null);
+
+  const streamUrl = `${API_URL}/api/camera/stream`;
+  const snapshotUrl = `${API_URL}/api/camera/snapshot`;
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/camera/status`);
+        if (res.ok) {
+          const data = await res.json();
+          setCamStatus(data);
+          setNightVision(data.night_vision || false);
+        }
+      } catch (e) { /* camera may be offline */ }
+    };
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 3000);
+    return () => clearInterval(interval);
+  }, [API_URL]);
+
+  useEffect(() => {
+    const t = setInterval(() => setStreamTime(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const sendCommand = async (endpoint, body) => {
+    setSending(true);
+    try {
+      const res = await fetch(`${API_URL}/api/camera/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCamStatus(data);
+        if (data.night_vision !== undefined) setNightVision(data.night_vision);
+      }
+    } catch (e) {
+      console.error(`Command ${endpoint} failed:`, e);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const ptz = (direction) => sendCommand('ptz', { direction });
+  const zoom = (action) => sendCommand('zoom', { action });
+  const focus = (action) => sendCommand('focus', { action });
+  const toggleNV = () => sendCommand('nightvision', { action: 'toggle' });
+
+  const ControlBtn = ({ onClick, children, className = '', active = false, title = '' }) => (
+    <button
+      onClick={onClick}
+      title={title}
+      className={`p-3 rounded-full transition-all duration-150 active:scale-90 ${active ? 'bg-green-500/20 text-green-400 ring-1 ring-green-500/40' : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white'} ${sending ? 'opacity-50' : ''} ${className}`}
+      disabled={sending}
+    >
+      {children}
+    </button>
+  );
+
+  return (
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4" onClick={onClose}>
+      <div className={`bg-[#0a0a0a] rounded-2xl border border-green-500/20 ${isMobile ? 'w-full max-h-[95vh]' : 'w-full max-w-5xl'} overflow-hidden flex flex-col`} onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800/80 bg-[#0f0f0f]">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            <div>
+              <h3 className="font-semibold text-white text-sm">{device.name}</h3>
+              <p className="text-[11px] text-gray-500">{device.location} &bull; {device.serial}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {camStatus && (
+              <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${camStatus.hardware_connected ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'}`}>
+                {camStatus.hardware_connected ? 'HW CONNECTED' : 'DEMO MODE'}
+              </span>
+            )}
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500/15 rounded-full">
+              <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+              <span className="text-[10px] text-red-400 font-medium tracking-wider">LIVE</span>
+            </div>
+            <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
+              <X className="w-5 h-5 text-gray-400" />
+            </button>
+          </div>
+        </div>
+
+        {/* Video Feed */}
+        <div className="relative bg-black aspect-video">
+          {!streamError ? (
+            <img
+              ref={imgRef}
+              src={streamUrl}
+              alt="Live camera feed"
+              className="w-full h-full object-contain"
+              onError={() => setStreamError(true)}
+            />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+              <Camera className="w-12 h-12 text-gray-600" />
+              <p className="text-gray-500 text-sm">Stream unavailable</p>
+              <button onClick={() => setStreamError(false)} className="px-3 py-1.5 text-xs bg-green-500/10 text-green-400 rounded-lg hover:bg-green-500/20">
+                Retry Connection
+              </button>
+            </div>
+          )}
+
+          {/* HUD Overlay */}
+          <div className="absolute top-3 left-3 flex flex-col gap-1">
+            <div className="bg-black/70 px-2 py-0.5 rounded text-[11px] text-white font-mono backdrop-blur-sm">
+              {streamTime.toLocaleTimeString()}
+            </div>
+            {camStatus && (
+              <div className="bg-black/70 px-2 py-0.5 rounded text-[10px] text-green-400 font-mono backdrop-blur-sm">
+                PAN {camStatus.x_angle}&deg; &bull; TILT {camStatus.y_angle}&deg;
+              </div>
+            )}
+          </div>
+          <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
+            <div className="bg-black/70 px-2 py-0.5 rounded text-[10px] text-green-400 font-mono backdrop-blur-sm">
+              640&times;360 &bull; 30fps
+            </div>
+            {camStatus && (
+              <div className="bg-black/70 px-2 py-0.5 rounded text-[10px] text-cyan-400 font-mono backdrop-blur-sm">
+                Z:{camStatus.zoom} &bull; F:{camStatus.focus}
+              </div>
+            )}
+            {nightVision && (
+              <div className="bg-green-500/20 px-2 py-0.5 rounded text-[10px] text-green-300 font-mono backdrop-blur-sm">
+                NV ACTIVE
+              </div>
+            )}
+          </div>
+
+          {/* Crosshair overlay */}
+          <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <div className="w-8 h-8 border border-green-500/30 rounded-full" />
+            <div className="absolute w-12 h-[1px] bg-green-500/20" />
+            <div className="absolute h-12 w-[1px] bg-green-500/20" />
+          </div>
+        </div>
+
+        {/* Controls Panel */}
+        <div className={`${isMobile ? 'p-3' : 'p-4'} bg-[#0f0f0f] border-t border-gray-800/50`}>
+          <div className={`flex items-center justify-center ${isMobile ? 'gap-3 flex-wrap' : 'gap-6'}`}>
+
+            {/* PTZ D-Pad */}
+            <div className="flex flex-col items-center gap-0.5">
+              <span className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">Pan / Tilt</span>
+              <div className="grid grid-cols-3 gap-1">
+                <div />
+                <ControlBtn onClick={() => ptz('up')} title="Tilt Up"><ChevronUp className="w-4 h-4" /></ControlBtn>
+                <div />
+                <ControlBtn onClick={() => ptz('left')} title="Pan Left"><ChevronLeft className="w-4 h-4" /></ControlBtn>
+                <ControlBtn onClick={() => ptz('home')} title="Home Position" className="!p-2">
+                  <div className="w-3 h-3 border border-current rounded-full flex items-center justify-center">
+                    <div className="w-1 h-1 bg-current rounded-full" />
+                  </div>
+                </ControlBtn>
+                <ControlBtn onClick={() => ptz('right')} title="Pan Right"><ChevronRight className="w-4 h-4" /></ControlBtn>
+                <div />
+                <ControlBtn onClick={() => ptz('down')} title="Tilt Down"><ChevronDown className="w-4 h-4" /></ControlBtn>
+                <div />
+              </div>
+            </div>
+
+            <div className="w-px h-16 bg-gray-800" />
+
+            {/* Zoom */}
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">Zoom</span>
+              <div className="flex items-center gap-2">
+                <ControlBtn onClick={() => zoom('out')} title="Zoom Out">
+                  <span className="text-base font-bold leading-none">&minus;</span>
+                </ControlBtn>
+                <div className="w-14 text-center">
+                  <span className="text-[11px] text-gray-400 font-mono">{camStatus ? Math.round(camStatus.zoom / 200) : '--'}%</span>
+                </div>
+                <ControlBtn onClick={() => zoom('in')} title="Zoom In"><Plus className="w-4 h-4" /></ControlBtn>
+              </div>
+            </div>
+
+            <div className="w-px h-16 bg-gray-800" />
+
+            {/* Focus */}
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">Focus</span>
+              <div className="flex items-center gap-2">
+                <ControlBtn onClick={() => focus('out')} title="Focus Out">
+                  <span className="text-base font-bold leading-none">&minus;</span>
+                </ControlBtn>
+                <div className="w-14 text-center">
+                  <span className="text-[11px] text-gray-400 font-mono">{camStatus ? Math.round(camStatus.focus / 200) : '--'}%</span>
+                </div>
+                <ControlBtn onClick={() => focus('in')} title="Focus In"><Plus className="w-4 h-4" /></ControlBtn>
+              </div>
+            </div>
+
+            <div className="w-px h-16 bg-gray-800" />
+
+            {/* Night Vision + Snapshot */}
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">Modes</span>
+              <div className="flex items-center gap-2">
+                <ControlBtn onClick={toggleNV} active={nightVision} title="Night Vision">
+                  <Eye className="w-4 h-4" />
+                </ControlBtn>
+                <a href={snapshotUrl} target="_blank" rel="noopener noreferrer" title="Take Snapshot">
+                  <ControlBtn onClick={() => {}}>
+                    <Camera className="w-4 h-4" />
+                  </ControlBtn>
+                </a>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DevicesSubView({ isMobile, devices }) {
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [activeModal, setActiveModal] = useState(null);
@@ -1816,43 +2049,9 @@ function DevicesSubView({ isMobile, devices }) {
         ))}
       </div>
 
-      {/* View Feed Modal */}
+      {/* View Feed Modal — Live MJPEG Stream + Full Controls */}
       {activeModal === 'feed' && selectedDevice && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={closeModal}>
-          <div className={`bg-[#141414] rounded-2xl border border-green-500/20 ${isMobile ? 'w-full' : 'w-full max-w-4xl'} overflow-hidden`} onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-4 border-b border-gray-800">
-              <div><h3 className="font-semibold text-white">{selectedDevice.name} - Live Feed</h3><p className="text-xs text-gray-400">{selectedDevice.location}</p></div>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 px-3 py-1 bg-red-500/20 rounded-full"><div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" /><span className="text-xs text-red-400">REC</span></div>
-                <button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button>
-              </div>
-            </div>
-            <div className="aspect-video bg-black relative">
-              <div className="absolute inset-0 flex items-center justify-center"><Camera className="w-16 h-16 text-gray-700" /><p className="text-gray-500 ml-4">Live feed streaming...</p></div>
-              <div className="absolute top-4 left-4 bg-black/60 px-2 py-1 rounded text-xs text-white font-mono">{new Date().toLocaleTimeString()}</div>
-              <div className="absolute top-4 right-4 bg-black/60 px-2 py-1 rounded text-xs text-green-400">1080p • 30fps</div>
-            </div>
-            <div className="p-4">
-              <p className="text-xs text-gray-400 text-center mb-3">Pan / Tilt / Zoom Controls</p>
-              <div className="flex items-center justify-center gap-4">
-                <button className="p-3 bg-white/5 rounded-full hover:bg-white/10"><ChevronLeft className="w-5 h-5" /></button>
-                <div className="flex flex-col gap-2">
-                  <button className="p-3 bg-white/5 rounded-full hover:bg-white/10"><ChevronUp className="w-5 h-5" /></button>
-                  <button className="p-3 bg-white/5 rounded-full hover:bg-white/10"><ChevronDown className="w-5 h-5" /></button>
-                </div>
-                <button className="p-3 bg-white/5 rounded-full hover:bg-white/10"><ChevronRight className="w-5 h-5" /></button>
-                <div className="w-px h-12 bg-gray-700 mx-4" />
-                <div className="flex items-center gap-2">
-                  <button className="p-3 bg-white/5 rounded-full hover:bg-white/10 text-lg font-bold">−</button>
-                  <span className="text-xs text-gray-400 w-12 text-center">Zoom</span>
-                  <button className="p-3 bg-white/5 rounded-full hover:bg-white/10"><Plus className="w-5 h-5" /></button>
-                </div>
-                <div className="w-px h-12 bg-gray-700 mx-4" />
-                <button className="p-3 bg-white/5 rounded-full hover:bg-white/10"><Volume2 className="w-5 h-5" /></button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <LiveFeedModal device={selectedDevice} isMobile={isMobile} onClose={closeModal} />
       )}
 
       {/* Settings Modal */}
