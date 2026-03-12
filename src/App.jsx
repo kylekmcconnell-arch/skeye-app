@@ -1775,38 +1775,37 @@ function LiveFeedModal({ device, isMobile, onClose }) {
   const [streamTime, setStreamTime] = useState(new Date());
   const imgRef = useRef(null);
 
-  const streamUrl = `${API_URL}/api/camera/stream`;
-  const snapshotUrl = `${API_URL}/api/camera/snapshot`;
+  // Direct tunnel URL for stream (bypasses Vercel serverless timeout)
+  // Control commands still go through backend proxy
+  const CAMERA_DIRECT_URL = import.meta.env.VITE_CAMERA_URL || '';
+  const streamUrl = CAMERA_DIRECT_URL ? `${CAMERA_DIRECT_URL}/stream` : `${API_URL}/api/camera/stream`;
+  const snapshotUrl = CAMERA_DIRECT_URL ? `${CAMERA_DIRECT_URL}/snapshot` : `${API_URL}/api/camera/snapshot`;
 
-  useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/camera/status`);
-        if (res.ok) {
-          const data = await res.json();
-          setCamStatus(data);
-          setNightVision(data.night_vision || false);
-        }
-      } catch (e) { /* camera may be offline */ }
-    };
-    fetchStatus();
-    const interval = setInterval(fetchStatus, 3000);
-    return () => clearInterval(interval);
-  }, [API_URL]);
-
-  useEffect(() => {
-    const t = setInterval(() => setStreamTime(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
-
+  // For control commands, try direct first, fall back to backend proxy
   const sendCommand = async (endpoint, body) => {
     setSending(true);
     try {
-      const res = await fetch(`${API_URL}/api/camera/${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+      // Try direct tunnel first (faster, no Vercel overhead)
+      let res;
+      if (CAMERA_DIRECT_URL) {
+        try {
+          res = await fetch(`${CAMERA_DIRECT_URL}/api/${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+        } catch (e) {
+          // Direct failed, fall back to backend proxy
+          res = null;
+        }
+      }
+      if (!res || !res.ok) {
+        res = await fetch(`${API_URL}/api/camera/${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      }
       if (res.ok) {
         const data = await res.json();
         setCamStatus(data);
@@ -1818,6 +1817,28 @@ function LiveFeedModal({ device, isMobile, onClose }) {
       setSending(false);
     }
   };
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const url = CAMERA_DIRECT_URL ? `${CAMERA_DIRECT_URL}/api/status` : `${API_URL}/api/camera/status`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          setCamStatus(data);
+          setNightVision(data.night_vision || false);
+        }
+      } catch (e) { /* camera may be offline */ }
+    };
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 3000);
+    return () => clearInterval(interval);
+  }, [API_URL, CAMERA_DIRECT_URL]);
+
+  useEffect(() => {
+    const t = setInterval(() => setStreamTime(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const ptz = (direction) => sendCommand('ptz', { direction });
   const zoom = (action) => sendCommand('zoom', { action });
