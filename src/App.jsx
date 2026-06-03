@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef, createContext, useContext } from 'react';
-import { Camera, TrendingUp, Users, Bell, Play, Eye, Zap, Globe, Radio, Wifi, MapPin, ThumbsUp, MessageCircle, Share2, Download, X, Settings, ChevronLeft, ChevronRight, Volume2, CreditCard, HardDrive, User, LogOut, ChevronDown, ChevronUp, Send, Film, SkipBack, Plus, Filter, List, Grid, Mail, Lock, EyeOff, Loader } from 'lucide-react';
+import { Camera, TrendingUp, Users, Bell, Play, Eye, Zap, Globe, Radio, Wifi, MapPin, ThumbsUp, MessageCircle, Share2, Download, X, Settings, ChevronLeft, ChevronRight, Volume2, CreditCard, HardDrive, User, LogOut, ChevronDown, ChevronUp, Send, Film, SkipBack, Plus, Filter, List, Grid, Mail, Lock, EyeOff, Loader, Building2, FileText } from 'lucide-react';
 import logo from './logo.png';
 import cameraImg from './camera.png';
 import profileImg from './profile.jpg';
 
 // API Configuration
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-const CONTACT_EMAIL = 'hello@skeye.ai';
-const CONTACT_HREF = `mailto:${CONTACT_EMAIL}?subject=Skeye.ai%20terminal%20operations%20inquiry`;
+const ACCESS_EMAIL = 'hello@skeye.ai';
 
 // Auth Context
 const AuthContext = createContext(null);
@@ -94,24 +93,50 @@ function AuthModal({ isOpen, onClose, canClose = true }) {
   const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
+  const [requestName, setRequestName] = useState('');
+  const [requestEmail, setRequestEmail] = useState('');
+  const [requestOrganization, setRequestOrganization] = useState('');
+  const [requestContext, setRequestContext] = useState('Airport / terminal operations');
+  const [requestNotes, setRequestNotes] = useState('');
+  const [requestSuccess, setRequestSuccess] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { signin, signup } = useAuth();
+  const { signin } = useAuth();
 
   if (!isOpen) return null;
+
+  const switchMode = (nextMode) => {
+    setMode(nextMode);
+    setError('');
+    setRequestSuccess(false);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setRequestSuccess(false);
+
+    if (mode === 'request') {
+      const body = [
+        'New Skeye.ai access request',
+        '',
+        `Name: ${requestName}`,
+        `Email: ${requestEmail}`,
+        `Organization: ${requestOrganization}`,
+        `Operational context: ${requestContext}`,
+        '',
+        'Notes:',
+        requestNotes || 'No additional notes provided.'
+      ].join('\n');
+      window.location.href = `mailto:${ACCESS_EMAIL}?subject=${encodeURIComponent('Skeye.ai access request')}&body=${encodeURIComponent(body)}`;
+      setRequestSuccess(true);
+      return;
+    }
+
     setLoading(true);
     try {
-      if (mode === 'signin') {
-        await signin(email, password);
-      } else {
-        await signup(username, email, password);
-      }
+      await signin(email, password);
       if (canClose) onClose();
     } catch (err) {
       setError(err.message);
@@ -122,73 +147,126 @@ function AuthModal({ isOpen, onClose, canClose = true }) {
 
   return (
     <div className="fixed inset-0 bg-black/90 z-[20000] flex items-center justify-center p-4">
-      <div className="bg-[#141414] rounded-2xl w-full max-w-md overflow-hidden border border-gray-700" onClick={e => e.stopPropagation()}>
+      <div className="bg-[#141414] rounded-2xl w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto border border-gray-700 scrollbar-dark" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="p-6 border-b border-gray-800 text-center">
-          <img src={logo} alt="SKEYE.AI" className="h-8 mx-auto mb-4" />
+        <div className="p-5 border-b border-gray-800 text-center">
+          <img src={logo} alt="SKEYE.AI" className="h-8 mx-auto mb-3" />
           <h2 className="text-xl font-bold">{mode === 'signin' ? 'Low altitude airspace awareness' : 'Request Skeye access'}</h2>
           <p className="text-sm text-gray-400 mt-1">
-            {mode === 'signin' ? 'Optical AI for terminal environment operations.' : 'For airports, defense/security teams, and autonomous operators evaluating the low altitude layer.'}
+            {mode === 'signin' ? 'Optical AI for terminal environment operations.' : 'Tell us where Skeye fits, and we will follow up with the right access path.'}
           </p>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-3.5">
           {error && (
             <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">{error}</div>
           )}
 
-          {mode === 'signup' && (
-            <div>
-              <label className="block text-sm text-gray-400 mb-1">Username</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Choose a username" required minLength={3} className="w-full pl-10 pr-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500/50" />
-              </div>
+          {requestSuccess && (
+            <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-400 text-sm">
+              Request drafted. Send the email to complete your access request.
             </div>
           )}
 
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Email</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email" required className="w-full pl-10 pr-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500/50" />
-            </div>
-          </div>
+          {mode === 'signin' ? (
+            <>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email" required className="w-full pl-10 pr-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500/50" />
+                </div>
+              </div>
 
-          <div>
-            <label className="block text-sm text-gray-400 mb-1">Password</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-              <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === 'signup' ? 'Create a password (min 6 chars)' : 'Enter your password'} required minLength={6} className="w-full pl-10 pr-12 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500/50" />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-300">
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
-          </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                  <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" required minLength={6} className="w-full pl-10 pr-12 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500/50" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-300">
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Name</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                  <input type="text" value={requestName} onChange={(e) => setRequestName(e.target.value)} placeholder="Full name" required className="w-full pl-10 pr-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500/50" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Work email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                  <input type="email" value={requestEmail} onChange={(e) => setRequestEmail(e.target.value)} placeholder="name@organization.com" required className="w-full pl-10 pr-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500/50" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Organization</label>
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+                  <input type="text" value={requestOrganization} onChange={(e) => setRequestOrganization(e.target.value)} placeholder="Airport, agency, company, or team" required className="w-full pl-10 pr-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500/50" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Operational context</label>
+                <select value={requestContext} onChange={(e) => setRequestContext(e.target.value)} className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50">
+                  <option className="bg-[#141414] text-white">Airport / terminal operations</option>
+                  <option className="bg-[#141414] text-white">Defense / site security</option>
+                  <option className="bg-[#141414] text-white">Autonomous launch or vertiport</option>
+                  <option className="bg-[#141414] text-white">Research / evaluation</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">What are you evaluating?</label>
+                <div className="relative">
+                  <FileText className="absolute left-3 top-3.5 w-5 h-5 text-gray-500" />
+                  <textarea value={requestNotes} onChange={(e) => setRequestNotes(e.target.value)} rows={3} placeholder="Runway awareness, perimeter monitoring, drone detection, pilot program timeline..." className="w-full pl-10 pr-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500/50 resize-none leading-snug" />
+                </div>
+              </div>
+            </>
+          )}
 
           <button type="submit" disabled={loading} className="w-full py-3 bg-green-500 hover:bg-green-600 disabled:bg-green-500/50 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition-colors">
-            {loading ? (<><Loader className="w-5 h-5 animate-spin" />{mode === 'signin' ? 'Signing in...' : 'Requesting access...'}</>) : (mode === 'signin' ? 'Sign In' : 'Request Access')}
+            {loading ? (<><Loader className="w-5 h-5 animate-spin" />Signing in...</>) : (mode === 'signin' ? 'Sign In' : 'Send access request')}
           </button>
         </form>
 
         {/* Footer */}
-        <div className="px-6 pb-6">
-          <div className="relative flex items-center justify-center py-4">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-800"></div></div>
-            <span className="relative px-4 bg-[#141414] text-sm text-gray-500">or</span>
-          </div>
-          <a href={CONTACT_HREF} className="w-full py-3 bg-white/5 hover:bg-white/10 border border-gray-700 rounded-xl font-medium text-white transition-colors flex items-center justify-center gap-2">
-            <Mail className="w-4 h-4" />
-            Contact us
-          </a>
+        <div className="px-5 pb-5">
+          {mode === 'signin' ? (
+            <>
+              <div className="relative flex items-center justify-center py-4">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-800"></div></div>
+                <span className="relative px-4 bg-[#141414] text-sm text-gray-500">or</span>
+              </div>
+              <button type="button" onClick={() => switchMode('request')} className="w-full py-3 bg-white/5 hover:bg-white/10 border border-gray-700 rounded-xl font-medium text-white transition-colors flex items-center justify-center gap-2">
+                <Mail className="w-4 h-4" />
+                Request access
+              </button>
+            </>
+          ) : (
+            <button type="button" onClick={() => switchMode('signin')} className="w-full py-3 bg-white/5 hover:bg-white/10 border border-gray-700 rounded-xl font-medium text-white transition-colors flex items-center justify-center gap-2">
+              <ChevronLeft className="w-4 h-4" />
+              Back to sign in
+            </button>
+          )}
         </div>
 
-        {mode === 'signup' && (
-          <div className="px-6 pb-6">
+        {mode === 'request' && (
+          <div className="px-5 pb-5">
             <div className="flex items-center justify-center gap-2 py-3 bg-green-500/10 rounded-xl border border-green-500/20">
               <Zap className="w-4 h-4 text-green-400" />
-              <span className="text-sm text-green-400">Pilot access is reviewed with the Skeye team.</span>
+              <span className="text-sm text-green-400">Access is reviewed with the Skeye team.</span>
             </div>
           </div>
         )}
