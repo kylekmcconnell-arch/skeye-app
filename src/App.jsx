@@ -6,6 +6,8 @@ import profileImg from './profile.jpg';
 
 // API Configuration
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const CONTACT_EMAIL = 'hello@skeye.ai';
+const CONTACT_HREF = `mailto:${CONTACT_EMAIL}?subject=Skeye.ai%20terminal%20operations%20inquiry`;
 
 // Auth Context
 const AuthContext = createContext(null);
@@ -124,9 +126,9 @@ function AuthModal({ isOpen, onClose, canClose = true }) {
         {/* Header */}
         <div className="p-6 border-b border-gray-800 text-center">
           <img src={logo} alt="SKEYE.AI" className="h-8 mx-auto mb-4" />
-          <h2 className="text-xl font-bold">{mode === 'signin' ? 'Welcome Back' : 'Join SKEYE.AI'}</h2>
+          <h2 className="text-xl font-bold">{mode === 'signin' ? 'Low altitude airspace awareness' : 'Request Skeye access'}</h2>
           <p className="text-sm text-gray-400 mt-1">
-            {mode === 'signin' ? 'Sign in to access the global sky-watching network' : 'Create an account to start tracking the skies'}
+            {mode === 'signin' ? 'Optical AI for terminal environment operations.' : 'For airports, defense/security teams, and autonomous operators evaluating the low altitude layer.'}
           </p>
         </div>
 
@@ -166,7 +168,7 @@ function AuthModal({ isOpen, onClose, canClose = true }) {
           </div>
 
           <button type="submit" disabled={loading} className="w-full py-3 bg-green-500 hover:bg-green-600 disabled:bg-green-500/50 rounded-xl font-semibold text-white flex items-center justify-center gap-2 transition-colors">
-            {loading ? (<><Loader className="w-5 h-5 animate-spin" />{mode === 'signin' ? 'Signing in...' : 'Creating account...'}</>) : (mode === 'signin' ? 'Sign In' : 'Create Account')}
+            {loading ? (<><Loader className="w-5 h-5 animate-spin" />{mode === 'signin' ? 'Signing in...' : 'Requesting access...'}</>) : (mode === 'signin' ? 'Sign In' : 'Request Access')}
           </button>
         </form>
 
@@ -176,16 +178,17 @@ function AuthModal({ isOpen, onClose, canClose = true }) {
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-800"></div></div>
             <span className="relative px-4 bg-[#141414] text-sm text-gray-500">or</span>
           </div>
-          <button onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); }} className="w-full py-3 bg-white/5 hover:bg-white/10 border border-gray-700 rounded-xl font-medium text-white transition-colors">
-            {mode === 'signin' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-          </button>
+          <a href={CONTACT_HREF} className="w-full py-3 bg-white/5 hover:bg-white/10 border border-gray-700 rounded-xl font-medium text-white transition-colors flex items-center justify-center gap-2">
+            <Mail className="w-4 h-4" />
+            Contact us
+          </a>
         </div>
 
         {mode === 'signup' && (
           <div className="px-6 pb-6">
             <div className="flex items-center justify-center gap-2 py-3 bg-green-500/10 rounded-xl border border-green-500/20">
               <Zap className="w-4 h-4 text-green-400" />
-              <span className="text-sm text-green-400">Get 100 $SKEYE tokens free when you sign up!</span>
+              <span className="text-sm text-green-400">Pilot access is reviewed with the Skeye team.</span>
             </div>
           </div>
         )}
@@ -195,40 +198,40 @@ function AuthModal({ isOpen, onClose, canClose = true }) {
 }
 
 const mockDevices = [
-  { id: 1, name: 'Home (Rooftop)', location: 'Lisbon, Portugal', lat: 38.7223, lng: -9.1393, status: 'online', detections: 127, signal: 98, serial: 'SKY-2024-0847-A1' },
-  { id: 2, name: 'Home (Barn)', location: 'Lisbon, Portugal', lat: 38.7220, lng: -9.1390, status: 'online', detections: 89, signal: 92, serial: 'SKY-2024-1293-B2' },
-  { id: 3, name: 'Lake House (Roof)', location: 'Austin, TX', lat: 30.2672, lng: -97.7431, status: 'offline', detections: 203, signal: 0, serial: 'SKY-2024-0156-C3' },
-  { id: 4, name: 'Beach House (Roof)', location: 'San Diego, CA', lat: 32.7157, lng: -117.1611, status: 'online', detections: 56, signal: 87, serial: 'SKY-2024-2048-D4' },
+  { id: 1, name: 'Runway 18L Node', location: 'Regional Airport', lat: 38.7223, lng: -9.1393, status: 'online', detections: 127, signal: 98, serial: 'SKY-2024-0847-A1' },
+  { id: 2, name: 'Pattern Entry Node', location: 'Regional Airport', lat: 38.7220, lng: -9.1390, status: 'online', detections: 89, signal: 92, serial: 'SKY-2024-1293-B2' },
+  { id: 3, name: 'Perimeter Node', location: 'Critical Site', lat: 30.2672, lng: -97.7431, status: 'offline', detections: 203, signal: 0, serial: 'SKY-2024-0156-C3' },
+  { id: 4, name: 'Vertiport Pad Node', location: 'Autonomous Launch Site', lat: 32.7157, lng: -117.1611, status: 'online', detections: 56, signal: 87, serial: 'SKY-2024-2048-D4' },
 ];
 
 const myClips = [
-  { id: 1, device: 'Home (Rooftop)', time: 'Today, 9:34 PM', type: 'UAP', confidence: 87, duration: '0:32', videoId: 'QKHg-vnTFsM', likes: 24, commentsCount: 8 },
-  { id: 2, device: 'Home (Rooftop)', time: 'Today, 8:12 PM', type: 'Aircraft', confidence: 94, duration: '0:18', videoId: 'u1hNYs55sqs', likes: 12, commentsCount: 3 },
-  { id: 3, device: 'Home (Barn)', time: 'Today, 6:45 PM', type: 'Drone', confidence: 91, duration: '1:24', videoId: '2TumprpOwHY', likes: 45, commentsCount: 15 },
-  { id: 4, device: 'Beach House (Roof)', time: 'Yesterday, 11:23 PM', type: 'UAP', confidence: 76, duration: '0:45', videoId: 'dGOXuuhYoLk', likes: 67, commentsCount: 22 },
+  { id: 1, device: 'Runway 18L Node', time: 'Today, 9:34 PM', type: 'Non-coop', confidence: 87, duration: '0:32', videoId: 'QKHg-vnTFsM', likes: 24, commentsCount: 8 },
+  { id: 2, device: 'Runway 18L Node', time: 'Today, 8:12 PM', type: 'Aircraft', confidence: 94, duration: '0:18', videoId: 'u1hNYs55sqs', likes: 12, commentsCount: 3 },
+  { id: 3, device: 'Pattern Entry Node', time: 'Today, 6:45 PM', type: 'Drone', confidence: 91, duration: '1:24', videoId: '2TumprpOwHY', likes: 45, commentsCount: 15 },
+  { id: 4, device: 'Vertiport Pad Node', time: 'Yesterday, 11:23 PM', type: 'Non-coop', confidence: 76, duration: '0:45', videoId: 'dGOXuuhYoLk', likes: 67, commentsCount: 22 },
 ];
 
 const mockClips = [
-  { id: 1, title: 'GIMBAL - Navy F/A-18 Encounter', location: 'East Coast, USA', timestamp: '2 min ago', views: 12400, classification: 'UAP', confidence: 87, verified: true, siteLikes: 234, siteComments: [{user: 'SkyWatcher_AZ', text: 'Incredible footage! The rotation is unmistakable.', time: '1h ago', avatar: 'S'}, {user: 'DataAnalyst99', text: 'I ran this through my tracking software - no conventional aircraft moves like this.', time: '45m ago', avatar: 'D'}], videoId: 'QKHg-vnTFsM', owner: { username: 'NavyLeak2024', avatar: 'N' } },
-  { id: 2, title: 'GO FAST - High Speed Object', location: 'Atlantic Ocean', timestamp: '15 min ago', views: 8900, classification: 'UAP', confidence: 91, verified: true, siteLikes: 156, siteComments: [{user: 'PilotMike', text: 'As a commercial pilot, I can confirm this is not normal.', time: '2h ago', avatar: 'P'}], videoId: 'u1hNYs55sqs', owner: { username: 'PentagonFiles', avatar: 'P' } },
-  { id: 3, title: 'FLIR1 Tic Tac - USS Nimitz', location: 'San Diego, CA', timestamp: '1 hour ago', views: 25600, classification: 'UAP', confidence: 96, verified: true, siteLikes: 445, siteComments: [{user: 'NavyVet2020', text: 'I was stationed on the Nimitz. This is real.', time: '3h ago', avatar: 'N'}, {user: 'SkepticalSam', text: 'Could this be a weather balloon?', time: '2h ago', avatar: 'S'}, {user: 'TruthSeeker', text: '@SkepticalSam No way, look at the movement patterns', time: '1h ago', avatar: 'T'}], videoId: '2TumprpOwHY', owner: { username: 'NimitzWitness', avatar: 'N' } },
-  { id: 4, title: 'Jellyfish UAP - Iraq 2018', location: 'Iraq', timestamp: '3 hours ago', views: 21000, classification: 'UAP', confidence: 72, verified: true, siteLikes: 312, siteComments: [], videoId: 'dGOXuuhYoLk', owner: { username: 'MilitaryLeaks', avatar: 'M' } },
-  { id: 5, title: 'Chilean Navy UFO', location: 'Chile', timestamp: '5 hours ago', views: 18700, classification: 'UAP', confidence: 84, verified: true, siteLikes: 189, siteComments: [{user: 'ChileanObserver', text: 'Finally getting international attention!', time: '4h ago', avatar: 'C'}], videoId: 'iEK3YC_BKTI', owner: { username: 'ChileNavy', avatar: 'C' } },
+  { id: 1, title: 'Runway pattern conflict review', location: 'Regional Airport', timestamp: '2 min ago', views: 12400, classification: 'Aircraft', confidence: 87, verified: true, siteLikes: 234, siteComments: [{user: 'OpsLead', text: 'Good visual record of the downwind-to-base turn.', time: '1h ago', avatar: 'O'}, {user: 'SafetyReview', text: 'The event packet makes the sequence easy to brief.', time: '45m ago', avatar: 'S'}], videoId: 'QKHg-vnTFsM', owner: { username: 'AirportOps', avatar: 'A' } },
+  { id: 2, title: 'Low altitude non-cooperative track', location: 'Critical Site', timestamp: '15 min ago', views: 8900, classification: 'Non-coop', confidence: 91, verified: true, siteLikes: 156, siteComments: [{user: 'SiteSecurity', text: 'Useful classification and timestamp for the incident report.', time: '2h ago', avatar: 'S'}], videoId: 'u1hNYs55sqs', owner: { username: 'SecurityDesk', avatar: 'S' } },
+  { id: 3, title: 'Final approach visual confirmation', location: 'Regional Airport', timestamp: '1 hour ago', views: 25600, classification: 'Aircraft', confidence: 96, verified: true, siteLikes: 445, siteComments: [{user: 'TowerAssist', text: 'This closes the visual gap around the pattern.', time: '3h ago', avatar: 'T'}, {user: 'OpsAnalyst', text: 'Weather and angle context are preserved in the event record.', time: '2h ago', avatar: 'O'}], videoId: '2TumprpOwHY', owner: { username: 'RunwayNode', avatar: 'R' } },
+  { id: 4, title: 'Perimeter drone incursion', location: 'Defense Site', timestamp: '3 hours ago', views: 21000, classification: 'Drone', confidence: 72, verified: true, siteLikes: 312, siteComments: [], videoId: 'dGOXuuhYoLk', owner: { username: 'BaseSecurity', avatar: 'B' } },
+  { id: 5, title: 'Wildlife crossing near active runway', location: 'Regional Airport', timestamp: '5 hours ago', views: 18700, classification: 'Wildlife', confidence: 84, verified: true, siteLikes: 189, siteComments: [{user: 'AirfieldOps', text: 'Good evidence for wildlife management follow-up.', time: '4h ago', avatar: 'A'}], videoId: 'iEK3YC_BKTI', owner: { username: 'FieldOps', avatar: 'F' } },
 ];
 
 const classifyClips = [
-  { id: 1, videoId: 'QKHg-vnTFsM', title: 'Rotating Object - East Coast', location: 'Virginia, USA', confidence: 78, owner: { username: 'SkyWatcher_AZ', avatar: 'S' } },
-  { id: 2, videoId: 'u1hNYs55sqs', title: 'High Speed Target - Atlantic', location: 'Atlantic Ocean', confidence: 82, owner: { username: 'DroneHunter', avatar: 'D' } },
-  { id: 3, videoId: '2TumprpOwHY', title: 'Tic Tac Shape - Pacific', location: 'San Diego, CA', confidence: 91, owner: { username: 'CosmicEye', avatar: 'C' } },
-  { id: 4, videoId: 'dGOXuuhYoLk', title: 'Unknown Object - Middle East', location: 'Iraq', confidence: 67, owner: { username: 'NightOwl42', avatar: 'N' } },
-  { id: 5, videoId: 'iEK3YC_BKTI', title: 'Navy Thermal Imaging', location: 'Chile', confidence: 85, owner: { username: 'StarGazer99', avatar: 'S' } },
+  { id: 1, videoId: 'QKHg-vnTFsM', title: 'Pattern traffic validation', location: 'Regional Airport', confidence: 78, owner: { username: 'OpsLead', avatar: 'O' } },
+  { id: 2, videoId: 'u1hNYs55sqs', title: 'Low altitude target review', location: 'Critical Site', confidence: 82, owner: { username: 'SecurityDesk', avatar: 'S' } },
+  { id: 3, videoId: '2TumprpOwHY', title: 'Approach corridor track', location: 'Vertiport', confidence: 91, owner: { username: 'LaunchOps', avatar: 'L' } },
+  { id: 4, videoId: 'dGOXuuhYoLk', title: 'Perimeter object review', location: 'Defense Site', confidence: 67, owner: { username: 'BaseSecurity', avatar: 'B' } },
+  { id: 5, videoId: 'iEK3YC_BKTI', title: 'Runway environment event', location: 'Regional Airport', confidence: 85, owner: { username: 'FieldOps', avatar: 'F' } },
 ];
 
 const classificationOptions = [
-  { id: 'UAP', label: 'UAP', color: '#a855f7', icon: '◆' },
+  { id: 'Non-coop', label: 'Non-coop', color: '#a855f7', icon: '◆' },
   { id: 'Drone', label: 'Drone', color: '#3b82f6', icon: '■' },
   { id: 'Aircraft', label: 'Aircraft', color: '#22c55e', icon: '▲' },
-  { id: 'Bird', label: 'Bird', color: '#eab308', icon: '●' },
+  { id: 'Wildlife', label: 'Wildlife', color: '#eab308', icon: '●' },
   { id: 'Weather', label: 'Weather', color: '#06b6d4', icon: '○' },
 ];
 
@@ -240,14 +243,14 @@ const timeRanges = [
 ];
 
 const communityPosts = [
-  { id: 1, title: 'Multiple sightings over Phoenix', author: 'SkyWatcher_AZ', avatar: 'S', time: '2h ago', upvotes: 234, comments: 89, content: 'Around 9:30 PM I captured a formation of 5 objects.' },
-  { id: 2, title: 'Need help identifying this', author: 'NewObserver22', avatar: 'N', time: '4h ago', upvotes: 156, comments: 67, content: 'Object hovered for 2 minutes before accelerating.' },
-  { id: 3, title: 'Best camera settings?', author: 'TechExplorer', avatar: 'T', time: '6h ago', upvotes: 89, comments: 45, content: 'What ISO settings work best?' },
+  { id: 1, title: 'Pattern traffic review', author: 'AirportOps', avatar: 'A', time: '2h ago', upvotes: 234, comments: 89, content: 'Visual record captured across the downwind-to-final sequence.' },
+  { id: 2, title: 'Perimeter object needs review', author: 'SecurityDesk', avatar: 'S', time: '4h ago', upvotes: 156, comments: 67, content: 'Non-cooperative track entered the low altitude layer near the perimeter.' },
+  { id: 3, title: 'Node calibration settings', author: 'FieldTech', avatar: 'F', time: '6h ago', upvotes: 89, comments: 45, content: 'What sensitivity profile works best near active taxiways?' },
 ];
 
 const notifications = [
-  { id: 1, type: 'detection', device: 'Home (Rooftop)', message: 'Unknown object detected', time: '2 min ago', read: false, videoId: 'QKHg-vnTFsM', classification: 'UAP', confidence: 87, location: 'Lisbon, Portugal', lat: 38.7223, lng: -9.1393 },
-  { id: 2, type: 'detection', device: 'Beach House', message: 'Drone detected', time: '15 min ago', read: false, videoId: 'u1hNYs55sqs', classification: 'Drone', confidence: 92, location: 'San Diego, CA', lat: 32.7157, lng: -117.1611 },
+  { id: 1, type: 'detection', device: 'Runway 18L Node', message: 'Non-cooperative object detected', time: '2 min ago', read: false, videoId: 'QKHg-vnTFsM', classification: 'Non-coop', confidence: 87, location: 'Regional Airport', lat: 38.7223, lng: -9.1393 },
+  { id: 2, type: 'detection', device: 'Vertiport Pad Node', message: 'Drone detected', time: '15 min ago', read: false, videoId: 'u1hNYs55sqs', classification: 'Drone', confidence: 92, location: 'Autonomous Launch Site', lat: 32.7157, lng: -117.1611 },
 ];
 
 const getTimeAgo = (timestamp) => {
@@ -262,23 +265,23 @@ const getTimeAgo = (timestamp) => {
 
 const generateSightings = () => {
   const cities = [
-    { city: 'Los Angeles', lat: 34.0522, lng: -118.2437 }, { city: 'New York', lat: 40.7128, lng: -74.0060 },
-    { city: 'Phoenix', lat: 33.4484, lng: -112.0740 }, { city: 'London', lat: 51.5074, lng: -0.1278 },
-    { city: 'Tokyo', lat: 35.6762, lng: 139.6503 }, { city: 'Sydney', lat: -33.8688, lng: 151.2093 },
+    { city: 'Regional Airport', lat: 34.0522, lng: -118.2437 }, { city: 'Cargo Airfield', lat: 40.7128, lng: -74.0060 },
+    { city: 'Vertiport Corridor', lat: 33.4484, lng: -112.0740 }, { city: 'Critical Site', lat: 51.5074, lng: -0.1278 },
+    { city: 'Launch Recovery Zone', lat: 35.6762, lng: 139.6503 }, { city: 'Port Perimeter', lat: -33.8688, lng: 151.2093 },
   ];
-  const types = ['UAP', 'Drone', 'Aircraft', 'Bird', 'Weather'];
+  const types = ['Non-coop', 'Drone', 'Aircraft', 'Wildlife', 'Weather'];
   const videoIds = ['QKHg-vnTFsM', 'u1hNYs55sqs', '2TumprpOwHY', 'dGOXuuhYoLk'];
   const owners = [
-    { username: 'SkyWatcher_AZ', avatar: 'S' },
-    { username: 'NightOwl42', avatar: 'N' },
-    { username: 'DroneHunter', avatar: 'D' },
-    { username: 'CosmicEye', avatar: 'C' },
-    { username: 'StarGazer99', avatar: 'S' },
+    { username: 'AirportOps', avatar: 'A' },
+    { username: 'SecurityDesk', avatar: 'S' },
+    { username: 'LaunchOps', avatar: 'L' },
+    { username: 'FieldTech', avatar: 'F' },
+    { username: 'SafetyReview', avatar: 'R' },
   ];
   const sampleComments = [
-    { id: 1, user: 'Observer1', avatar: 'O', text: 'Incredible footage! Never seen anything like it.', time: '2h ago', likes: 23 },
-    { id: 2, user: 'SkepticalSam', avatar: 'S', text: 'Could be a satellite or plane. Need more analysis.', time: '1h ago', likes: 8 },
-    { id: 3, user: 'TruthSeeker', avatar: 'T', text: 'This is definitely not conventional aircraft.', time: '45m ago', likes: 15 },
+    { id: 1, user: 'OpsLead', avatar: 'O', text: 'Useful visual record for the shift handoff.', time: '2h ago', likes: 23 },
+    { id: 2, user: 'SafetyReview', avatar: 'S', text: 'The classification looks right; save it to the event packet.', time: '1h ago', likes: 8 },
+    { id: 3, user: 'FieldTech', avatar: 'F', text: 'Good capture angle from the north node.', time: '45m ago', likes: 15 },
   ];
   const sightings = [];
   const now = Date.now();
@@ -373,11 +376,11 @@ function AppContent() {
   }, []);
 
   const tabs = [
-    { id: 'map', label: 'Map', icon: Globe },
-    { id: 'trending', label: 'Trending', icon: TrendingUp },
-    { id: 'classify', label: 'Classify', icon: Eye },
-    { id: 'community', label: 'Community', icon: Users },
-    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'map', label: 'Airspace', icon: Globe },
+    { id: 'trending', label: 'Events', icon: TrendingUp },
+    { id: 'classify', label: 'Review', icon: Eye },
+    { id: 'community', label: 'Ops Notes', icon: Users },
+    { id: 'profile', label: 'Account', icon: User },
   ];
 
   const utcTime = currentTime.toISOString().slice(11, 19) + ' UTC';
@@ -479,15 +482,15 @@ function AppContent() {
                   <p className="text-[10px] text-gray-400 mt-1">{isMobile ? 'AI:' : 'AI Confidence:'} <span className="text-green-400 font-bold">{selectedNotification.confidence}%</span></p>
                 </div>
               </div>
-              <p className="text-xs text-gray-400 mb-2">Classify this detection:</p>
+              <p className="text-xs text-gray-400 mb-2">Review this detection:</p>
               <div className="flex gap-1">
                 {classificationOptions.map(opt => (<button key={opt.id} onClick={() => setSelectedNotification(null)} className="flex-1 py-2 rounded-lg text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-transform flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}20`, color: opt.color }}><span>{opt.icon}</span><span className="text-[8px]">{opt.label}</span></button>))}
               </div>
               <div className="flex items-center gap-2 mt-3">
                 <button onClick={() => setSelectedNotification(null)} className="flex-1 py-2 rounded-lg text-sm text-gray-400 bg-white/5 hover:bg-white/10">Skip</button>
                 <div className="flex items-center gap-1 bg-green-500/20 px-3 py-2 rounded-lg">
-                  <Zap className="w-4 h-4 text-green-400" />
-                  <span className="text-sm text-green-400 font-semibold">+50 $SKEYE</span>
+                  <Eye className="w-4 h-4 text-green-400" />
+                  <span className="text-sm text-green-400 font-semibold">Log event</span>
                 </div>
               </div>
             </div>
@@ -551,7 +554,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
   const [timeRange, setTimeRange] = useState('all');
   const [showSightingsList, setShowSightingsList] = useState(!isMobile);
   const [showFilters, setShowFilters] = useState(!isMobile);
-  const [typeFilters, setTypeFilters] = useState({ UAP: true, Drone: true, Aircraft: true, Bird: true, Weather: true });
+  const [typeFilters, setTypeFilters] = useState({ 'Non-coop': true, Drone: true, Aircraft: true, Wildlife: true, Weather: true });
   const [mapReady, setMapReady] = useState(false);
   const [sightingLikes, setSightingLikes] = useState({});
   const [swipeY, setSwipeY] = useState(0);
@@ -698,7 +701,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
           {selectedSighting && (
             <div className="absolute bottom-4 right-4 z-[1001] w-96 bg-[#141414] rounded-2xl border border-gray-700 shadow-2xl overflow-hidden max-h-[calc(100vh-120px)] overflow-y-auto">
               <div className="aspect-video bg-black relative">
-                <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=0&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Sighting" />
+                <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=0&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Event" />
                 <button onClick={() => setSelectedSighting(null)} className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded-full"><X className="w-4 h-4" /></button>
               </div>
               <div className="p-4">
@@ -763,16 +766,16 @@ function GlobalMapView({ isMobile, onViewProfile }) {
                     </div>
                   </div>
                 )}
-                <p className="text-xs text-gray-400 mb-2">Classify this sighting:</p>
+                <p className="text-xs text-gray-400 mb-2">Review this event:</p>
                 <div className="flex gap-1">
                   {classificationOptions.map(opt => (<button key={opt.id} className="flex-1 py-2 rounded-lg text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-transform flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}20`, color: opt.color }}><span>{opt.icon}</span><span className="text-[8px]">{opt.label}</span></button>))}
                 </div>
-                {/* Skip + Reward */}
+                {/* Skip + log state */}
                 <div className="flex items-center gap-2 mt-3">
                   <button onClick={() => { setSelectedSighting(null); setShowSightingComments(false); }} className="flex-1 py-2 rounded-lg text-sm text-gray-400 bg-white/5 hover:bg-white/10">Skip</button>
                   <div className="flex items-center gap-1 bg-green-500/20 px-3 py-2 rounded-lg">
-                    <Zap className="w-4 h-4 text-green-400" />
-                    <span className="text-sm text-green-400 font-semibold">+50 $SKEYE</span>
+                    <Eye className="w-4 h-4 text-green-400" />
+                    <span className="text-sm text-green-400 font-semibold">Log event</span>
                   </div>
                 </div>
               </div>
@@ -780,15 +783,15 @@ function GlobalMapView({ isMobile, onViewProfile }) {
           )}
         </div>
 
-        {/* Right Sidebar - Live Sightings Only */}
+        {/* Right Sidebar - Live Events Only */}
         <div className="w-72 bg-[#0a0a0a] border-l border-gray-800 flex flex-col">
-          {/* Live Sightings Header */}
+          {/* Live Events Header */}
           <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-            <h3 className="text-sm font-semibold flex items-center gap-2"><Radio className="w-4 h-4 text-green-400 animate-pulse" />Live Sightings</h3>
+            <h3 className="text-sm font-semibold flex items-center gap-2"><Radio className="w-4 h-4 text-green-400 animate-pulse" />Live Events</h3>
             <span className="text-xs text-gray-400">{filteredSightings.length} total</span>
           </div>
 
-          {/* Sightings List */}
+          {/* Events List */}
           <div className="flex-1 overflow-y-auto scrollbar-dark">
             {filteredSightings.slice(0, 30).map(s => (
               <div key={s.id} onClick={() => handleSelectSighting(s)} className={`flex items-center gap-3 p-3 border-b border-gray-800/50 cursor-pointer hover:bg-white/5 ${selectedSighting?.id === s.id ? 'bg-green-500/10' : ''}`}>
@@ -834,11 +837,11 @@ function GlobalMapView({ isMobile, onViewProfile }) {
         <Filter className="w-5 h-5 text-green-400" />
       </button>
 
-      {/* Sightings List Button */}
+      {/* Events List Button */}
       <button onClick={() => setShowSightingsList(true)} className="absolute bottom-4 right-4 z-[1000] bg-[#141414]/95 border border-gray-700 rounded-full px-4 py-2 flex items-center gap-2 active:scale-95">
         <Radio className="w-4 h-4 text-green-400 animate-pulse" />
         <span className="text-sm font-medium">{filteredSightings.length}</span>
-        <span className="text-xs text-gray-400">sightings</span>
+        <span className="text-xs text-gray-400">events</span>
       </button>
 
       {/* Filter Panel - Mobile */}
@@ -847,7 +850,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
           <div className="absolute inset-x-0 bottom-0 bg-[#141414] rounded-t-3xl" onClick={e => e.stopPropagation()}>
             <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mt-3" />
             <div className="p-4 border-b border-gray-800 flex items-center justify-between">
-              <h3 className="font-semibold">Filter Sightings</h3>
+              <h3 className="font-semibold">Filter Events</h3>
               <button onClick={() => setShowFilters(false)}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
             <div className="p-4 space-y-2">
@@ -865,11 +868,11 @@ function GlobalMapView({ isMobile, onViewProfile }) {
         </div>
       )}
 
-      {/* Sightings List Panel */}
+      {/* Events List Panel */}
       {showSightingsList && (
         <div className="absolute inset-x-0 bottom-0 z-[1001] bg-[#141414] rounded-t-3xl max-h-[70vh] flex flex-col">
           <div className="flex items-center justify-between p-4 border-b border-gray-800">
-            <h3 className="font-semibold flex items-center gap-2"><Radio className="w-4 h-4 text-green-400" />Recent Sightings</h3>
+            <h3 className="font-semibold flex items-center gap-2"><Radio className="w-4 h-4 text-green-400" />Recent Events</h3>
             <button onClick={() => setShowSightingsList(false)}><X className="w-5 h-5 text-gray-400" /></button>
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -887,7 +890,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
         </div>
       )}
 
-      {/* Sighting Detail */}
+      {/* Event Detail */}
       {selectedSighting && (
         <div 
           className="absolute inset-x-0 bottom-0 z-[1001] bg-[#141414] rounded-t-3xl max-h-[80vh] flex flex-col transition-transform"
@@ -899,7 +902,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
           <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mt-3 mb-1" />
           <p className="text-center text-[10px] text-gray-500 mb-2">Swipe down to close</p>
           <div className="aspect-video bg-black relative">
-            <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=0&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Sighting" />
+            <iframe key={selectedSighting.id} src={`https://www.youtube.com/embed/${selectedSighting.videoId}?autoplay=1&mute=0&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Event" />
             {/* Right side actions */}
             <div className="absolute right-2 bottom-2 flex flex-col gap-2">
               <button onClick={() => handleLikeSighting(selectedSighting.id)} className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur ${sightingLikes[selectedSighting.id] ? 'bg-green-500' : 'bg-black/50'}`}>
@@ -933,7 +936,7 @@ function GlobalMapView({ isMobile, onViewProfile }) {
               </div>
               <span className="text-xs text-gray-400">AI Confidence: <span className="text-green-400 font-bold">{selectedSighting.confidence}%</span></span>
             </div>
-            <p className="text-xs text-gray-400 mb-2">Classify this sighting:</p>
+            <p className="text-xs text-gray-400 mb-2">Review this event:</p>
             <div className="flex gap-1">
               {classificationOptions.map(opt => (<button key={opt.id} className="flex-1 py-2 rounded-xl active:scale-95 flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}20`, color: opt.color }}><span className="text-base">{opt.icon}</span><span className="text-[8px] font-medium">{opt.label}</span></button>))}
             </div>
@@ -1006,8 +1009,8 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
               <span className="text-sm text-gray-400">{currentIndex + 1} of {clips.length}</span>
               {showReward && (
                 <div className="flex items-center gap-1 bg-green-500/20 px-3 py-1 rounded-full">
-                  <Zap className="w-4 h-4 text-green-400" />
-                  <span className="text-sm text-green-400 font-semibold">+50 $SKEYE</span>
+                  <Eye className="w-4 h-4 text-green-400" />
+                  <span className="text-sm text-green-400 font-semibold">Reviewed</span>
                 </div>
               )}
             </div>
@@ -1017,8 +1020,8 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
           <div className="flex-shrink-0 p-4 border-b border-gray-800">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <span className="px-2 py-1 rounded text-xs font-bold flex items-center gap-1" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color + '30', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color }}>
-                  {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.icon} {currentClip.classification || currentClip.type || 'UAP'}
+                <span className="px-2 py-1 rounded text-xs font-bold flex items-center gap-1" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'Non-coop'))?.color + '30', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'Non-coop'))?.color }}>
+                  {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'Non-coop'))?.icon} {currentClip.classification || currentClip.type || 'Non-coop'}
                 </span>
               </div>
               {currentClip.confidence && <span className="text-xs text-gray-400">AI Confidence: <span className="text-green-400 font-bold">{currentClip.confidence}%</span></span>}
@@ -1080,9 +1083,9 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
               </div>
             )}
 
-            {/* Classify Section */}
+            {/* Review Section */}
             <div className="p-4">
-              <h4 className="text-sm font-semibold text-gray-400 mb-3">CLASSIFY THIS SIGHTING</h4>
+              <h4 className="text-sm font-semibold text-gray-400 mb-3">REVIEW THIS EVENT</h4>
               <div className="space-y-2">
                 {classificationOptions.map(opt => (
                   <button 
@@ -1100,7 +1103,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
                 Skip
               </button>
               {classified > 0 && (
-                <p className="text-center text-sm text-gray-500 mt-4">Classified today: <span className="text-green-400 font-bold">{classified}</span></p>
+                <p className="text-center text-sm text-gray-500 mt-4">Reviewed today: <span className="text-green-400 font-bold">{classified}</span></p>
               )}
             </div>
           </div>
@@ -1176,7 +1179,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
         </div>
         <div className="flex items-center justify-between">
           <div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">{currentIndex + 1} / {clips.length}</div>
-          {classified > 0 && (<div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">Classified: <span className="text-green-400 font-bold">{classified}</span></div>)}
+          {classified > 0 && (<div className="bg-black/40 backdrop-blur px-3 py-1.5 rounded-full text-xs">Reviewed: <span className="text-green-400 font-bold">{classified}</span></div>)}
         </div>
       </div>
 
@@ -1199,12 +1202,12 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
         </button>
       </div>
 
-      {/* Bottom Bar - Info & Classify */}
+      {/* Bottom Bar - Info & Review */}
       <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/90 via-black/60 to-transparent pt-12 pb-3 px-3">
         <div className="mb-2 pr-16">
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color + '40', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.color }}>
-              {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'UAP'))?.icon} {currentClip.classification || currentClip.type || 'UAP'}
+            <span className="px-2 py-0.5 rounded text-xs font-bold flex items-center gap-1" style={{ backgroundColor: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'Non-coop'))?.color + '40', color: classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'Non-coop'))?.color }}>
+              {classificationOptions.find(o => o.id === (currentClip.classification || currentClip.type || 'Non-coop'))?.icon} {currentClip.classification || currentClip.type || 'Non-coop'}
             </span>
             {currentClip.confidence && <span className="text-[10px] text-gray-400">AI: <span className="text-green-400 font-bold">{currentClip.confidence}%</span></span>}
           </div>
@@ -1219,7 +1222,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
           )}
         </div>
 
-        {/* Classify Bar with Labels */}
+        {/* Review Bar with Labels */}
         <div className="flex items-stretch gap-1">
           {classificationOptions.map(opt => (
             <button key={opt.id} onClick={() => handleClassify(opt.id)} className="flex-1 py-2 rounded-lg active:scale-95 transition-transform backdrop-blur flex flex-col items-center gap-0.5" style={{ backgroundColor: `${opt.color}30` }}>
@@ -1231,8 +1234,8 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
             <button onClick={handleNext} className="px-2 py-1.5 rounded-lg text-[10px] text-gray-400 bg-white/10 backdrop-blur active:scale-95">Skip</button>
             {showReward && (
               <div className="flex items-center justify-center gap-0.5 bg-green-500/20 backdrop-blur px-2 py-1 rounded-lg">
-                <Zap className="w-3 h-3 text-green-400" />
-                <span className="text-[9px] text-green-400 font-semibold">+50</span>
+                <Eye className="w-3 h-3 text-green-400" />
+                <span className="text-[9px] text-green-400 font-semibold">Reviewed</span>
               </div>
             )}
           </div>
@@ -1272,7 +1275,7 @@ function VideoFeedView({ clips, showReward = false, title = "Trending", isMobile
 }
 
 function TrendingView({ isMobile, clips, onViewProfile }) {
-  return <VideoFeedView clips={clips} showReward={true} title="Trending" isMobile={isMobile} onViewProfile={onViewProfile} />;
+  return <VideoFeedView clips={clips} showReward={false} title="Events" isMobile={isMobile} onViewProfile={onViewProfile} />;
 }
 
 function ClassifyView({ isMobile, onViewProfile }) {
@@ -1281,58 +1284,58 @@ function ClassifyView({ isMobile, onViewProfile }) {
     ...c,
     siteLikes: Math.floor(50 + Math.random() * 200),
     siteComments: i === 0 ? [{user: 'Observer1', text: 'What do you all think?', time: '30m ago', avatar: 'O'}] : [],
-    classification: 'UAP',
+    classification: 'Non-coop',
   }));
-  return <VideoFeedView clips={clipsWithInfo} showReward={true} title="Classify" isMobile={isMobile} onViewProfile={onViewProfile} />;
+  return <VideoFeedView clips={clipsWithInfo} showReward={false} title="Review" isMobile={isMobile} onViewProfile={onViewProfile} />;
 }
 
 const communityTopics = [
   { id: 'all', label: 'All', icon: '🌐' },
-  { id: 'sightings', label: 'Sightings', icon: '👁️' },
-  { id: 'equipment', label: 'Equipment', icon: '📷' },
+  { id: 'events', label: 'Events', icon: '👁️' },
+  { id: 'field', label: 'Field Setup', icon: '📷' },
   { id: 'analysis', label: 'Analysis', icon: '📊' },
   { id: 'questions', label: 'Questions', icon: '❓' },
-  { id: 'news', label: 'News', icon: '📰' },
+  { id: 'updates', label: 'Updates', icon: '📰' },
 ];
 
 const communityPostsData = [
-  { id: 1, topic: 'sightings', title: 'Multiple sightings over Phoenix', content: 'Around 9:30 PM I captured a formation of 5 objects moving in perfect synchronization. Has anyone else seen this?', author: 'SkyWatcher_AZ', time: '2h ago', upvotes: 234, comments: 3, hasVideo: true, siteComments: [
-    { id: 1, user: 'DesertWatcher', avatar: 'D', text: 'I saw the same thing from Scottsdale! Absolutely incredible.', time: '1h ago', likes: 45, replies: [
-      { id: 11, user: 'SkyWatcher_AZ', avatar: 'S', text: 'What time exactly? Want to cross-reference our footage.', time: '45m ago', likes: 12 }
+  { id: 1, topic: 'events', title: 'Runway pattern conflict review', content: 'Skeye captured a sequence across downwind, base, and final that gives the operations team a searchable visual record.', author: 'AirportOps', time: '2h ago', upvotes: 234, comments: 3, hasVideo: true, siteComments: [
+    { id: 1, user: 'SafetyReview', avatar: 'S', text: 'The timestamped event record is useful for briefing the morning shift.', time: '1h ago', likes: 45, replies: [
+      { id: 11, user: 'AirportOps', avatar: 'A', text: 'We are matching it against radio logs now.', time: '45m ago', likes: 12 }
     ]},
-    { id: 2, user: 'SkepticalSam', avatar: 'S', text: 'Could be Starlink satellites in formation.', time: '1h ago', likes: 8, replies: [] },
-    { id: 3, user: 'PhoenixNights', avatar: 'P', text: 'Starlink doesnt move like that. This was completely different.', time: '30m ago', likes: 23, replies: [] },
+    { id: 2, user: 'TowerAssist', avatar: 'T', text: 'The event packet closes the gap between what was reported and what was visible.', time: '1h ago', likes: 8, replies: [] },
+    { id: 3, user: 'FieldTech', avatar: 'F', text: 'North node angle captured the best classification frame.', time: '30m ago', likes: 23, replies: [] },
   ]},
-  { id: 2, topic: 'sightings', title: 'Need help identifying this', content: 'Object hovered for 2 minutes before accelerating at impossible speeds. Captured on my Skeye cam.', author: 'NewObserver22', time: '4h ago', upvotes: 156, comments: 2, hasVideo: true, siteComments: [
-    { id: 1, user: 'TechAnalyst', avatar: 'T', text: 'Can you share the raw footage? Would love to run it through my analysis software.', time: '3h ago', likes: 34, replies: [] },
-    { id: 2, user: 'DroneExpert', avatar: 'D', text: 'The acceleration pattern rules out any known drone technology.', time: '2h ago', likes: 56, replies: [] },
+  { id: 2, topic: 'events', title: 'Non-cooperative object near perimeter', content: 'The perimeter node detected and classified a low-altitude object near the restricted area. Needs operator review before export.', author: 'SecurityDesk', time: '4h ago', upvotes: 156, comments: 2, hasVideo: true, siteComments: [
+    { id: 1, user: 'OpsAnalyst', avatar: 'O', text: 'Please attach the signed event and metadata to the incident record.', time: '3h ago', likes: 34, replies: [] },
+    { id: 2, user: 'DroneLead', avatar: 'D', text: 'Classification looks consistent with a small UAS track.', time: '2h ago', likes: 56, replies: [] },
   ]},
-  { id: 3, topic: 'equipment', title: 'Best camera settings?', content: 'What ISO settings work best for night captures? Getting a lot of noise in my footage.', author: 'TechExplorer', time: '6h ago', upvotes: 89, comments: 2, hasVideo: false, siteComments: [
-    { id: 1, user: 'ProPhotographer', avatar: 'P', text: 'Try ISO 3200 with a 2-second exposure. Works great for me.', time: '5h ago', likes: 67, replies: [
-      { id: 11, user: 'TechExplorer', avatar: 'T', text: 'Thanks! Will try this tonight.', time: '4h ago', likes: 5 }
+  { id: 3, topic: 'field', title: 'Best sensitivity profile near active taxiways?', content: 'We are seeing more ground clutter during night ops. Which profile works best without missing low-altitude motion?', author: 'FieldTech', time: '6h ago', upvotes: 89, comments: 2, hasVideo: false, siteComments: [
+    { id: 1, user: 'SkeyeSupport', avatar: 'S', text: 'Start with terminal-high-confidence and tune the wildlife threshold down one step.', time: '5h ago', likes: 67, replies: [
+      { id: 11, user: 'FieldTech', avatar: 'F', text: 'Thanks, testing that on the south node tonight.', time: '4h ago', likes: 5 }
     ]},
-    { id: 2, user: 'NightOwl', avatar: 'N', text: 'Also make sure your lens is clean - dust shows up bad at night.', time: '4h ago', likes: 23, replies: [] },
+    { id: 2, user: 'AirportOps', avatar: 'A', text: 'Lens cleaning helped our false positives during wet weather.', time: '4h ago', likes: 23, replies: [] },
   ]},
-  { id: 4, topic: 'analysis', title: 'Speed analysis of recent Chile sighting', content: 'I ran frame-by-frame analysis and calculated the object was moving at approximately 4,500 mph based on reference points.', author: 'DataScientist_UAP', time: '8h ago', upvotes: 312, comments: 1, hasVideo: false, siteComments: [
-    { id: 1, user: 'PhysicsProf', avatar: 'P', text: 'Your methodology is solid. Published similar findings in my analysis.', time: '6h ago', likes: 89, replies: [] },
+  { id: 4, topic: 'analysis', title: 'Track-path estimate for approach corridor event', content: 'Frame-by-frame review estimated the object path relative to final approach and the active runway threshold.', author: 'OpsAnalyst', time: '8h ago', upvotes: 312, comments: 1, hasVideo: false, siteComments: [
+    { id: 1, user: 'SafetyReview', avatar: 'S', text: 'Methodology is clear enough for the partner packet.', time: '6h ago', likes: 89, replies: [] },
   ]},
-  { id: 5, topic: 'news', title: 'Congressional hearing scheduled for next month', content: 'New whistleblower testimony expected. This could be huge for disclosure.', author: 'NewsWatcher', time: '12h ago', upvotes: 567, comments: 4, hasVideo: false, siteComments: [
-    { id: 1, user: 'DCInsider', avatar: 'D', text: 'Hearing from sources this will be bigger than Grusch testimony.', time: '10h ago', likes: 234, replies: [] },
-    { id: 2, user: 'SkepticalVoice', avatar: 'S', text: 'Ill believe it when I see it. Been burned before.', time: '9h ago', likes: 45, replies: [] },
-    { id: 3, user: 'TruthSeeker', avatar: 'T', text: 'Finally! The truth is coming out.', time: '8h ago', likes: 123, replies: [] },
-    { id: 4, user: 'PoliticalWatcher', avatar: 'P', text: 'Mark your calendars folks!', time: '6h ago', likes: 67, replies: [] },
+  { id: 5, topic: 'updates', title: 'Partner integration checklist', content: 'New API handoff fields are ready for airport ops, SOC workflows, and partner review packets.', author: 'ProductOps', time: '12h ago', upvotes: 567, comments: 4, hasVideo: false, siteComments: [
+    { id: 1, user: 'Integrator', avatar: 'I', text: 'The signed event URL field is the one our SOC team needed.', time: '10h ago', likes: 234, replies: [] },
+    { id: 2, user: 'AirportOps', avatar: 'A', text: 'Can we add a runway environment tag?', time: '9h ago', likes: 45, replies: [] },
+    { id: 3, user: 'ProductOps', avatar: 'P', text: 'Yes, adding that to the next schema pass.', time: '8h ago', likes: 123, replies: [] },
+    { id: 4, user: 'SafetyReview', avatar: 'S', text: 'This helps the pilot-report review workflow.', time: '6h ago', likes: 67, replies: [] },
   ]},
   { id: 6, topic: 'questions', title: 'How do I calibrate my Skeye camera?', content: 'Just got my camera and want to make sure the motion detection is set up correctly.', author: 'NewUser2024', time: '1d ago', upvotes: 45, comments: 1, hasVideo: false, siteComments: [
     { id: 1, user: 'SkeyeSupport', avatar: 'S', text: 'Check out the setup guide in the app Settings > Calibration. Happy to help if you have questions!', time: '20h ago', likes: 12, replies: [] },
   ]},
-  { id: 7, topic: 'sightings', title: 'Triangular craft over Texas', content: 'Silent, massive, three lights at each corner. My whole neighborhood saw it.', author: 'TexasSkies', time: '1d ago', upvotes: 445, comments: 3, hasVideo: true, siteComments: [
-    { id: 1, user: 'TR3BExpert', avatar: 'T', text: 'Classic TR-3B description. Government craft or something else?', time: '20h ago', likes: 156, replies: [] },
-    { id: 2, user: 'AustinWatcher', avatar: 'A', text: 'Saw the same thing! We need to compare notes.', time: '18h ago', likes: 78, replies: [] },
-    { id: 3, user: 'MilitaryVet', avatar: 'M', text: 'Ive worked on classified projects. This isnt ours.', time: '12h ago', likes: 234, replies: [] },
+  { id: 7, topic: 'events', title: 'Vertiport recovery-zone event', content: 'Silent object crossed the recovery zone while operators were preparing for autonomous launch clearance.', author: 'LaunchOps', time: '1d ago', upvotes: 445, comments: 3, hasVideo: true, siteComments: [
+    { id: 1, user: 'AirspaceLead', avatar: 'A', text: 'Please flag this for the launch-readiness review.', time: '20h ago', likes: 156, replies: [] },
+    { id: 2, user: 'SafetyReview', avatar: 'S', text: 'We should compare with ADS-B and radio logs.', time: '18h ago', likes: 78, replies: [] },
+    { id: 3, user: 'FieldTech', avatar: 'F', text: 'The east node had a better angle than the pad node.', time: '12h ago', likes: 234, replies: [] },
   ]},
-  { id: 8, topic: 'analysis', title: 'Debunked: Recent viral video was a drone', content: 'After careful analysis, the movement pattern and light signature clearly indicate a DJI drone.', author: 'SkepticalAnalyst', time: '2d ago', upvotes: 123, comments: 2, hasVideo: false, siteComments: [
-    { id: 1, user: 'OpenMinded', avatar: 'O', text: 'Good analysis. We need more critical thinking in this community.', time: '1d ago', likes: 67, replies: [] },
-    { id: 2, user: 'Believer99', avatar: 'B', text: 'Not everything is a drone...', time: '1d ago', likes: 12, replies: [] },
+  { id: 8, topic: 'analysis', title: 'Reviewed: perimeter event was a drone', content: 'Movement pattern, altitude profile, and light signature are consistent with a small drone near the fence line.', author: 'OpsAnalyst', time: '2d ago', upvotes: 123, comments: 2, hasVideo: false, siteComments: [
+    { id: 1, user: 'SecurityDesk', avatar: 'S', text: 'Good review. We need more validated event packets like this.', time: '1d ago', likes: 67, replies: [] },
+    { id: 2, user: 'BaseSecurity', avatar: 'B', text: 'Adding it to the weekly perimeter report.', time: '1d ago', likes: 12, replies: [] },
   ]},
 ];
 
@@ -1344,7 +1347,7 @@ function CommunityView({ isMobile }) {
   const [showNewPost, setShowNewPost] = useState(false);
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
-  const [newPostTopic, setNewPostTopic] = useState('sightings');
+  const [newPostTopic, setNewPostTopic] = useState('events');
   const [likedComments, setLikedComments] = useState({});
   const [replyingTo, setReplyingTo] = useState(null);
   const [replyText, setReplyText] = useState('');
@@ -1414,7 +1417,7 @@ function CommunityView({ isMobile }) {
         {/* Left Sidebar - Topics */}
         <div className="w-56 bg-[#0a0a0a] border-r border-gray-800 flex flex-col">
           <div className="p-4 border-b border-gray-800">
-            <h2 className="font-bold text-lg">Community</h2>
+            <h2 className="font-bold text-lg">Ops Notes</h2>
           </div>
           <div className="p-3 space-y-1">
             {communityTopics.map(topic => (
@@ -1427,7 +1430,7 @@ function CommunityView({ isMobile }) {
           <div className="mt-auto p-3 border-t border-gray-800">
             <button onClick={() => setShowNewPost(true)} className="w-full py-3 bg-green-500 rounded-xl font-semibold hover:bg-green-600 flex items-center justify-center gap-2">
               <Plus className="w-5 h-5" />
-              New Post
+              New Note
             </button>
           </div>
         </div>
@@ -1532,7 +1535,7 @@ function CommunityView({ isMobile }) {
             <div className="bg-[#141414] rounded-2xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold">Create New Post</h2>
+                  <h2 className="text-xl font-bold">Create Ops Note</h2>
                   <button onClick={() => setShowNewPost(false)}><X className="w-5 h-5 text-gray-400" /></button>
                 </div>
                 <div className="space-y-4">
@@ -1552,7 +1555,7 @@ function CommunityView({ isMobile }) {
                   </div>
                   <div>
                     <label className="block text-sm text-gray-400 mb-2">Content</label>
-                    <textarea value={newPostContent} onChange={(e) => setNewPostContent(e.target.value)} placeholder="Share your sighting, question, or analysis..." rows={5} className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50 resize-none" />
+                    <textarea value={newPostContent} onChange={(e) => setNewPostContent(e.target.value)} placeholder="Share an event note, setup question, or operational analysis..." rows={5} className="w-full px-4 py-3 bg-white/5 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-green-500/50 resize-none" />
                   </div>
                   <div className="flex gap-3 pt-2">
                     <button onClick={() => setShowNewPost(false)} className="flex-1 py-3 bg-white/5 rounded-xl font-medium hover:bg-white/10">Cancel</button>
@@ -1689,7 +1692,7 @@ function CommunityView({ isMobile }) {
           <div className="absolute inset-x-0 bottom-0 bg-[#141414] rounded-t-3xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="w-12 h-1 bg-gray-600 rounded-full mx-auto mt-3" />
             <div className="p-4">
-              <h2 className="text-lg font-bold mb-4">Create New Post</h2>
+              <h2 className="text-lg font-bold mb-4">Create Ops Note</h2>
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs text-gray-400 mb-2">Topic</label>
@@ -1702,7 +1705,7 @@ function CommunityView({ isMobile }) {
                   </div>
                 </div>
                 <input type="text" value={newPostTitle} onChange={(e) => setNewPostTitle(e.target.value)} placeholder="Title..." className="w-full px-3 py-2 bg-white/5 border border-gray-700 rounded-xl text-white text-sm" />
-                <textarea value={newPostContent} onChange={(e) => setNewPostContent(e.target.value)} placeholder="Share your sighting..." rows={4} className="w-full px-3 py-2 bg-white/5 border border-gray-700 rounded-xl text-white text-sm resize-none" />
+                <textarea value={newPostContent} onChange={(e) => setNewPostContent(e.target.value)} placeholder="Share an event note..." rows={4} className="w-full px-3 py-2 bg-white/5 border border-gray-700 rounded-xl text-white text-sm resize-none" />
                 <div className="flex gap-2">
                   <button onClick={() => setShowNewPost(false)} className="flex-1 py-3 bg-white/5 rounded-xl font-medium text-sm">Cancel</button>
                   <button onClick={() => { setShowNewPost(false); setNewPostTitle(''); setNewPostContent(''); }} className="flex-1 py-3 bg-green-500 rounded-xl font-medium text-sm">Post</button>
@@ -1719,7 +1722,7 @@ function CommunityView({ isMobile }) {
 function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips }) {
   const subTabs = [
     { id: 'devices', label: 'My Devices', icon: Camera },
-    { id: 'clips', label: 'My Clips', icon: Film },
+    { id: 'clips', label: 'Event Library', icon: Film },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -1737,9 +1740,9 @@ function ProfileView({ isMobile, profileSubTab, setProfileSubTab, devices, clips
           </div>
         </div>
         <div className={`flex ${isMobile ? 'gap-6 mt-4' : 'gap-8 mt-5'}`}>
-          <div><p className={`font-bold text-green-400 ${isMobile ? '' : 'text-xl'}`}>12,450</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>$SKEYE</p></div>
-          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>156</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Classified</p></div>
-          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>#47</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Rank</p></div>
+          <div><p className={`font-bold text-green-400 ${isMobile ? '' : 'text-xl'}`}>12,450</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Events</p></div>
+          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>156</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Reviewed</p></div>
+          <div><p className={`font-bold ${isMobile ? '' : 'text-xl'}`}>#47</p><p className={`text-gray-500 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>Sites</p></div>
         </div>
       </div>
 
@@ -2106,7 +2109,7 @@ function DevicesSubView({ isMobile, devices }) {
                 <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Motion Detection</p><p className="text-xs text-gray-400">Trigger recording on movement</p></div><div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
                 <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Starlight Vision</p><p className="text-xs text-gray-400">Enhanced low-light capture</p></div><div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
                 <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Audio Recording</p><p className="text-xs text-gray-400">Capture sound with video</p></div><div className="w-12 h-6 bg-gray-600 rounded-full relative cursor-pointer"><div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
-                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Auto-Upload Clips</p><p className="text-xs text-gray-400">Upload detections to cloud</p></div><div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl"><div><p className="text-sm text-white">Auto-Upload Events</p><p className="text-xs text-gray-400">Upload detections to cloud</p></div><div className="w-12 h-6 bg-green-500 rounded-full relative cursor-pointer"><div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" /></div></div>
               </div>
               <div className="border-t border-gray-800 pt-4">
                 <button className="w-full py-3 bg-red-500/10 text-red-400 rounded-xl font-medium hover:bg-red-500/20 transition-colors">Delete This Device</button>
@@ -2127,7 +2130,7 @@ function DevicesSubView({ isMobile, devices }) {
           <div className={`bg-[#141414] rounded-2xl border border-green-500/20 ${isMobile ? 'w-full max-h-[80vh]' : 'w-full max-w-2xl max-h-[80vh]'} overflow-hidden flex flex-col`} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-gray-800"><h3 className="font-semibold text-white">{selectedDevice.name} - Detection History</h3><button onClick={closeModal} className="p-2 hover:bg-white/10 rounded-lg"><X className="w-5 h-5 text-gray-400" /></button></div>
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {[{ time: 'Today, 9:34 PM', type: 'UAP', duration: '0:32', confidence: 87 }, { time: 'Today, 8:12 PM', type: 'Aircraft', duration: '0:18', confidence: 94 }, { time: 'Today, 6:45 PM', type: 'Drone', duration: '1:24', confidence: 91 }, { time: 'Yesterday, 11:23 PM', type: 'UAP', duration: '0:45', confidence: 76 }, { time: 'Yesterday, 9:15 PM', type: 'Bird', duration: '0:12', confidence: 89 }].map((clip, i) => (
+              {[{ time: 'Today, 9:34 PM', type: 'Non-coop', duration: '0:32', confidence: 87 }, { time: 'Today, 8:12 PM', type: 'Aircraft', duration: '0:18', confidence: 94 }, { time: 'Today, 6:45 PM', type: 'Drone', duration: '1:24', confidence: 91 }, { time: 'Yesterday, 11:23 PM', type: 'Non-coop', duration: '0:45', confidence: 76 }, { time: 'Yesterday, 9:15 PM', type: 'Wildlife', duration: '0:12', confidence: 89 }].map((clip, i) => (
                 <div key={i} className="flex items-center gap-4 p-3 bg-white/5 rounded-xl hover:bg-white/10 cursor-pointer">
                   <div className="w-20 h-14 bg-gray-800 rounded-lg flex items-center justify-center relative"><Play className="w-5 h-5 text-gray-500" /><span className="absolute bottom-1 right-1 text-[10px] bg-black/60 px-1 rounded">{clip.duration}</span></div>
                   <div className="flex-1"><span className={`px-2 py-0.5 rounded text-[10px] font-bold`} style={{ backgroundColor: classificationOptions.find(o => o.id === clip.type)?.color + '30', color: classificationOptions.find(o => o.id === clip.type)?.color }}>{classificationOptions.find(o => o.id === clip.type)?.icon} {clip.type}</span><p className="text-xs text-gray-400 mt-1">{clip.time}</p></div>
@@ -2194,7 +2197,7 @@ function ClipsSubView({ isMobile, clips, devices }) {
           {filteredClips.map(clip => (
             <div key={clip.id} onClick={() => setSelectedClip(clip)} className={`flex items-center gap-3 ${isMobile ? 'p-2' : 'p-3'} bg-white/5 rounded-xl hover:bg-white/10 cursor-pointer`}>
               <div className={`${isMobile ? 'w-20 h-14' : 'w-32 h-20'} bg-black rounded-lg relative flex-shrink-0 overflow-hidden`}>
-                <img src={`https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`} alt="Clip" className="w-full h-full object-cover" />
+                <img src={`https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`} alt="Event" className="w-full h-full object-cover" />
                 <Play className={`absolute inset-0 m-auto ${isMobile ? 'w-6 h-6' : 'w-8 h-8'} text-white/80`} />
                 <span className="absolute bottom-1 right-1 text-[10px] bg-black/70 px-1 rounded">{clip.duration}</span>
               </div>
@@ -2227,7 +2230,7 @@ function ClipsSubView({ isMobile, clips, devices }) {
           {filteredClips.map(clip => (
             <div key={clip.id} onClick={() => setSelectedClip(clip)} className="rounded-xl overflow-hidden bg-white/5 hover:bg-white/10 cursor-pointer">
               <div className="aspect-video bg-black relative">
-                <img src={`https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`} alt="Clip" className="w-full h-full object-cover" />
+                <img src={`https://img.youtube.com/vi/${clip.videoId}/mqdefault.jpg`} alt="Event" className="w-full h-full object-cover" />
                 <Play className="absolute inset-0 m-auto w-10 h-10 text-white/80" />
                 <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === clip.type)?.color, color: 'white' }}>{classificationOptions.find(o => o.id === clip.type)?.icon} {clip.type}</span>
                 <span className="absolute bottom-2 right-2 text-xs bg-black/70 px-1.5 py-0.5 rounded">{clip.duration}</span>
@@ -2245,7 +2248,7 @@ function ClipsSubView({ isMobile, clips, devices }) {
         </div>
       )}
 
-      {/* Clip Detail Modal */}
+      {/* Event Detail Modal */}
       {selectedClip && (
         <div className="fixed inset-0 z-50 bg-black/90" onClick={() => setSelectedClip(null)}>
           <div className={`h-full flex ${isMobile ? 'flex-col' : 'items-center justify-center p-8'}`} onClick={e => e.stopPropagation()}>
@@ -2256,7 +2259,7 @@ function ClipsSubView({ isMobile, clips, devices }) {
                   <button onClick={() => setSelectedClip(null)}><X className="w-6 h-6 text-gray-400" /></button>
                 </div>
                 <div className="flex-1 bg-black">
-                  <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Clip" />
+                  <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&playsinline=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Event" />
                 </div>
                 <div className="p-4 flex justify-between items-center">
                   <span className="px-3 py-1 rounded-lg text-sm font-bold" style={{ backgroundColor: classificationOptions.find(o => o.id === selectedClip.type)?.color + '33', color: classificationOptions.find(o => o.id === selectedClip.type)?.color }}>{classificationOptions.find(o => o.id === selectedClip.type)?.icon} {selectedClip.type}</span>
@@ -2269,7 +2272,7 @@ function ClipsSubView({ isMobile, clips, devices }) {
             ) : (
               <div className="bg-[#141414] rounded-2xl overflow-hidden max-w-5xl w-full flex">
                 <div className="flex-1 aspect-video bg-black">
-                  <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Clip" />
+                  <iframe src={`https://www.youtube.com/embed/${selectedClip.videoId}?autoplay=1&rel=0`} className="w-full h-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title="Event" />
                 </div>
                 <div className="w-80 border-l border-gray-800 flex flex-col">
                   <div className="p-4 border-b border-gray-800 flex justify-between items-start">
